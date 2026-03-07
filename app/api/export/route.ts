@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import db from '@/lib/db';
-import { leadFormSchema, getAllFields } from '@/src/config/formSchema';
+import db, { formConfigDb } from '@/lib/db';
 
 /**
  * 📥 SECURE EXPORT ENDPOINT
@@ -63,11 +62,33 @@ export async function GET(request: Request) {
         }
 
         // ── 5b. CSV FORMAT (default) ──────────────────────────────────────────
-        const schemaFields = getAllFields(leadFormSchema);
+        const configRecord = formConfigDb.get();
+        let config;
+        try {
+            config = configRecord ? JSON.parse(configRecord.config) : { pages: [] };
+        } catch (e) {
+            config = { pages: [] };
+        }
+
+        const getAllFields = (cfg: any) => {
+            let fields: any[] = [];
+            cfg.pages.forEach((p: any) => {
+                p.sections.forEach((s: any) => {
+                    if (s.groups) {
+                        s.groups.forEach((g: any) => fields.push(...g.fields));
+                    } else if (s.fields) {
+                        fields.push(...s.fields);
+                    }
+                });
+            });
+            return fields;
+        };
+
+        const schemaFields = getAllFields(config);
         const arrayFieldNames = new Set(
             schemaFields
-                .filter(f => f.type === 'multiselect' || f.type === 'chip-group')
-                .map(f => f.name)
+                .filter((f: any) => f.type === 'multiselect' || f.type === 'chip-group')
+                .map((f: any) => f.name)
         );
 
         const systemCols = [

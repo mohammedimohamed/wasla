@@ -33,7 +33,7 @@ db.pragma('foreign_keys = ON');  // Enforce data integrity for enterprise grade
  * Uses INSERT OR IGNORE to prevent crashes on subsequent server loads.
  */
 export function initDb() {
-    const migrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql'];
+    const migrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql'];
 
     // Wrap in a transaction for atomicity
     const migrationTx = db.transaction(() => {
@@ -467,6 +467,50 @@ export const settingsDb = {
         db.prepare(`UPDATE tenant_settings SET ${sets.join(', ')} WHERE id = 'global'`).run(...params);
         auditTrail.logAction(adminId, 'UPDATE', 'SETTINGS', 'global', `Admin updated branding/event settings`);
     }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 📐 FORM CONFIG (Dynamic Form Builder)
+// ─────────────────────────────────────────────────────────────────────────────
+export const formConfigDb = {
+    /**
+     * Returns the active form configuration JSON.
+     * Falls back to null if the table doesn't exist yet (safe for cold starts).
+     */
+    get: (): any | null => {
+        try {
+            const row = db.prepare("SELECT config, version FROM form_configs WHERE id = 'active'").get() as any;
+            if (!row) return null;
+            return { ...JSON.parse(row.config), _version: row.version };
+        } catch (e) {
+            console.error('[formConfigDb.get]', e);
+            return null;
+        }
+    },
+
+    /**
+     * Saves a new form configuration. Bumps version for cache-busting.
+     */
+    save: (config: any, adminId: string): number => {
+        const now = new Date().toISOString();
+        const existing = db.prepare("SELECT version FROM form_configs WHERE id = 'active'").get() as any;
+        const newVersion = existing ? existing.version + 1 : 1;
+        const { _version, ...configData } = config; // strip internal __version if re-submitted
+        const configStr = JSON.stringify({ ...configData, version: newVersion });
+
+        db.prepare(`
+            INSERT INTO form_configs (id, version, config, updated_at, updated_by)
+            VALUES ('active', ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                version    = excluded.version,
+                config     = excluded.config,
+                updated_at = excluded.updated_at,
+                updated_by = excluded.updated_by
+        `).run(newVersion, configStr, now, adminId);
+
+        auditTrail.logAction(adminId, 'UPDATE', 'FORM_CONFIG', 'active', `Form schema updated to v${newVersion}`);
+        return newVersion;
+    },
 };
 
 // Initialize database

@@ -1,9 +1,18 @@
 {
-  "/commercial/page": "app/commercial/page.js",
-  "/login/page": "app/login/page.js",
-  "/admin/login/page": "app/admin/login/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/teams/page": "app/admin/teams/page.js",
   "/api/auth/route": "app/api/auth/route.js",
-  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js"
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/admin/settings/form-builder/page": "app/admin/settings/form-builder/page.js",
+  "/api/settings/form/route": "app/api/settings/form/route.js",
+  "/leads/new/page": "app/leads/new/page.js",
+  "/api/settings/route": "app/api/settings/route.js",
+  "/admin/users/page": "app/admin/users/page.js",
+  "/api/users/route": "app/api/users/route.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/page": "app/page.js",
+  "/kiosk/page": "app/kiosk/page.js",
+  "/login/page": "app/login/page.js",
+  "/commercial/page": "app/commercial/page.js",
+  "/api/leads/route": "app/api/leads/route.js",
+  "/api/sync/status/route": "app/api/sync/status/route.js"
 }

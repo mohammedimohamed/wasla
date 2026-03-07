@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useFormConfig, getAllFields } from "@/src/hooks/useFormConfig";
 
 // Zod Schema matches backend for validation
 const rewardSchema = z.object({
@@ -54,12 +55,20 @@ export default function AdminRewardsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<RewardFormValues>({
+    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<RewardFormValues>({
         resolver: zodResolver(rewardSchema),
         defaultValues: { reward_type: 'physical_gift', total_quantity: -1 }
     });
 
     const isUnlimited = watch('total_quantity') === -1;
+    const ruleMatchStr = watch('rule_match');
+
+    // Parse the rule_match string back to object for UI binding if needed
+    const ruleMatchObj = ruleMatchStr ? JSON.parse(ruleMatchStr) : { field: '', value: '' };
+
+    const { config } = useFormConfig();
+    const formFields = config ? getAllFields(config).filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'chip-group') : [];
+    const selectedFieldObj = formFields.find(f => f.name === ruleMatchObj?.field);
 
     const fetchRewards = async () => {
         setLoading(true);
@@ -332,8 +341,54 @@ export default function AdminRewardsPage() {
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Spécifications (URL / C. Promo)</label>
                                         <input {...register('value')} placeholder="https://... ou CODE20" className="w-full bg-white border border-slate-200 px-5 py-4 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all placeholder:text-slate-300 font-mono" />
                                     </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 mt-4 flex items-center gap-2">
+                                            <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[9px]">3</span>
+                                            Ciblage Logique (Optionnel)
+                                        </label>
+                                        <p className="text-xs text-slate-400 mb-4 font-medium pl-2">
+                                            Ce cadeau ne sera distribué qu'aux prospects qui répondent à la condition ci-dessous. Si laissé vide, il sera distribué au hasard (équitablement).
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-5">
+                                            <div>
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Si le champ...</label>
+                                                <select
+                                                    value={ruleMatchObj?.field || ''}
+                                                    onChange={e => {
+                                                        const field = e.target.value;
+                                                        setValue('rule_match', field ? JSON.stringify({ field, value: '' }) : '');
+                                                    }}
+                                                    className="w-full bg-white border border-slate-200 px-5 py-4 rounded-2xl text-sm font-medium focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                                >
+                                                    <option value="">(Pas de condition, universel)</option>
+                                                    {formFields.map(f => (
+                                                        <option key={f.name} value={f.name}>{f.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            {selectedFieldObj && (
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Est égal à...</label>
+                                                    <select
+                                                        value={ruleMatchObj?.value || ''}
+                                                        onChange={e => {
+                                                            const value = e.target.value;
+                                                            setValue('rule_match', JSON.stringify({ field: ruleMatchObj.field, value }));
+                                                        }}
+                                                        className="w-full bg-white border border-slate-200 px-5 py-4 rounded-2xl text-sm font-medium focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                                    >
+                                                        <option value="">Sélectionnez une valeur</option>
+                                                        {selectedFieldObj.options?.map(o => (
+                                                            <option key={o.value} value={o.value}>{o.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
 
                             <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] shadow-xl shadow-indigo-200/50 mt-8 py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                                 {isSubmitting ? (

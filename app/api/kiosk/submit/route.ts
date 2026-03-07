@@ -27,10 +27,41 @@ export async function POST(request: Request) {
             `).all() as any[];
 
       if (availableRewards.length > 0) {
-        // Randomly pick one reward setup from the active campaigns
-        // (In a v2, this could use rule_match logic. For now, it's equitable random distribution).
-        const randomIndex = Math.floor(Math.random() * availableRewards.length);
-        wonReward = availableRewards[randomIndex];
+        // 1. Separate rewards into rule-based and universal (no rules)
+        const ruleBased: any[] = [];
+        const universal: any[] = [];
+        
+        for (const reward of availableRewards) {
+            if (reward.rule_match) {
+                try {
+                    ruleBased.push({ ...reward, ruleObj: JSON.parse(reward.rule_match) });
+                } catch(e) { /* ignore invalid rules */ console.error("Invalid rule JSON", reward.rule_match); }
+            } else {
+                universal.push(reward);
+            }
+        }
+
+        // 2. Try to find a matching rule
+        let matchedRewards = ruleBased.filter(r => {
+            const { field, value } = r.ruleObj;
+            if (!field || !value) return false;
+            
+            const metaValue = body[field];
+            if (Array.isArray(metaValue)) {
+                return metaValue.includes(value);
+            }
+            return String(metaValue) === String(value);
+        });
+
+        // 3. If no rules match, fallback to universal pool
+        let selectionPool = matchedRewards.length > 0 ? matchedRewards : universal;
+
+        // If even universal is empty, pick anything to avoid breaking (failsafe)
+        if (selectionPool.length === 0) selectionPool = availableRewards;
+
+        // Randomly pick one reward from the final valid pool
+        const randomIndex = Math.floor(Math.random() * selectionPool.length);
+        wonReward = selectionPool[randomIndex];
 
         // Increment its claimed_count to reserve it immediately 
         rewardsDb.incrementClaimed(wonReward.id);

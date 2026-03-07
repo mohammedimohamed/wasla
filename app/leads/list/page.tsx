@@ -16,14 +16,9 @@ import {
     QrCode,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { leadFormSchema, getTableFields } from "@/src/config/formSchema";
+import { useFormConfig, getTableFields, FormField } from "@/src/hooks/useFormConfig";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SCHEMA-DRIVEN TABLE COLUMNS
-// Columns are derived from formSchema fields marked showInTable: true.
-// To change columns across the ENTIRE APP, only edit formSchema.ts.
-// ─────────────────────────────────────────────────────────────────────────────
-const TABLE_COLUMNS = getTableFields(leadFormSchema);
+// TABLE_COLUMNS are now derived from the DB schema inside the component.
 
 interface Lead {
     id: string;
@@ -65,7 +60,7 @@ function getSourceBadge(source: string) {
 }
 
 /** Resolve a field's value from a parsed metadata object */
-function getCellValue(field: (typeof TABLE_COLUMNS)[number], meta: Record<string, any>): string {
+function getCellValue(field: FormField, meta: Record<string, any>): string {
     const raw = meta[field.name];
     if (raw === null || raw === undefined) return "—";
     if (Array.isArray(raw)) return raw.join(", ") || "—";
@@ -80,6 +75,10 @@ export default function LeadsListPage() {
     const [filterSource, setFilterSource] = useState("all");
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
+
+    // 📊 DB-driven table columns
+    const { config: formConfig } = useFormConfig();
+    const TABLE_COLUMNS = formConfig ? getTableFields(formConfig) : [];
 
     useEffect(() => {
         const init = async () => {
