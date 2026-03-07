@@ -20,8 +20,9 @@ export async function GET() {
                 id: user.id,
                 name: user.name,
                 role: user.role,
-                isPinSet: !!user.quick_pin, // Derived from DB
-                sessionHasPin: !!session.hasPin // Derived from current JWT
+                isPinSet: !!user.quick_pin,
+                needsPin: !user.quick_pin,             // true = first time, go to PIN_SETUP
+                sessionHasPin: !!session.hasPin         // true = fully unlocked
             }
         });
     } catch (error) {

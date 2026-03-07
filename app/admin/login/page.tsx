@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
 
     const handlePinAction = async () => {
         if (pin.length !== 6) {
-            toast.error("Le PIN comporte 6 chiffres");
+            toast.error("Le PIN administrateur comporte 6 chiffres");
             return;
         }
 
@@ -205,8 +205,8 @@ export default function AdminLoginPage() {
                                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                                     <p className="text-sm font-medium text-slate-600">
                                         {authStep === 'PIN_SETUP'
-                                            ? "Définissez un PIN de 6 chiffres pour les accès rapides sur cette console."
-                                            : "Veuillez entrer votre PIN administrateur."}
+                                            ? "Définissez un PIN de 6 chiffres pour sécuriser l'accès à cette console d'administration."
+                                            : "Veuillez entrer votre PIN administrateur à 6 chiffres."}
                                     </p>
                                 </div>
                                 <div className="relative">

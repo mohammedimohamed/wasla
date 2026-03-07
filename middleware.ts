@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
 
     if (isProtected) {
         // 🏗️ Step 1: Complete bypass for Login/Setup portals and core auth API
-        if (pathname === '/admin/login' || pathname.startsWith('/commercial') || pathname === '/api/auth') {
+        if (pathname === '/admin/login' || pathname === '/api/auth') {
             return NextResponse.next();
         }
 
@@ -52,6 +52,9 @@ export async function middleware(request: NextRequest) {
             }
             if (pathname.startsWith('/admin') || pathname.startsWith('/leads')) {
                 return NextResponse.redirect(new URL('/admin/login', request.url));
+            }
+            if (pathname.startsWith('/commercial') || pathname.startsWith('/dashboard')) {
+                return NextResponse.redirect(new URL('/login', request.url));
             }
             return NextResponse.redirect(new URL('/', request.url));
         }
@@ -70,15 +73,19 @@ export async function middleware(request: NextRequest) {
             const { role, hasPin } = payload;
 
             // 🏗️ Step 4: PIN-Setup/Lock Gate
-            // Dashboards are strictly forbidden until the 'hasPin' identity claim is true
-            const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/admin/dashboard');
+            // Protected portals require the 'hasPin' identity claim to be true
+            const needsPinCheck =
+                pathname.startsWith('/dashboard') ||
+                pathname.startsWith('/admin/dashboard') ||
+                pathname.startsWith('/commercial');
 
-            if (isDashboard && !hasPin) {
+            if (needsPinCheck && !hasPin) {
                 console.log(`DEBUG: [Middleware] REDIRECTING to PIN portal because: { hasToken: true, hasPin: false }`);
                 if (pathname.startsWith('/admin')) {
                     return NextResponse.redirect(new URL('/admin/login', request.url));
                 }
-                return NextResponse.redirect(new URL('/commercial', request.url));
+                // Sales agents/team leaders go to /login for PIN entry
+                return NextResponse.redirect(new URL('/login', request.url));
             }
 
             // 🏗️ Step 5: Enterprise RBAC (Handle Admin with team_id: null)

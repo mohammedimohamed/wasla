@@ -33,7 +33,7 @@ db.pragma('foreign_keys = ON');  // Enforce data integrity for enterprise grade
  * Uses INSERT OR IGNORE to prevent crashes on subsequent server loads.
  */
 export function initDb() {
-    const migrations = ['001_init.sql', '002_seed.sql', '004_settings.sql'];
+    const migrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql'];
 
     // Wrap in a transaction for atomicity
     const migrationTx = db.transaction(() => {
@@ -199,16 +199,21 @@ export const leadsDb = {
         `).all(params);
 
         // 🏆 Rewards Claimed: leads with an active reward association
-        const rewardsFilter = filter
-            ? `${filter} AND reward_status = 'sent'`
-            : " WHERE reward_status = 'sent'";
-        const rewardsGiven = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsFilter}`).get(params) as { count: number };
+        let rewardsGiven = { count: 0 };
+        let rewardsGivenToday = { count: 0 };
+        try {
+            const rewardsFilter = filter
+                ? `${filter} AND reward_status = 'sent'`
+                : " WHERE reward_status = 'sent'";
+            rewardsGiven = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsFilter}`).get(params) as { count: number };
 
-        // 🏆 Rewards Claimed Today
-        const rewardsTodayFilter = filter
-            ? `${filter} AND reward_status = 'sent' AND date(updated_at) = date('now')`
-            : " WHERE reward_status = 'sent' AND date(updated_at) = date('now')";
-        const rewardsGivenToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsTodayFilter}`).get(params) as { count: number };
+            const rewardsTodayFilter = filter
+                ? `${filter} AND reward_status = 'sent' AND date(updated_at) = date('now')`
+                : " WHERE reward_status = 'sent' AND date(updated_at) = date('now')";
+            rewardsGivenToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsTodayFilter}`).get(params) as { count: number };
+        } catch (rewardErr) {
+            console.error('[DB] Rewards stats query failed (non-critical):', rewardErr);
+        }
 
         return {
             totalLeads: totalLeads.count,

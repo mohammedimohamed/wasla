@@ -19,10 +19,20 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
-            data: stats
+            data: {
+                totalLeads: stats.totalLeads ?? 0,
+                leadsToday: stats.leadsToday ?? 0,
+                syncedLeads: stats.syncedLeads ?? 0,
+                kioskLeads: stats.kioskLeads ?? 0,
+                commercialLeads: stats.commercialLeads ?? 0,
+                rewardsGiven: stats.rewardsGiven ?? 0,
+                rewardsGivenToday: stats.rewardsGivenToday ?? 0,
+                recentLeads: stats.recentLeads ?? [],
+            }
         });
     } catch (error) {
         console.error('[API Error] Dashboard stats failed:', error);
         return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
     }
 }
+

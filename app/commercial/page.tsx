@@ -4,302 +4,279 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LeadForm } from '@/src/components/LeadForm';
 import { SyncStatusIcon } from '@/src/components/SyncStatusIcon';
-import { Lock, UserCheck, X, Mail, KeyRound, ShieldCheck } from 'lucide-react';
+import {
+    UserCheck, X, Plus, List, TrendingUp, Loader2,
+    Users as UsersIcon
+} from 'lucide-react';
 import { useTranslation } from '@/src/context/LanguageContext';
 import { toast } from 'react-hot-toast';
 
+interface SessionUser {
+    id: string;
+    name: string;
+    role: 'SALES_AGENT' | 'TEAM_LEADER' | 'ADMINISTRATOR';
+}
+
 export default function CommercialPage() {
-    const { t, locale, setLocale } = useTranslation();
+    const { t } = useTranslation();
     const router = useRouter();
 
-    // Auth States
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isUnlocked, setIsUnlocked] = useState(false); // 🚨 THE KEY: sessionHasPin
-    const [authStep, setAuthStep] = useState<'PASSWORD' | 'PIN_SETUP' | 'PIN_VERIFY'>('PASSWORD');
-    const [isChecking, setIsChecking] = useState(true);
+    // Session Context
+    const [user, setUser] = useState<SessionUser | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Input States
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [pin, setPin] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    // Dashboard States
+    const [stats, setStats] = useState<any>(null);
+    const [leads, setLeads] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<'ADD' | 'LIST'>('ADD');
 
-    // Initial check for session
+    // ─────────────────────────────────────────────────────────────────
+    // On mount: verify session context. Middleware already blocks access
+    // if unauthenticated — this fetch is only to get user data (name, role).
+    // ─────────────────────────────────────────────────────────────────
     useEffect(() => {
-        const checkAuth = async () => {
+        const init = async () => {
             try {
-                // Use the new session check endpoint
                 const res = await fetch('/api/auth');
-                if (res.ok) {
-                    const data = await res.json();
-                    setIsAuthenticated(true);
-
-                    if (data.user.needsPin) {
-                        setAuthStep('PIN_SETUP');
-                        setIsUnlocked(false);
-                    } else if (!data.user.sessionHasPin) {
-                        setAuthStep('PIN_VERIFY');
-                        setIsUnlocked(false);
-                    } else {
-                        // 🏁 Fully Verified/Unlocked
-                        setIsUnlocked(true);
-                        setAuthStep('PIN_VERIFY');
-                    }
-                } else {
-                    setIsAuthenticated(false);
-                    setAuthStep('PASSWORD');
+                if (!res.ok) {
+                    // Session expired or invalid — hard redirect to login
+                    window.location.href = '/login';
+                    return;
                 }
+                const data = await res.json();
+                setUser({
+                    id: data.user.id,
+                    name: data.user.name,
+                    role: data.user.role,
+                });
+                // Fetch dashboard data in parallel after session is confirmed
+                await fetchDashboardData();
             } catch (e) {
-                setAuthStep('PASSWORD');
+                window.location.href = '/login';
             } finally {
-                setIsChecking(false);
+                setIsLoading(false);
             }
         };
-        checkAuth();
+        init();
     }, []);
 
-    /**
-     * 🔐 Step 1: Password Login
-     */
-    const handlePasswordLogin = async () => {
-        if (!email || !password) {
-            toast.error(t('validation.fieldRequired'));
-            return;
-        }
-
-        setIsLoading(true);
+    const fetchDashboardData = async () => {
         try {
-            const response = await fetch('/api/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setIsAuthenticated(true);
-                if (data.user.needsPin) {
-                    setAuthStep('PIN_SETUP');
-                    setIsUnlocked(false);
-                } else {
-                    setAuthStep('PIN_VERIFY');
-                    setIsUnlocked(false);
-                }
-                toast.success(t('common.success'));
-            } else {
-                toast.error(t('auth.incorrect'));
+            const [statsRes, leadsRes] = await Promise.all([
+                fetch('/api/dashboard/stats'),
+                fetch('/api/leads'),
+            ]);
+            if (statsRes.ok) {
+                const d = await statsRes.json();
+                setStats(d.data);
             }
-        } catch (error) {
-            toast.error(t('common.error'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    /**
-     * 🔑 Step 2: PIN Setup/Verify
-     */
-    const handlePinAction = async () => {
-        if (pin.length !== 6) {
-            toast.error("Le PIN comporte 6 chiffres");
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const action = authStep === 'PIN_SETUP' ? 'SETUP' : 'VERIFY';
-            const response = await fetch('/api/auth', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin, action }),
-            });
-
-            if (response.ok) {
-                setAuthStep('PIN_VERIFY'); // Stabilized
-                setIsAuthenticated(true);
-                setIsUnlocked(true); // 🚨 ACCESS GRANTED
-                toast.success(t('common.success'));
-
-                // 🔄 BREAK REDIRECT RACE CONDITION
-                // A hard location.href ensures the browser clears cookie cache 
-                // and the Middleware sees the fresh JWT issued in the PUT request.
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 500);
-            } else {
-                toast.error(t('auth.incorrect'));
-                setPin('');
+            if (leadsRes.ok) {
+                const d = await leadsRes.json();
+                setLeads(d.leads || []);
             }
-        } catch (error) {
-            toast.error(t('common.error'));
-        } finally {
-            setIsLoading(false);
+        } catch (e) {
+            console.error('Dashboard data fetch failed:', e);
         }
     };
 
     const handleLogout = async () => {
         await fetch('/api/auth', { method: 'DELETE' });
-        setIsAuthenticated(false);
-        setAuthStep('PASSWORD');
-        setEmail('');
-        setPassword('');
-        setPin('');
+        window.location.href = '/login';
     };
 
-    if (isChecking) return null;
-
-    // LOGIN GATE (Password or PIN)
-    if (!isAuthenticated || !isUnlocked) {
-        const isSetup = authStep === 'PIN_SETUP';
+    // ─────────────────────────────────────────────────────────────────
+    // Loading State
+    // ─────────────────────────────────────────────────────────────────
+    if (isLoading) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-white overflow-hidden relative">
-
-                {/* Visual context for visitors */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 to-primary animate-pulse" />
-
-                <div className="w-full max-w-sm space-y-8 text-center relative z-10 transition-all duration-500 ease-in-out">
-                    <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-primary/30">
-                        {authStep === 'PASSWORD' ? <Lock className="w-10 h-10 text-primary" /> : <ShieldCheck className="w-10 h-10 text-primary" />}
-                    </div>
-
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-black">{t('commercial.accessTitle')}</h1>
-                        <p className="text-slate-400 font-semibold uppercase tracking-widest text-xs">
-                            {authStep === 'PASSWORD' ? 'Authentification Initiale' : 'Sécurisation de Session'}
-                        </p>
-                    </div>
-
-                    <div className="space-y-6 pt-6 text-left">
-                        {authStep === 'PASSWORD' ? (
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-slate-500 ml-1">Email Personnel</label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="agent@wasla.dz"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-slate-500 ml-1">Mot de Passe</label>
-                                    <div className="relative">
-                                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            placeholder="********"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handlePasswordLogin}
-                                    disabled={isLoading}
-                                    className="btn-primary w-full py-5 text-xl font-bold mt-4"
-                                >
-                                    {isLoading ? t('common.loading') : t('commercial.loginBtn')}
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl text-center">
-                                    <p className="text-sm font-medium text-primary">
-                                        {isSetup
-                                            ? "Veuillez définir votre PIN de 6 chiffres pour les accès rapides sur ce stand."
-                                            : "Veuillez entrer votre PIN de session pour continuer."}
-                                    </p>
-                                </div>
-                                <div className="flex justify-center gap-2">
-                                    <input
-                                        type="password"
-                                        value={pin}
-                                        onChange={(e) => setPin(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handlePinAction()}
-                                        placeholder="------"
-                                        className="w-full text-center text-5xl font-black py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all tracking-[0.5em]"
-                                        maxLength={6}
-                                        autoFocus
-                                    />
-                                </div>
-                                <button
-                                    onClick={handlePinAction}
-                                    disabled={isLoading || pin.length !== 6}
-                                    className="btn-primary w-full py-5 text-xl font-bold shadow-xl shadow-primary/20"
-                                >
-                                    {isLoading ? t('common.loading') : 'Valider mon PIN'}
-                                </button>
-                                {authStep === 'PIN_VERIFY' && (
-                                    <button
-                                        onClick={handleLogout}
-                                        className="w-full text-center text-slate-500 text-xs font-bold uppercase hover:text-white transition-colors"
-                                    >
-                                        Changer d'utilisateur
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex gap-4 justify-center pt-4 opacity-50">
-                        {['en', 'fr', 'ar'].map(l => (
-                            <button key={l} onClick={() => setLocale(l as any)} className={`uppercase text-xs font-bold ${locale === l ? 'text-primary underline' : ''}`}>
-                                {l}
-                            </button>
-                        ))}
-                    </div>
+            <div className="flex-1 flex items-center justify-center bg-slate-50 min-h-screen">
+                <div className="flex flex-col items-center gap-4 text-slate-400">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                    <p className="font-bold uppercase tracking-widest text-[10px]">Chargement...</p>
                 </div>
             </div>
         );
     }
 
-    // MAIN FORM VIEW (Session Resumption Verified)
+    const isTeamLeader = user?.role === 'TEAM_LEADER';
+
+    // ─────────────────────────────────────────────────────────────────
+    // MAIN DASHBOARD (Middleware guarantees auth + PIN are valid here)
+    // ─────────────────────────────────────────────────────────────────
     return (
         <div className="flex-1 flex flex-col bg-gray-50">
+            {/* ── HEADER ───────────────────────────────────────────── */}
             <header className="p-6 bg-white border-b flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
                         <UserCheck className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="font-black text-slate-900 tracking-tight">{t('commercial.formTitle')}</h2>
+                        <h2 className="font-black text-slate-900 tracking-tight">
+                            {user?.name || t('commercial.formTitle')}
+                        </h2>
                         <SyncStatusIcon />
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="hidden md:block text-right">
-                        <p className="text-[10px] font-black uppercase text-slate-400">Session Actve</p>
+
+                <div className="flex items-center gap-3">
+                    {/* Team Performance Badge — visible only to TEAM_LEADER */}
+                    {isTeamLeader && stats && (
+                        <div className="hidden md:flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-100">
+                            <TrendingUp className="w-4 h-4 shrink-0" />
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black uppercase tracking-wider leading-none">Performances équipe</span>
+                                <span className="text-xs font-bold leading-tight">{stats.totalLeads ?? 0} Leads</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="text-right hidden sm:block">
+                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Session Active</p>
+                        <p className="text-[10px] font-bold text-slate-500 capitalize">
+                            {isTeamLeader ? 'Chef d\'Équipe' : 'Agent Commercial'}
+                        </p>
                     </div>
+
                     <button
                         onClick={handleLogout}
                         className="p-3 hover:bg-red-50 rounded-2xl text-slate-400 hover:text-red-500 transition-all active:scale-95 border border-transparent hover:border-red-100"
+                        title="Déconnexion"
                     >
-                        <X className="w-6 h-6" />
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto pt-10 pb-20">
-                <div className="max-w-2xl mx-auto px-6">
-                    <div className="mb-10 text-center space-y-2">
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tight">{t('commercial.formTitle')}</h3>
-                        <p className="text-gray-500 font-medium">{t('commercial.formSubtitle')}</p>
+            {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+            <main className="flex-1 overflow-y-auto pt-6 pb-20">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6">
+
+                    {/* Navigation Tabs */}
+                    <div className="flex p-1 bg-slate-200/50 rounded-2xl mb-8 w-fit mx-auto border border-slate-200">
+                        <button
+                            onClick={() => setActiveTab('ADD')}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
+                                activeTab === 'ADD'
+                                    ? 'bg-white text-primary shadow-md'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Ajouter un Lead
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('LIST');
+                                fetchDashboardData();
+                            }}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
+                                activeTab === 'LIST'
+                                    ? 'bg-white text-primary shadow-md'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            <List className="w-4 h-4" />
+                            {isTeamLeader ? 'Leads Équipe' : 'Mes Leads'}
+                        </button>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10 transition-all hover:shadow-primary/5">
-                        <LeadForm
-                            source="commercial"
-                            onSubmitSuccess={() => {
-                                toast.success(t('kiosk.successMsg'));
-                            }}
-                        />
-                    </div>
+                    {/* ── TAB: ADD LEAD ──────────────────────────── */}
+                    {activeTab === 'ADD' && (
+                        <>
+                            <div className="mb-6 text-center space-y-2">
+                                <h3 className="text-3xl font-black text-slate-900 tracking-tight">{t('commercial.formTitle')}</h3>
+                                <p className="text-sm text-gray-500 font-medium">{t('commercial.formSubtitle')}</p>
+                            </div>
+
+                            <div className="max-w-2xl mx-auto bg-white p-8 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10 transition-all hover:shadow-primary/5">
+                                <LeadForm
+                                    source="commercial"
+                                    onSubmitSuccess={() => {
+                                        toast.success(t('kiosk.successMsg'));
+                                        fetchDashboardData();
+                                    }}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* ── TAB: LEADS LIST ────────────────────────── */}
+                    {activeTab === 'LIST' && (
+                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-50">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                                        {isTeamLeader ? 'Leads de mon Équipe' : 'Mes Leads'}
+                                    </h3>
+                                    {isTeamLeader && (
+                                        <p className="text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                                            <UsersIcon className="w-3 h-3" />
+                                            Tous les leads générés par votre équipe
+                                        </p>
+                                    )}
+                                </div>
+                                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+                                    {leads.length} Lead{leads.length !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+
+                            {leads.length === 0 ? (
+                                <div className="text-center p-16 text-slate-400">
+                                    <List className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                    <p className="font-bold text-sm">Aucun lead enregistré pour le moment.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                                                {isTeamLeader && (
+                                                    <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Auteur</th>
+                                                )}
+                                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Informations</th>
+                                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Source</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {leads.map((lead: any) => {
+                                                let meta: any = {};
+                                                try { meta = JSON.parse(lead.metadata || '{}'); } catch (_) {}
+                                                const info = Object.values(meta)
+                                                    .filter(Boolean)
+                                                    .map((v: any) => Array.isArray(v) ? v.join(', ') : String(v))
+                                                    .join(' · ');
+                                                return (
+                                                    <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium text-xs">
+                                                            {new Date(lead.created_at).toLocaleDateString('fr-FR', {
+                                                                day: '2-digit', month: '2-digit',
+                                                                hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </td>
+                                                        {isTeamLeader && (
+                                                            <td className="px-6 py-4 text-slate-700 font-bold whitespace-nowrap text-xs">
+                                                                {lead.created_by_name || 'Inconnu'}
+                                                            </td>
+                                                        )}
+                                                        <td className="px-6 py-4 text-slate-500 text-xs max-w-xs truncate" title={info}>
+                                                            {info || '—'}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">
+                                                                {lead.source}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

@@ -1,122 +1,256 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Lock, User } from "lucide-react";
-import toast from "react-hot-toast";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Lock, Mail, KeyRound, ShieldCheck, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-    const [pin, setPin] = useState("");
-    const [name, setName] = useState("");
     const router = useRouter();
 
-    const handleNumberClick = (num: string) => {
-        if (pin.length < 4) {
-            setPin((prev) => prev + num);
-        }
-    };
+    const [authStep, setAuthStep] = useState<'PASSWORD' | 'PIN_SETUP' | 'PIN_VERIFY'>('PASSWORD');
+    const [isChecking, setIsChecking] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleClear = () => {
-        setPin("");
-    };
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [pin, setPin] = useState('');
 
-    const handleSubmit = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
+    // ────────────────────────────────────────────────────────
+    // Check existing session on mount. If already authenticated
+    // and PIN is set, redirect straight to /commercial.
+    // ────────────────────────────────────────────────────────
+    useEffect(() => {
+        const checkSession = async () => {
+            try {
+                const res = await fetch('/api/auth');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user?.sessionHasPin) {
+                        // Already fully authenticated — go to portal
+                        window.location.href = '/commercial';
+                        return;
+                    } else if (data.user?.needsPin) {
+                        setAuthStep('PIN_SETUP');
+                    } else {
+                        setAuthStep('PIN_VERIFY');
+                    }
+                }
+            } catch (_) {}
+            setIsChecking(false);
+        };
+        checkSession();
+    }, []);
 
-        if (!name.trim()) {
-            toast.error("Veuillez entrer votre prénom");
+    // ────────────────────────────────────────────────────────
+    // Step 1: Email + Password
+    // ────────────────────────────────────────────────────────
+    const handlePasswordLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email.trim() || !password.trim()) {
+            toast.error('Veuillez remplir tous les champs.');
             return;
         }
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success('Connexion réussie');
+                setAuthStep(data.user?.needsPin ? 'PIN_SETUP' : 'PIN_VERIFY');
+            } else {
+                toast.error('Email ou mot de passe incorrect.');
+            }
+        } catch (_) {
+            toast.error('Erreur de connexion. Réessayez.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    // ────────────────────────────────────────────────────────
+    // Step 2: PIN Setup or Verify (exactly 4 digits)
+    // ────────────────────────────────────────────────────────
+    const handlePinAction = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (pin.length !== 4) {
-            toast.error("Le PIN doit comporter 4 chiffres");
+            toast.error('Le PIN doit comporter exactement 4 chiffres.');
             return;
         }
-
-        // In a real app, this would be an API call
-        if (pin === (process.env.NEXT_PUBLIC_APP_PIN || "1234")) {
-            toast.success(`Bienvenue, ${name}`);
-            // Store in session storage or cookie
-            localStorage.setItem("sales_name", name);
-            router.push("/dashboard");
-        } else {
-            toast.error("PIN incorrect");
-            setPin("");
+        setIsLoading(true);
+        try {
+            const action = authStep === 'PIN_SETUP' ? 'SETUP' : 'VERIFY';
+            const res = await fetch('/api/auth', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin, action }),
+            });
+            if (res.ok) {
+                toast.success('Accès accordé !');
+                // Hard redirect so middleware sees the new cookie with hasPin=true
+                window.location.href = '/commercial';
+            } else {
+                toast.error(authStep === 'PIN_VERIFY' ? 'PIN incorrect.' : 'Erreur lors de la création du PIN.');
+                setPin('');
+            }
+        } catch (_) {
+            toast.error('Erreur. Réessayez.');
+        } finally {
+            setIsLoading(false);
         }
     };
+
+    const handleBackToPassword = async () => {
+        await fetch('/api/auth', { method: 'DELETE' });
+        setAuthStep('PASSWORD');
+        setPin('');
+        setEmail('');
+        setPassword('');
+    };
+
+    if (isChecking) return null;
+
+    const isSetupStep = authStep !== 'PASSWORD';
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 text-white">
-            <div className="w-full max-w-sm flex flex-col items-center gap-8">
-                <div className="text-center">
-                    <div className="w-24 h-24 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                        <span className="text-3xl font-bold">W</span>
-                    </div>
-                    <h1 className="text-2xl font-bold">Wasla Lead Collector</h1>
-                    <p className="text-slate-400 mt-2">Batimatec 2026</p>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-white overflow-hidden relative min-h-screen">
+            {/* Accent bar */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
+
+            <div className="w-full max-w-sm space-y-8 text-center relative z-10">
+
+                {/* Icon */}
+                <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-primary/30">
+                    {isSetupStep
+                        ? <ShieldCheck className="w-10 h-10 text-primary" />
+                        : <Lock className="w-10 h-10 text-primary" />
+                    }
                 </div>
 
-                <div className="w-full space-y-4">
-                    <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Votre prénom"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full bg-slate-800 border-none rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-500 focus:ring-2 focus:ring-primary outline-none"
-                        />
-                    </div>
+                {/* Title */}
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-black tracking-tight">
+                        {authStep === 'PASSWORD' && 'Connexion Agent'}
+                        {authStep === 'PIN_SETUP' && 'Créer votre PIN'}
+                        {authStep === 'PIN_VERIFY' && 'Entrer votre PIN'}
+                    </h1>
+                    <p className="text-slate-400 font-semibold uppercase tracking-widest text-xs">
+                        {authStep === 'PASSWORD' && 'Portail Agent Commercial'}
+                        {authStep === 'PIN_SETUP' && 'Premier accès — sécurisez votre session'}
+                        {authStep === 'PIN_VERIFY' && 'Authentification de session'}
+                    </p>
+                </div>
 
-                    <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                        <div className="w-full bg-slate-800 border-none rounded-xl py-4 pl-12 pr-4 flex gap-3">
-                            {[...Array(4)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className={`h-3 w-3 rounded-full ${pin.length > i ? 'bg-primary shadow-[0_0_8px_rgba(30,64,175,0.8)]' : 'bg-slate-700'}`}
+                {/* ── FORM ── */}
+                <div className="space-y-6 pt-4 text-left">
+
+                    {authStep === 'PASSWORD' ? (
+                        <form onSubmit={handlePasswordLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Email</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="agent@wasla.dz"
+                                        autoComplete="email"
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Mot de Passe</label>
+                                <div className="relative">
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        autoComplete="current-password"
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl bg-primary hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-60 mt-4"
+                            >
+                                {isLoading ? 'Connexion...' : 'Se Connecter'}
+                            </button>
+                        </form>
+                    ) : (
+                        <form onSubmit={handlePinAction} className="space-y-6">
+                            <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl text-center">
+                                <p className="text-sm font-medium text-primary">
+                                    {authStep === 'PIN_SETUP'
+                                        ? 'Définissez un PIN de 4 chiffres pour sécuriser vos accès rapides.'
+                                        : 'Entrez votre PIN de 4 chiffres pour continuer.'}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase text-slate-500 ml-1 block mb-2">
+                                    Code PIN — 4 chiffres
+                                </label>
+                                <input
+                                    type="password"
+                                    value={pin}
+                                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                    placeholder="— — — —"
+                                    inputMode="numeric"
+                                    pattern="\d{4}"
+                                    maxLength={4}
+                                    autoFocus
+                                    className="w-full text-center text-5xl font-black py-5 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all tracking-[0.8em]"
+                                    required
                                 />
-                            ))}
-                        </div>
-                    </div>
+                                {/* Dot indicators */}
+                                <div className="flex justify-center gap-3 mt-4">
+                                    {[0, 1, 2, 3].map(i => (
+                                        <div
+                                            key={i}
+                                            className={`w-3 h-3 rounded-full transition-all duration-200 ${pin.length > i ? 'bg-primary shadow-[0_0_10px_rgba(99,102,241,0.8)]' : 'bg-slate-700'}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading || pin.length !== 4}
+                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl bg-primary hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-40"
+                            >
+                                {isLoading ? 'Vérification...' : (authStep === 'PIN_SETUP' ? 'Créer mon PIN' : 'Valider mon PIN')}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleBackToPassword}
+                                className="w-full flex items-center justify-center gap-2 text-slate-500 text-xs font-bold uppercase hover:text-white transition-colors"
+                            >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                Changer d'utilisateur
+                            </button>
+                        </form>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 w-full">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                        <button
-                            key={num}
-                            onClick={() => handleNumberClick(num.toString())}
-                            className="h-16 rounded-xl bg-slate-800 text-2xl font-semibold hover:bg-slate-700 active:bg-primary active:scale-95 transition-all"
-                        >
-                            {num}
-                        </button>
-                    ))}
-                    <button
-                        onClick={handleClear}
-                        className="h-16 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center hover:bg-slate-700 active:scale-95 transition-all"
-                    >
-                        Effacer
-                    </button>
-                    <button
-                        onClick={() => handleNumberClick("0")}
-                        className="h-16 rounded-xl bg-slate-800 text-2xl font-semibold hover:bg-slate-700 active:bg-primary active:scale-95 transition-all"
-                    >
-                        0
-                    </button>
-                    <button
-                        onClick={() => handleSubmit()}
-                        className={`h-16 rounded-xl text-xl font-bold flex items-center justify-center active:scale-95 transition-all ${pin.length === 4 ? 'bg-primary' : 'bg-slate-800 text-slate-600'}`}
-                    >
-                        OK
-                    </button>
-                </div>
-
+                {/* Footer link to admin */}
                 <button
-                    onClick={() => router.push("/admin/login")}
-                    className="text-slate-500 text-sm hover:text-slate-300 transition-colors"
+                    onClick={() => router.push('/admin/login')}
+                    className="text-slate-600 text-xs hover:text-slate-400 transition-colors mt-4 uppercase tracking-widest font-bold"
                 >
-                    Accès Manager
+                    Accès Administrateur →
                 </button>
             </div>
         </div>
