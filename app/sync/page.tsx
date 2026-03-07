@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     ChevronLeft,
-    CloudSync,
     CheckCircle2,
     AlertCircle,
     Clock,
     RefreshCw,
-    Server
+    Server,
+    Cloud
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -130,7 +130,7 @@ export default function SyncPage() {
                         {status.isSyncing ? (
                             <RefreshCw className="w-6 h-6 animate-spin" />
                         ) : (
-                            <CloudSync className="w-6 h-6" />
+                            <Cloud className="w-6 h-6" />
                         )}
                         Synchroniser maintenant
                     </button>

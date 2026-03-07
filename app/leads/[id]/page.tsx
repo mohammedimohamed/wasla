@@ -46,8 +46,17 @@ export default function LeadDetailPage() {
     const { id } = useParams();
     const [lead, setLead] = useState<Lead | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
+        const checkAuth = async () => {
+            const res = await fetch('/api/auth');
+            if (res.ok) {
+                const data = await res.json();
+                setUserRole(data.user?.role || null);
+            }
+        };
+        checkAuth();
         fetchLead();
     }, [id]);
 
@@ -74,7 +83,10 @@ export default function LeadDetailPage() {
         <div className="flex-1 flex flex-col pt-4">
             <header className="px-4 mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+                    <button
+                        onClick={() => router.push("/leads/list")}
+                        className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
+                    >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <h1 className="text-xl font-bold">Détail du lead</h1>
@@ -112,7 +124,7 @@ export default function LeadDetailPage() {
                 <section className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-blue-50 text-primary rounded-2xl flex items-center justify-center text-2xl font-bold uppercase">
-                            {lead.contact.charAt(0)}
+                            {lead.contact?.charAt(0) || "?"}
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{lead.contact}</h2>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShieldCheck, X } from "lucide-react";
+import { useTranslation } from "@/src/context/LanguageContext";
 
 interface ConsentModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface ConsentModalProps {
 }
 
 export default function ConsentModal({ isOpen, onAccept, onReject }: ConsentModalProps) {
+    const { t } = useTranslation();
     const [agreed, setAgreed] = useState(false);
 
     if (!isOpen) return null;
@@ -25,8 +27,8 @@ export default function ConsentModal({ isOpen, onAccept, onReject }: ConsentModa
                             <ShieldCheck className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900 leading-tight">Protection des données</h2>
-                            <p className="text-xs text-gray-500 font-medium tracking-tight">Loi n° 18-07 du 10 juin 2018</p>
+                            <h2 className="text-lg font-bold text-gray-900 leading-tight">{t('consent.title')}</h2>
+                            <p className="text-xs text-gray-500 font-medium tracking-tight">{t('consent.law')}</p>
                         </div>
                     </div>
                     <button onClick={onReject} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
@@ -37,10 +39,7 @@ export default function ConsentModal({ isOpen, onAccept, onReject }: ConsentModa
                 <div className="p-6 overflow-y-auto space-y-4">
                     <div className="text-sm text-gray-600 leading-relaxed bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
                         <p className="font-medium italic text-gray-700">
-                            {process.env.NEXT_PUBLIC_COMPANY_NAME || "Notre entreprise"} est responsable du traitement des données à caractère personnel collectées via cette plateforme.
-                            Conformément aux dispositions de la loi n° 18-07 relative à la protection des personnes physiques dans le cadre du traitement
-                            des données à caractère personnel, promulguée le 25 Ramadan 1439 correspondant au 10 juin 2018, la circulation de ces données
-                            demeure limitée au territoire national (article 44 de la loi).
+                            {t('consent.description')}
                         </p>
                     </div>
 
@@ -54,7 +53,7 @@ export default function ConsentModal({ isOpen, onAccept, onReject }: ConsentModa
                             />
                         </div>
                         <span className="text-sm font-bold text-gray-700 leading-snug">
-                            J'ai lu et j'accepte la politique de protection des données à caractère personnel
+                            {t('consent.checkboxLabel')}
                         </span>
                     </label>
                 </div>
@@ -65,13 +64,13 @@ export default function ConsentModal({ isOpen, onAccept, onReject }: ConsentModa
                         disabled={!agreed}
                         className={`w-full py-4 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-2 ${agreed ? 'bg-primary text-white shadow-blue-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     >
-                        Valider ✓
+                        {t('consent.validate')}
                     </button>
                     <button
                         onClick={onReject}
                         className="w-full py-3 text-gray-500 font-bold text-sm hover:text-gray-700"
                     >
-                        Annuler
+                        {t('common.cancel')}
                     </button>
                 </div>
             </div>

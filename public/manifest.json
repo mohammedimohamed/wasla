@@ -1,22 +1,24 @@
 {
-    "name": "Wasla Lead Collector",
-    "short_name": "Wasla Leads",
-    "description": "Application de collecte de leads pour Batimatec 2026",
-    "start_url": "/dashboard",
+    "name": "Wasla CRM Kiosk",
+    "short_name": "WaslaCRM",
+    "description": "Enterprise Event Capture Interface",
+    "start_url": "/kiosk",
     "display": "standalone",
-    "background_color": "#F9FAFB",
-    "theme_color": "#1E40AF",
-    "orientation": "portrait",
+    "background_color": "#ffffff",
+    "theme_color": "#2563eb",
+    "orientation": "portrait-primary",
     "icons": [
         {
             "src": "/icons/icon-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ]
 }

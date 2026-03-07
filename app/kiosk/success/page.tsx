@@ -4,125 +4,201 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     CheckCircle2,
-    Mail,
     Gift,
-    FileText,
-    PartyPopper,
-    ArrowRight
+    Ticket,
+    DownloadCloud,
+    Loader2,
+    RefreshCw,
+    XCircle,
+    Copy,
+    ExternalLink
 } from "lucide-react";
+import toast from "react-hot-toast";
+
+interface Reward {
+    id: string;
+    name: string;
+    type: 'digital_download' | 'promo_code' | 'physical_gift';
+    value?: string;
+    description?: string;
+}
 
 export default function KioskSuccessPage() {
     const router = useRouter();
-    const [reward, setReward] = useState<any>(null);
+    const [reward, setReward] = useState<Reward | null>(null);
+    const [settings, setSettings] = useState<any>(null);
+    const [countdown, setCountdown] = useState(10);
+    const [copied, setCopied] = useState(false);
+    const [returnUrl, setReturnUrl] = useState('/kiosk');
 
     useEffect(() => {
-        const data = localStorage.getItem("last_reward");
-        if (data) {
-            setReward(JSON.parse(data));
+        // Fetch Settings
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setSettings(data.settings);
+                    document.documentElement.style.setProperty('--primary-color', data.settings.primary_color);
+                }
+            });
+
+        // Load Reward from Session
+        const savedReward = sessionStorage.getItem('kiosk_reward');
+        if (savedReward && savedReward !== "undefined") {
+            try {
+                setReward(JSON.parse(savedReward));
+            } catch (e) { }
         }
 
-        // Auto-reset after 15 seconds
-        const timer = setTimeout(() => {
-            router.push("/kiosk");
-        }, 15000);
+        // Clean up session immediately to prevent stale states on navigation
+        sessionStorage.removeItem('kiosk_reward');
 
-        return () => clearTimeout(timer);
+        // Grab location to restart securely 
+        const searchParams = new URLSearchParams(window.location.search);
+        const location = searchParams.get('location');
+        const targetUrl = location ? `/kiosk?location=${encodeURIComponent(location)}` : '/kiosk';
+        setReturnUrl(targetUrl);
+
+        // Auto-redirect Timer
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    router.push(targetUrl);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
     }, [router]);
 
-    const renderRewardContent = () => {
-        if (!reward) {
-            return (
-                <div className="flex flex-col items-center gap-4 text-slate-500">
-                    <CheckCircle2 className="w-20 h-20 text-success" />
-                    <p className="text-xl font-bold">Merci de votre inscription !</p>
-                    <p className="text-sm">Votre profil a été enregistré avec succès.</p>
-                </div>
-            );
-        }
-
-        switch (reward.reward_type) {
-            case "catalogue_pdf":
-                return (
-                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
-                        <div className="w-24 h-24 bg-blue-100 text-primary rounded-full flex items-center justify-center">
-                            <Mail className="w-12 h-12" />
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-black text-slate-900">C'est envoyé !</h2>
-                            <p className="text-slate-500 font-medium">
-                                Votre catalogue <span className="text-primary font-bold">{reward.title}</span> a été envoyé à votre adresse email.
-                            </p>
-                        </div>
-                    </div>
-                );
-            case "promo_code":
-                return (
-                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
-                        <PartyPopper className="w-24 h-24 text-orange-500" />
-                        <div className="space-y-4">
-                            <h2 className="text-3xl font-black text-slate-900">Code promo exclusif</h2>
-                            <div className="bg-slate-900 text-white p-8 rounded-3xl border-4 border-dashed border-white/20 select-all">
-                                <span className="text-5xl font-black tracking-widest">{reward.value}</span>
-                            </div>
-                            <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">
-                                Présentez cet écran à l'un de nos commerciaux
-                            </p>
-                        </div>
-                    </div>
-                );
-            case "guide_technique":
-                return (
-                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
-                        <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
-                            <FileText className="w-12 h-12" />
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-black text-slate-900">Guide Technique</h2>
-                            <p className="text-slate-500 font-medium">
-                                Votre {reward.title} est en route vers votre boîte mail.
-                            </p>
-                        </div>
-                    </div>
-                );
-            case "cadeau_physique":
-                return (
-                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
-                        <div className="w-24 h-24 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
-                            <Gift className="w-12 h-12" />
-                        </div>
-                        <div className="space-y-4">
-                            <h2 className="text-3xl font-black text-slate-900">Félicitations !</h2>
-                            <div className="bg-purple-50 p-6 rounded-3xl border-2 border-purple-200">
-                                <p className="text-purple-900 font-bold text-lg">{reward.value}</p>
-                            </div>
-                            <p className="text-purple-500 font-bold uppercase text-xs tracking-widest">
-                                Montrez cet écran à notre équipe pour retirer votre cadeau
-                            </p>
-                        </div>
-                    </div>
-                );
-            default:
-                return null;
+    const handleCopy = () => {
+        if (reward?.value) {
+            navigator.clipboard.writeText(reward.value);
+            setCopied(true);
+            toast.success("Code copié !");
+            setTimeout(() => setCopied(false), 2000);
         }
     };
 
-    return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white text-center">
-            <div className="w-full max-w-lg space-y-12">
-                {renderRewardContent()}
+    if (!settings) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <Loader2 className="w-12 h-12 animate-spin text-slate-300" />
+            </div>
+        );
+    }
 
-                <div className="pt-8">
-                    <button
-                        onClick={() => router.push("/kiosk")}
-                        className="px-12 py-5 bg-slate-100 text-slate-900 rounded-full font-black text-xl active:scale-95 transition-all flex items-center justify-center gap-3 mx-auto"
-                    >
-                        Terminer
-                        <ArrowRight className="w-6 h-6" />
-                    </button>
-                    <p className="text-slate-400 text-xs mt-6 font-medium">
-                        Retour à l'accueil automatique dans quelques secondes...
-                    </p>
+    const primaryColor = settings.primary_color;
+
+    return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden font-sans">
+
+            {/* Background Decor */}
+            <div className="absolute top-0 inset-x-0 h-64 opacity-20" style={{ backgroundImage: `linear-gradient(to bottom, ${primaryColor}, transparent)` }} />
+
+            <div className="w-full max-w-2xl bg-white rounded-[40px] shadow-2xl p-10 md:p-16 relative z-10 text-center border border-slate-100">
+
+                {/* ── SUCCESS HEADER ── */}
+                <div className="mx-auto w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center border-4 border-white shadow-xl -mt-20 mb-8">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-500" />
                 </div>
+
+                <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight uppercase leading-none mb-4">
+                    Inscription Réussie !
+                </h1>
+                <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-lg mx-auto mb-10">
+                    Merci d'avoir pris le temps de vous inscrire sur notre stand.
+                </p>
+
+                {/* ── REWARD SECTION ── */}
+                {reward ? (
+                    <div className="bg-slate-50 rounded-[32px] p-8 border border-slate-200 mb-10 overflow-hidden relative group transition-all hover:shadow-lg">
+
+                        <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: primaryColor }} />
+
+                        <h2 className="text-[12px] font-black tracking-widest uppercase mb-6 flex items-center justify-center gap-2" style={{ color: primaryColor }}>
+                            <Gift className="w-4 h-4" /> Voici votre récompense
+                        </h2>
+
+                        <div className="flex flex-col items-center">
+                            <h3 className="text-2xl font-black text-slate-900 leading-tight mb-2">
+                                {reward.name}
+                            </h3>
+                            {reward.description && (
+                                <p className="text-sm text-slate-600 font-medium mb-8">
+                                    {reward.description}
+                                </p>
+                            )}
+
+                            {/* Reward Action based on TYPE */}
+                            {reward.type === 'promo_code' && reward.value && (
+                                <div className="w-full max-w-sm">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Code Promotionnel</p>
+                                    <div className="flex bg-white rounded-2xl border-2 border-dashed border-slate-300 p-1 group-hover:border-indigo-300 transition-colors">
+                                        <div className="flex-1 py-4 text-2xl font-black tracking-[0.2em] font-mono text-slate-800">
+                                            {reward.value}
+                                        </div>
+                                        <button
+                                            onClick={handleCopy}
+                                            className="px-6 rounded-xl text-white font-bold uppercase text-xs tracking-wider transition-all hover:opacity-90 flex items-center gap-2"
+                                            style={{ backgroundColor: primaryColor }}
+                                        >
+                                            {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                            {copied ? 'Copié' : 'Copier'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {reward.type === 'digital_download' && reward.value && (
+                                <a
+                                    href={reward.value}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-10 py-5 rounded-2xl text-white font-black uppercase text-sm tracking-widest transition-all shadow-lg hover:-translate-y-1 flex items-center gap-3 w-full max-w-sm"
+                                    style={{ backgroundColor: primaryColor, boxShadow: `0 10px 15px -3px ${primaryColor}40` }}
+                                >
+                                    <DownloadCloud className="w-6 h-6" />
+                                    Télécharger le fichier
+                                </a>
+                            )}
+
+                            {reward.type === 'physical_gift' && (
+                                <div className="w-full max-w-md bg-amber-50 border border-amber-200 rounded-2xl p-6 text-amber-800 text-sm font-bold flex gap-4 text-left items-start">
+                                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                                        <Gift className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                    <p className="leading-relaxed">
+                                        Veuillez présenter cet écran à l'une de nos hôtesses sur le stand immédiatement pour récupérer votre cadeau physique.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    // Generic fallback if no rewards were available/won
+                    <div className="bg-slate-50 rounded-[32px] p-8 border border-slate-200 border-dashed mb-10">
+                        <p className="text-slate-500 font-medium">Un agent vous contactera très prochainement.</p>
+                    </div>
+                )}
+
+                {/* ── AUTO CLOSE FOOTER ── */}
+                <button
+                    onClick={() => router.push(returnUrl)}
+                    className="w-full bg-slate-900 hover:bg-black text-white rounded-[24px] shadow-xl py-6 text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 relative overflow-hidden"
+                >
+                    <RefreshCw className="w-5 h-5 absolute left-8 opacity-50" />
+                    Terminer & Retourner à l'accueil
+
+                    {/* Progress Bar inside Button */}
+                    <div className="absolute bottom-0 left-0 h-1 bg-white/30" style={{ width: `${(countdown / 10) * 100}%`, transition: 'width 1s linear' }} />
+                </button>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-4">
+                    Fermeture automatique dans <span style={{ color: primaryColor }}>{countdown}</span> seconde{countdown !== 1 ? 's' : ''}
+                </p>
             </div>
         </div>
     );

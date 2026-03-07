@@ -1,325 +1,298 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-    ArrowRight,
-    Lock,
-    Settings,
-    X,
-    Sparkles,
-    Gift
-} from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { leadFormSchema } from "@/src/config/formSchema";
+import { useForm, Controller } from "react-hook-form";
+import { MoveRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
-import ConsentModal from "@/components/ConsentModal";
+import { saveLeadOffline } from "@/lib/offlineQueue";
 
-const kioskSchema = z.object({
-    contact: z.string().min(2, "Votre nom est obligatoire"),
-    telephone: z.string().min(9, "Téléphone invalide (min 9 chiffres)"),
-    email: z.string().email("Veuillez entrer un email valide pour recevoir vos cadeaux"),
-    ville: z.string().optional(),
-    type_client: z.string({ required_error: "Veuillez sélectionner votre profil" }),
-    produits: z.array(z.string()).min(1, "Veuillez sélectionner au moins un intérêt"),
-    honeypot: z.string().max(0).optional(), // Anti-bot
-});
-
-type KioskFormValues = z.infer<typeof kioskSchema>;
-
-const CLIENT_TYPES = [
-    "Promoteur", "Hôtel", "Architecte", "Particulier", "Revendeur", "Installateur / Plombier", "Autre"
-];
-
-const PRODUCTS = [
-    { id: "baignoire", label: "Baignoire", icon: "🛁" },
-    { id: "baignoire_tablier", label: "Baignoire avec tablier", icon: "🛁" },
-    { id: "jacuzzi", label: "Jacuzzi", icon: "💦" },
-];
+type FormValues = Record<string, any>;
 
 export default function KioskPage() {
     const router = useRouter();
-    const [step, setStep] = useState<"welcome" | "form">("welcome");
-    const [showExitModal, setShowExitModal] = useState(false);
-    const [exitPin, setExitPin] = useState("");
-    const [isConsentOpen, setIsConsentOpen] = useState(false);
-    const [formData, setFormData] = useState<KioskFormValues | null>(null);
+    const [settings, setSettings] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Inactivity Timer (90s)
-    const resetTimer = useCallback(() => {
-        if (step === "form") {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            setStep("welcome");
-            toast.error("Session réinitialisée après inactivité", { icon: "⏳" });
-        }
-    }, [step]);
+    const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormValues>();
 
+    // Fetch dynamic Branding from Admin Settings
     useEffect(() => {
-        let timeout: NodeJS.Timeout;
-        if (step === "form") {
-            timeout = setTimeout(resetTimer, 90000);
-        }
-        return () => clearTimeout(timeout);
-    }, [step, resetTimer]);
-
-    const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<KioskFormValues>({
-        resolver: zodResolver(kioskSchema),
-        defaultValues: { produits: [] }
-    });
-
-    const selectedType = watch("type_client");
-    const selectedProducts = watch("produits");
-
-    const startForm = () => setStep("form");
-
-    const preSubmit = (data: KioskFormValues) => {
-        setFormData(data);
-        setIsConsentOpen(true);
-    };
-
-    const handleFinalSubmit = async (consentAt: string) => {
-        if (!formData) return;
-        setIsSubmitting(true);
-        setIsConsentOpen(false);
-
-        try {
-            const response = await fetch("/api/kiosk/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...formData,
-                    consent_given: 1,
-                    consent_at: consentAt,
-                    consent_source: "kiosk",
-                    source: "kiosk",
-                    id: crypto.randomUUID(),
-                    created_at: new Date().toISOString(),
-                }),
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setSettings(data.settings);
+                    // Adjust dynamic CSS vars globally just for safety or local scope
+                    document.documentElement.style.setProperty('--primary-color', data.settings.primary_color);
+                }
+            })
+            .catch(() => {
+                toast.error("Impossible de charger la configuration.");
             });
+    }, []);
 
-            const result = await response.json();
+    const onSubmit = async (data: FormValues) => {
+        if (!data.consent_given) {
+            toast.error("Veuillez accepter les conditions d'utilisation.");
+            return;
+        }
 
-            if (response.ok) {
-                localStorage.setItem("last_reward", JSON.stringify(result.reward));
-                router.push("/kiosk/success");
+        setIsSubmitting(true);
+        try {
+            // Extrait l'emplacement du kiosk si présent dans l'URL
+            const searchParams = new URLSearchParams(window.location.search);
+            const location = searchParams.get('location');
+
+            // Ajoute l'id de l'appareil
+            const payload = { ...data, device_id: location || null };
+
+            let isOfflineFallback = false;
+
+            if (!navigator.onLine) {
+                isOfflineFallback = true;
             } else {
-                toast.error(result.message || "Erreur de soumission");
+                try {
+                    const res = await fetch('/api/kiosk/submit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!res.ok) throw new Error("Server Error");
+
+                    const result = await res.json();
+
+                    // Store reward locally so the success page can render it immediately
+                    if (result.reward) {
+                        sessionStorage.setItem('kiosk_reward', JSON.stringify(result.reward));
+                    } else {
+                        sessionStorage.removeItem('kiosk_reward');
+                    }
+                } catch (err: any) {
+                    isOfflineFallback = true;
+                }
             }
-        } catch (error) {
-            toast.error("Erreur réseau");
-        } finally {
+
+            if (isOfflineFallback) {
+                saveLeadOffline(payload, 'kiosk');
+                toast.success("Hors ligne: Lead sauvegardé localement 📶❌", { duration: 5000 });
+                sessionStorage.removeItem('kiosk_reward'); // No instant DB rewards when offline
+            }
+
+            // Route to success screen with tracker
+            if (location) {
+                router.push(`/kiosk/success?location=${encodeURIComponent(location)}`);
+            } else {
+                router.push('/kiosk/success');
+            }
+        } catch (error: any) {
+            toast.error("Une erreur est survenue, veuillez réessayer.");
             setIsSubmitting(false);
         }
     };
 
-    const verifyExitPin = () => {
-        if (exitPin === (process.env.NEXT_PUBLIC_APP_PIN || "1234")) {
-            router.push("/dashboard");
-        } else {
-            toast.error("PIN incorrect");
-            setExitPin("");
-        }
-    };
-
-    if (step === "welcome") {
+    if (!settings) {
         return (
-            <div className="flex-1 flex flex-col bg-slate-900 text-white overflow-hidden relative">
-                <div className="absolute top-[-10%] right-[-10%] w-[60%] aspect-square bg-primary/20 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-5%] left-[-5%] w-[40%] aspect-square bg-blue-600/10 rounded-full blur-[80px]" />
-
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-12 relative z-10">
-                    <div className="w-24 h-24 bg-primary rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/20 animate-bounce transition-all duration-1000">
-                        <Sparkles className="w-12 h-12 text-white" />
-                    </div>
-
-                    <div className="space-y-4">
-                        <h1 className="text-4xl font-black tracking-tight leading-tight">
-                            Recevez notre <span className="text-primary italic">catalogue exclusif</span>
-                        </h1>
-                        <p className="text-xl text-slate-400 font-medium px-4">
-                            + Un code promo exceptionnel offert immédiatement après votre inscription !
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 w-full max-w-sm">
-                        <button
-                            onClick={startForm}
-                            className="group bg-white text-slate-900 py-8 rounded-[32px] font-black text-2xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4"
-                        >
-                            Je participe
-                            <ArrowRight className="w-8 h-8 group-hover:translate-x-2 transition-transform text-primary" />
-                        </button>
-                        <div className="flex items-center justify-center gap-6 mt-4">
-                            <div className="flex flex-col items-center gap-1">
-                                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
-                                    <Gift className="w-6 h-6 text-blue-400" />
-                                </div>
-                                <span className="text-[10px] font-bold uppercase text-slate-500">Cadeaux</span>
-                            </div>
-                            <div className="w-px h-8 bg-slate-800" />
-                            <div className="flex flex-col items-center gap-1">
-                                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-xl font-bold">
-                                    %
-                                </div>
-                                <span className="text-[10px] font-bold uppercase text-slate-500">Promos</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => setShowExitModal(true)}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 text-slate-600 flex items-center gap-2 text-xs font-bold uppercase tracking-widest opacity-20 hover:opacity-100 transition-opacity"
-                >
-                    <Lock className="w-3 h-3" />
-                    Accès équipe
-                </button>
-
-                {showExitModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
-                        <div className="bg-white text-slate-900 p-8 rounded-3xl w-full max-w-xs space-y-6">
-                            <div className="flex justify-between items-center">
-                                <h3 className="font-bold">Confirmation PIN</h3>
-                                <button onClick={() => { setShowExitModal(false); setExitPin(""); }}>
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <input
-                                type="password"
-                                inputMode="numeric"
-                                maxLength={4}
-                                value={exitPin}
-                                onChange={(e) => setExitPin(e.target.value)}
-                                placeholder="****"
-                                className="w-full text-center text-4xl font-black py-4 bg-slate-100 rounded-2xl border-none outline-none focus:ring-4 focus:ring-primary/20"
-                            />
-                            <button
-                                onClick={verifyExitPin}
-                                className="w-full bg-primary text-white py-4 rounded-2xl font-bold"
-                            >
-                                Déverrouiller
-                            </button>
-                        </div>
-                    </div>
-                )}
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <Loader2 className="w-12 h-12 animate-spin text-slate-300" />
             </div>
         );
     }
 
+    const primaryColor = settings.primary_color;
+
     return (
-        <div className="flex-1 flex flex-col bg-white">
-            <header className="p-6 flex items-center justify-between border-b sticky top-0 bg-white/80 backdrop-blur-md z-20">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold">W</div>
-                    <h2 className="font-bold text-slate-900">Inscription Expo</h2>
-                </div>
-                <button onClick={() => setStep("welcome")} className="p-2 hover:bg-slate-100 rounded-full">
-                    <X className="w-6 h-6 text-slate-400" />
-                </button>
-            </header>
+        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl">
 
-            <form onSubmit={handleSubmit(preSubmit)} className="flex-1 overflow-y-auto p-6 space-y-12 no-scrollbar pb-32">
-                <input type="text" {...register("honeypot")} className="hidden" tabIndex={-1} />
+            {/* ── LEFT: WELCOME (Sticky on Desktop) ───────────────────────────────── */}
+            <div className="md:w-5/12 lg:w-4/12 flex flex-col items-center justify-center text-center p-10 md:p-16 lg:p-20 relative overflow-hidden shrink-0"
+                style={{ backgroundColor: primaryColor }}
+            >
+                {/* Visual Decoration */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-black opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-                <section className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-2xl font-black text-slate-900">1. Vos coordonnées</h3>
-                        <p className="text-sm text-slate-500 font-medium">Pour vous envoyer vos récompenses par email.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                        <input {...register("contact")} placeholder="Prénom & Nom ⭐" className="input-field h-16 text-lg font-semibold border-2" />
-                        {errors.contact && <p className="text-error text-xs font-bold">{errors.contact.message}</p>}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <input {...register("telephone")} type="tel" placeholder="Téléphone ⭐" className="input-field h-16 text-lg font-semibold border-2" />
-                            <input {...register("email")} type="email" placeholder="Email ⭐" className="input-field h-16 text-lg font-semibold border-2" />
+                <div className="relative z-10 w-full flex flex-col items-center">
+                    {settings.logo_url ? (
+                        <div className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-full flex items-center justify-center shadow-2xl mb-8 md:mb-12 p-4">
+                            <img src={settings.logo_url} alt="Logo" className="w-full h-full object-contain" />
                         </div>
-                        <div className="flex gap-4">
-                            {errors.telephone && <p className="text-error text-xs font-bold flex-1">{errors.telephone.message}</p>}
-                            {errors.email && <p className="text-error text-xs font-bold flex-1">{errors.email.message}</p>}
-                        </div>
-
-                        <input {...register("ville")} placeholder="Votre ville" className="input-field h-16 text-lg font-semibold border-2" />
-                    </div>
-                </section>
-
-                <section className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-2xl font-black text-slate-900">2. Votre profil</h3>
-                        <p className="text-sm text-slate-500 font-medium">Sélectionnez qui vous êtes.</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        {CLIENT_TYPES.map(type => (
-                            <button
-                                key={type}
-                                type="button"
-                                onClick={() => setValue("type_client", type)}
-                                className={`chip min-h-[60px] px-6 text-base font-bold rounded-2xl border-2 ${selectedType === type ? 'chip-active scale-[1.02] shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border-slate-100'}`}
-                            >
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                    {errors.type_client && <p className="text-error text-xs font-bold">{errors.type_client.message}</p>}
-                </section>
-
-                <section className="space-y-6">
-                    <div className="space-y-1">
-                        <h3 className="text-2xl font-black text-slate-900">3. Vos intérêts</h3>
-                        <p className="text-sm text-slate-500 font-medium">Ce qui vous intéresse chez nous.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {PRODUCTS.map(product => (
-                            <button
-                                key={product.id}
-                                type="button"
-                                onClick={() => {
-                                    const cur = selectedProducts || [];
-                                    setValue("produits", cur.includes(product.id) ? cur.filter(id => id !== product.id) : [...cur, product.id]);
-                                }}
-                                className={`relative h-28 rounded-3xl border-2 flex flex-col items-center justify-center gap-2 transition-all p-4 ${selectedProducts?.includes(product.id) ? 'border-primary bg-blue-50/50 scale-[1.02] shadow-md' : 'border-slate-100 bg-slate-50'}`}
-                            >
-                                <span className="text-4xl">{product.icon}</span>
-                                <span className="text-sm font-black text-slate-900">{product.label}</span>
-                                {selectedProducts?.includes(product.id) && (
-                                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white">
-                                        <ArrowRight className="w-4 h-4 rotate-[-45deg]" />
-                                    </div>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                    {errors.produits && <p className="text-error text-xs font-bold">{errors.produits.message}</p>}
-                </section>
-            </form>
-
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/95 backdrop-blur-md border-t-2 z-30">
-                <button
-                    onClick={handleSubmit(preSubmit)}
-                    disabled={isSubmitting}
-                    className="w-full bg-slate-900 text-white py-10 rounded-[32px] font-black text-2xl shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
-                >
-                    {isSubmitting ? (
-                        <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                        <>
-                            Recevoir ma récompense
-                            <ArrowRight className="w-8 h-8" />
-                        </>
+                        <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-inner">
+                            <span className="text-5xl font-black text-white">{settings.event_name?.charAt(0)}</span>
+                        </div>
                     )}
-                </button>
+
+                    <h2 className="text-[10px] md:text-sm font-black text-white/60 tracking-widest uppercase mb-4">
+                        {settings.event_name}
+                    </h2>
+
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                        {settings.kiosk_welcome_text}
+                    </h1>
+                </div>
             </div>
 
-            <ConsentModal
-                isOpen={isConsentOpen}
-                onAccept={handleFinalSubmit}
-                onReject={() => setIsConsentOpen(false)}
-            />
+            {/* ── RIGHT: DYNAMIC FORM ─────────────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto bg-white p-6 md:p-12 lg:p-20 relative">
+                <div className="max-w-3xl mx-auto w-full">
+
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-12 pb-24">
+
+                        {leadFormSchema.sections.map((section, sIdx) => (
+                            <div key={sIdx} className="space-y-6">
+                                <div className="border-b border-slate-100 pb-4">
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{section.title.split('—').pop()?.trim() || section.title}</h3>
+                                    {section.description && <p className="text-sm text-slate-500 font-medium mt-1">{section.description}</p>}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                                    {section.fields.map(field => {
+                                        const isFull = field.colSpan === 2 || field.type === 'textarea';
+                                        return (
+                                            <div key={field.name} className={isFull ? "col-span-1 md:col-span-2" : "col-span-1"}>
+                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">
+                                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                                </label>
+
+                                                {/* Text, Email, Tel */}
+                                                {(field.type === 'text' || field.type === 'email' || field.type === 'tel') && (
+                                                    <input
+                                                        type={field.type}
+                                                        placeholder={field.placeholder}
+                                                        {...register(field.name, { required: field.required })}
+                                                        className={`w-full bg-slate-50 border ${errors[field.name] ? 'border-red-400 focus:ring-red-50' : 'border-slate-200 focus:ring-slate-100'} px-5 py-4.5 min-h-[56px] rounded-[20px] text-base font-medium focus:border-slate-400 focus:ring-4 outline-none transition-all placeholder:text-slate-300 shadow-sm`}
+                                                    />
+                                                )}
+
+                                                {/* Textarea */}
+                                                {field.type === 'textarea' && (
+                                                    <textarea
+                                                        placeholder={field.placeholder}
+                                                        {...register(field.name, { required: field.required })}
+                                                        className={`w-full bg-slate-50 border ${errors[field.name] ? 'border-red-400 focus:ring-red-50' : 'border-slate-200 focus:ring-slate-100'} px-5 py-4 rounded-[20px] text-base font-medium focus:border-slate-400 focus:ring-4 outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none shadow-sm`}
+                                                    />
+                                                )}
+
+                                                {/* Select (Chips) */}
+                                                {field.type === 'select' && (
+                                                    <Controller
+                                                        name={field.name}
+                                                        control={control}
+                                                        rules={{ required: field.required }}
+                                                        render={({ field: { onChange, value } }) => (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {field.options?.map(opt => (
+                                                                    <button
+                                                                        type="button"
+                                                                        key={opt.value}
+                                                                        onClick={() => onChange(opt.value)}
+                                                                        className={`px-5 py-3 rounded-[16px] text-sm font-black uppercase tracking-wider transition-all border ${value === opt.value ? 'shadow-md scale-105' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                                                                        style={value === opt.value ? { backgroundColor: primaryColor, color: 'white', borderColor: primaryColor } : {}}
+                                                                    >
+                                                                        {opt.label}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    />
+                                                )}
+
+                                                {/* Multiselect / Chip Group */}
+                                                {(field.type === 'multiselect' || field.type === 'chip-group') && (
+                                                    <Controller
+                                                        name={field.name}
+                                                        control={control}
+                                                        defaultValue={[]}
+                                                        rules={{ required: field.required }}
+                                                        render={({ field: { onChange, value } }) => {
+                                                            const toggle = (val: string) => {
+                                                                const current = value || [];
+                                                                if (current.includes(val)) onChange(current.filter((item: string) => item !== val));
+                                                                else onChange([...current, val]);
+                                                            };
+                                                            return (
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {field.options?.map(opt => {
+                                                                        const isSelected = (value || []).includes(opt.value);
+                                                                        return (
+                                                                            <button
+                                                                                type="button"
+                                                                                key={opt.value}
+                                                                                onClick={() => toggle(opt.value)}
+                                                                                className={`px-5 py-3 rounded-[16px] text-sm font-black uppercase tracking-wider transition-all border flex items-center gap-2 ${isSelected ? 'shadow-md scale-105' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                                                                                style={isSelected ? { backgroundColor: primaryColor, color: 'white', borderColor: primaryColor } : {}}
+                                                                            >
+                                                                                {opt.icon && <span>{opt.icon}</span>}
+                                                                                {opt.label}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        }}
+                                                    />
+                                                )}
+
+                                                {errors[field.name] && <p className="text-red-500 text-xs mt-2 pl-2 font-bold flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Requis</p>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* ── CONSENT (LAW 18-07) ────────────────────────────── */}
+                        <div className="pt-8 border-t border-slate-100 flex items-start gap-4">
+                            <div className="pt-1">
+                                <Controller
+                                    name="consent_given"
+                                    control={control}
+                                    defaultValue={false}
+                                    rules={{ required: true }}
+                                    render={({ field: { onChange, value } }) => (
+                                        <button
+                                            type="button"
+                                            onClick={() => onChange(!value)}
+                                            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-colors ${value ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' : 'border-slate-300 bg-white'}`}
+                                        >
+                                            {value && <CheckCircle2 className="w-4 h-4" />}
+                                        </button>
+                                    )}
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-sm font-bold text-slate-700 leading-snug cursor-pointer" onClick={() => {
+                                    const current = watch('consent_given');
+                                    control._formValues.consent_given = !current;
+                                }}>
+                                    J'accepte que mes données soient recueillies et utilisées dans le cadre de cet événement, conformément à la Loi 18-07 relative à la protection des personnes physiques dans le traitement des données à caractère personnel.
+                                </label>
+                                {errors.consent_given && <p className="text-red-500 text-xs mt-1 font-bold">Votre consentement est obligatoire.</p>}
+                            </div>
+                        </div>
+
+                        {/* ── SUBMIT BUTTON ───────────────────────────────────── */}
+                        <div className="pt-10">
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full text-white py-6 rounded-[24px] text-lg font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100"
+                                style={{ backgroundColor: primaryColor, boxShadow: `0 20px 25px -5px ${primaryColor}40` }}
+                            >
+                                {isSubmitting ? (
+                                    <><Loader2 className="w-6 h-6 animate-spin" /> Traitement en cours...</>
+                                ) : (
+                                    <>S'inscrire et Valider <MoveRight className="w-6 h-6" /></>
+                                )}
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
         </div>
     );
 }

@@ -6,20 +6,33 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const stmt = db.prepare('SELECT * FROM leads WHERE id = ?');
+        const stmt = db.prepare(`
+            SELECT l.*, u.name as created_by_name 
+            FROM leads l
+            LEFT JOIN users u ON l.created_by = u.id
+            WHERE l.id = ?
+        `);
         const lead = stmt.get(params.id) as any;
 
         if (!lead) {
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
         }
 
+        // 🛡️ ARCHITECTURAL FIX: Parse metadata and flatten for frontend
+        const meta = JSON.parse(lead.metadata || '{}');
+        const flattenedLead = {
+            ...lead,
+            ...meta,
+            // Ensure products and actions are arrays even if missing in metadata
+            produits: meta.produits || [],
+            actions: meta.actions || [],
+            contact: meta.nom || meta.contact || "Inconnu",
+            societe: meta.societe || meta.entreprise
+        };
+
         return NextResponse.json({
             success: true,
-            lead: {
-                ...lead,
-                produits: JSON.parse(lead.produits || '[]'),
-                actions: JSON.parse(lead.actions || '[]'),
-            }
+            lead: flattenedLead
         });
     } catch (error) {
         console.error('Error fetching lead:', error);
@@ -32,41 +45,32 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        const data = await request.json();
+        const body = await request.json();
+        const { source, device_id, ...customFields } = body;
+        const now = new Date().toISOString();
 
-        // Check if exists
-        const checkStmt = db.prepare('SELECT id FROM leads WHERE id = ?');
-        if (!checkStmt.get(params.id)) {
+        // 🛡️ SECURITY: Verify existence
+        const checkStmt = db.prepare('SELECT id, metadata FROM leads WHERE id = ?');
+        const existing = checkStmt.get(params.id) as any;
+        if (!existing) {
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
         }
 
+        // Bundle updates into metadata
+        // We merge with existing metadata to preserve fields not sent in this specific PUT
+        const existingMeta = JSON.parse(existing.metadata || '{}');
+        const updatedMeta = { ...existingMeta, ...customFields };
+
         const query = `
-      UPDATE leads SET
-        societe = ?, contact = ?, telephone = ?, email = ?, ville = ?, fonction = ?,
-        type_client = ?, produits = ?, projet = ?, quantite = ?, delai = ?, budget = ?,
-        actions = ?, note = ?, qualified_by = ?, sync_status = 'pending'
-      WHERE id = ?
-    `;
+            UPDATE leads SET
+                metadata = ?,
+                updated_at = ?,
+                sync_status = 'pending'
+            WHERE id = ?
+        `;
 
         const stmt = db.prepare(query);
-        stmt.run(
-            data.societe || null,
-            data.contact,
-            data.telephone || null,
-            data.email || null,
-            data.ville || null,
-            data.fonction || null,
-            data.type_client,
-            JSON.stringify(data.produits),
-            data.projet || null,
-            data.quantite || null,
-            data.delai || null,
-            data.budget || null,
-            data.actions ? JSON.stringify(data.actions) : null,
-            data.note || null,
-            data.qualified_by || null,
-            params.id
-        );
+        stmt.run(JSON.stringify(updatedMeta), now, params.id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

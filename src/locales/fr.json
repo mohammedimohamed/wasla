@@ -1,0 +1,77 @@
+{
+    "common": {
+        "save": "Enregistrer",
+        "saving": "Enregistrement en cours...",
+        "cancel": "Annuler",
+        "error": "Une erreur s'est produite",
+        "success": "Succès !",
+        "loading": "Chargement...",
+        "selectPlaceholder": "Sélectionnez..."
+    },
+    "home": {
+        "welcome": "Bienvenue à",
+        "kioskMode": "Mode Kiosk",
+        "commercialPortal": "Portail Commercial",
+        "adminSpace": "Espace Admin",
+        "description": "Portail de collecte de leads",
+        "kioskDesc": "Enregistrement libre des visiteurs.",
+        "commercialDesc": "Saisie encadrée par un commercial.",
+        "adminDesc": "Dashboard & Statistiques en temps réel."
+    },
+    "kiosk": {
+        "welcomeTitle": "Bienvenue à",
+        "welcomeSubtitle": "Scannez ou remplissez le formulaire pour recevoir nos offres exclusives.",
+        "startBtn": "Commencer",
+        "formTitle": "Enregistrez-vous",
+        "formSubtitle": "Recevez vos récompenses instantanément par email.",
+        "successMsg": "Lead enregistré avec succès !"
+    },
+    "commercial": {
+        "accessTitle": "Portail Commercial",
+        "accessSubtitle": "Veuillez entrer votre PIN commercial",
+        "loginBtn": "Accéder au Portail",
+        "formTitle": "Nouveau Lead",
+        "formSubtitle": "Enrichissez vos contacts directement sur le stand."
+    },
+    "auth": {
+        "adminTitle": "Accès Admin",
+        "pinPlaceholder": "PIN",
+        "validate": "Valider",
+        "incorrect": "PIN incorrect"
+    },
+    "sync": {
+        "synced": "Sync",
+        "offline": "Offline",
+        "syncing": "Syncing...",
+        "syncingShort": "Sync...",
+        "syncInProgress": "Synchronisation en cours...",
+        "clickToSync": "Cliquer pour synchroniser"
+    },
+    "validation": {
+        "emailInvalid": "Email invalide",
+        "fieldRequired": "est obligatoire",
+        "checkboxMin": "Sélectionnez au moins une option"
+    },
+    "consent": {
+        "title": "Protection des données",
+        "law": "Loi n° 18-07 du 10 juin 2018",
+        "description": "Notre entreprise est responsable du traitement des données à caractère personnel collectées via cette plateforme. Conformément aux dispositions de la loi n° 18-07 relative à la protection des personnes physiques dans le cadre du traitement des données à caractère personnel, promulguée le 10 juin 2018, la circulation de ces données demeure limitée au territoire national.",
+        "checkboxLabel": "J'ai lu et j'accepte la politique de protection des données",
+        "validate": "Valider ✓"
+    },
+    "roles": {
+        "SALES_AGENT": "Agent Commercial",
+        "TEAM_LEADER": "Chef d'Équipe",
+        "ADMINISTRATOR": "Administrateur"
+    },
+    "audit": {
+        "CREATE": "Créé",
+        "UPDATE": "Mis à jour",
+        "DELETE": "Supprimé",
+        "LOGIN": "Connecté",
+        "LOGOUT": "Déconnecté",
+        "LEAD": "Lead",
+        "REWARD": "Récompense",
+        "USER": "Utilisateur"
+    }
+}

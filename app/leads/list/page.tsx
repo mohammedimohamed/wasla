@@ -5,25 +5,71 @@ import { useRouter } from "next/navigation";
 import {
     ChevronLeft,
     Search,
-    Filter,
+    Download,
+    Loader2,
+    Plus,
     Circle,
     CheckCircle2,
     AlertCircle,
     User as UserIcon,
     Monitor,
     QrCode,
-    Plus
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { leadFormSchema, getTableFields } from "@/src/config/formSchema";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEMA-DRIVEN TABLE COLUMNS
+// Columns are derived from formSchema fields marked showInTable: true.
+// To change columns across the ENTIRE APP, only edit formSchema.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+const TABLE_COLUMNS = getTableFields(leadFormSchema);
 
 interface Lead {
     id: string;
-    contact: string;
-    societe?: string;
-    type_client: string;
-    produits: string[];
     source: string;
     created_at: string;
     sync_status: string;
+    created_by_name?: string;
+    metadata: string; // Raw JSON from DB — we parse it per-row
+    [key: string]: any; // Dynamic metadata fields
+}
+
+function getStatusIcon(status: string) {
+    switch (status) {
+        case "synced": return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
+        case "pending": return <Circle className="w-4 h-4 text-orange-400 animate-pulse" />;
+        case "error": return <AlertCircle className="w-4 h-4 text-red-500" />;
+        default: return <Circle className="w-4 h-4 text-gray-300" />;
+    }
+}
+
+function getSourceBadge(source: string) {
+    const styles: Record<string, string> = {
+        commercial: "bg-blue-100 text-blue-700",
+        kiosk: "bg-slate-100 text-slate-600",
+        qrcode: "bg-purple-100 text-purple-700",
+    };
+    const icons: Record<string, JSX.Element> = {
+        commercial: <UserIcon className="w-3 h-3" />,
+        kiosk: <Monitor className="w-3 h-3" />,
+        qrcode: <QrCode className="w-3 h-3" />,
+    };
+    const cls = styles[source] || "bg-gray-100 text-gray-500";
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${cls}`}>
+            {icons[source]}
+            {source}
+        </span>
+    );
+}
+
+/** Resolve a field's value from a parsed metadata object */
+function getCellValue(field: (typeof TABLE_COLUMNS)[number], meta: Record<string, any>): string {
+    const raw = meta[field.name];
+    if (raw === null || raw === undefined) return "—";
+    if (Array.isArray(raw)) return raw.join(", ") || "—";
+    return String(raw) || "—";
 }
 
 export default function LeadsListPage() {
@@ -31,165 +77,273 @@ export default function LeadsListPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [filterSource, setFilterSource] = useState<string>("all");
+    const [filterSource, setFilterSource] = useState("all");
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
-        fetchLeads();
+        const init = async () => {
+            try {
+                const authRes = await fetch('/api/auth');
+                if (authRes.ok) {
+                    const authData = await authRes.json();
+                    setUserRole(authData.user?.role || null);
+                }
+            } catch (_) { }
+            fetchLeads();
+        };
+        init();
     }, []);
 
     const fetchLeads = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/leads");
-            if (response.ok) {
-                const data = await response.json();
-                setLeads(data.leads);
+            const res = await fetch("/api/leads");
+            if (res.ok) {
+                const data = await res.json();
+                setLeads(data.leads || []);
             }
-        } catch (error) {
-            console.error("Error fetching leads:", error);
+        } catch (err) {
+            toast.error("Erreur de chargement des leads");
         } finally {
             setLoading(false);
         }
     };
 
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const res = await fetch("/api/export");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Export failed");
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `wasla_leads_${new Date().toISOString().split("T")[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            toast.success("✅ Fichier CSV téléchargé");
+        } catch (err: any) {
+            toast.error(err.message || "Erreur d'export");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    // Filter: search across all metadata string values & source filter
     const filteredLeads = leads.filter(lead => {
-        const matchesSearch =
-            lead.contact.toLowerCase().includes(search.toLowerCase()) ||
-            (lead.societe?.toLowerCase() || "").includes(search.toLowerCase());
+        let meta: Record<string, any> = {};
+        try { meta = JSON.parse(lead.metadata || "{}"); } catch (_) { }
 
+        const searchable = Object.values(meta)
+            .map(v => (Array.isArray(v) ? v.join(" ") : String(v ?? "")))
+            .join(" ")
+            .toLowerCase();
+
+        const matchesSearch = search === "" || searchable.includes(search.toLowerCase());
         const matchesSource = filterSource === "all" || lead.source === filterSource;
-
         return matchesSearch && matchesSource;
     });
 
-    const getSourceIcon = (source: string) => {
-        switch (source) {
-            case "commercial": return <UserIcon className="w-4 h-4" />;
-            case "kiosk": return <Monitor className="w-4 h-4" />;
-            case "qrcode": return <QrCode className="w-4 h-4" />;
-            default: return <Circle className="w-4 h-4" />;
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case "synced": return <CheckCircle2 className="w-4 h-4 text-success" />;
-            case "pending": return <Circle className="w-4 h-4 text-alert" />;
-            case "error": return <AlertCircle className="w-4 h-4 text-error" />;
-            default: return <Circle className="w-4 h-4 text-gray-300" />;
-        }
-    };
+    const isManager = userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER';
 
     return (
-        <div className="flex-1 flex flex-col pt-4">
-            <header className="px-4 mb-4">
-                <div className="flex items-center gap-4 mb-4">
-                    <button onClick={() => router.push("/dashboard")} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+
+            {/* ── HEADER ─────────────────────────────────────────────────────── */}
+            <header className="bg-white border-b px-4 md:px-6 py-4 sticky top-0 z-20 shadow-sm">
+                <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+                    <button
+                        onClick={() => router.push(isManager ? "/admin/dashboard" : "/dashboard")}
+                        className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
+                    >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <h1 className="text-xl font-bold">Liste des leads</h1>
-                </div>
+                    <div className="flex-1">
+                        <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                            Liste des Prospects
+                        </h1>
+                        <p className="text-[10px] text-slate-400 font-semibold">
+                            {filteredLeads.length} résultat(s)
+                        </p>
+                    </div>
 
-                <div className="relative mb-4">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Rechercher un nom, société..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="input-field pl-12 h-14"
-                    />
-                </div>
+                    {/* Export Button — visible only to managers */}
+                    {isManager && (
+                        <button
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 shadow-md shadow-emerald-200"
+                        >
+                            {isExporting
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <Download className="w-4 h-4" />
+                            }
+                            {isExporting ? "Export..." : "Export CSV"}
+                        </button>
+                    )}
 
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                     <button
-                        onClick={() => setFilterSource("all")}
-                        className={`px-4 py-2 border rounded-full text-xs font-bold whitespace-nowrap ${filterSource === "all" ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
+                        onClick={() => router.push("/leads/new")}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-200"
                     >
-                        Tous
-                    </button>
-                    <button
-                        onClick={() => setFilterSource("commercial")}
-                        className={`px-4 py-2 border rounded-full text-xs font-bold whitespace-nowrap ${filterSource === "commercial" ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
-                    >
-                        Commerciaux
-                    </button>
-                    <button
-                        onClick={() => setFilterSource("kiosk")}
-                        className={`px-4 py-2 border rounded-full text-xs font-bold whitespace-nowrap ${filterSource === "kiosk" ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
-                    >
-                        Kiosque
-                    </button>
-                    <button
-                        onClick={() => setFilterSource("qrcode")}
-                        className={`px-4 py-2 border rounded-full text-xs font-bold whitespace-nowrap ${filterSource === "qrcode" ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-gray-200 text-gray-600'}`}
-                    >
-                        QR Code
+                        <Plus className="w-4 h-4" />
+                        Nouveau
                     </button>
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-4 space-y-3 pb-24">
-                {loading ? (
-                    [...Array(5)].map((_, i) => (
-                        <div key={i} className="h-28 bg-gray-200 rounded-2xl animate-pulse" />
-                    ))
-                ) : filteredLeads.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                        <Search className="w-12 h-12 mb-4 opacity-20" />
-                        <p>Aucun lead trouvé</p>
+            {/* ── FILTERS ────────────────────────────────────────────────────── */}
+            <div className="bg-white border-b px-4 md:px-6 py-3 sticky top-[65px] z-10">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3">
+                    {/* Search */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Rechercher nom, société, téléphone..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-slate-50"
+                        />
                     </div>
-                ) : (
-                    filteredLeads.map(lead => (
-                        <div
-                            key={lead.id}
-                            onClick={() => router.push(`/leads/${lead.id}`)}
-                            className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:bg-gray-50 transition-all flex flex-col gap-3"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h3 className="font-bold text-gray-900">{lead.contact}</h3>
-                                    <p className="text-sm text-gray-500">{lead.societe || "Particulier"}</p>
-                                </div>
-                                {getStatusIcon(lead.sync_status)}
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-1 bg-blue-50 text-primary text-[10px] font-bold rounded-md uppercase">
-                                    {lead.type_client}
-                                </span>
-                                {lead.produits.slice(0, 2).map(p => (
-                                    <span key={p} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-semibold rounded-md">
-                                        {p}
-                                    </span>
-                                ))}
-                                {lead.produits.length > 2 && (
-                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-semibold rounded-md">
-                                        +{lead.produits.length - 2}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="flex items-center justify-between mt-1 pt-3 border-t border-gray-50">
-                                <div className="flex items-center gap-1.5 text-gray-400">
-                                    {getSourceIcon(lead.source)}
-                                    <span className="text-[10px] font-bold uppercase tracking-tight">{lead.source}</span>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-medium">
-                                    {new Date(lead.created_at).toLocaleDateString()} {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                    ))
-                )}
+                    {/* Source Filter */}
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {["all", "commercial", "kiosk", "qrcode"].map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilterSource(f)}
+                                className={`px-3 py-2 border rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all ${filterSource === f
+                                        ? "bg-slate-900 border-slate-900 text-white"
+                                        : "bg-white border-gray-200 text-gray-500 hover:border-slate-400"
+                                    }`}
+                            >
+                                {f === "all" ? "Tous" : f}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            <button
-                onClick={() => router.push("/leads/new")}
-                className="fixed bottom-6 right-6 w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all z-20"
-            >
-                <Plus className="w-8 h-8" />
-            </button>
+            {/* ── TABLE ──────────────────────────────────────────────────────── */}
+            <div className="flex-1 overflow-auto p-4 md:p-6">
+                <div className="max-w-7xl mx-auto bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
+                    {loading ? (
+                        <div className="flex items-center justify-center p-20 text-slate-300">
+                            <Loader2 className="w-10 h-10 animate-spin" />
+                        </div>
+                    ) : filteredLeads.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-20 text-slate-300 gap-4">
+                            <Search className="w-12 h-12 opacity-30" />
+                            <p className="font-bold text-sm">Aucun prospect trouvé</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                        {/* System columns */}
+                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Source</th>
+                                        {/* Schema-driven columns from formSchema */}
+                                        {TABLE_COLUMNS.map(col => (
+                                            <th
+                                                key={col.name}
+                                                className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap"
+                                                style={col.tableWidth ? { minWidth: col.tableWidth } : undefined}
+                                            >
+                                                {col.label}
+                                            </th>
+                                        ))}
+                                        {/* Trailing columns */}
+                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date</th>
+                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Auteur</th>
+                                        <th className="px-4 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {filteredLeads.map(lead => {
+                                        let meta: Record<string, any> = {};
+                                        try { meta = JSON.parse(lead.metadata || "{}"); } catch (_) { }
+
+                                        return (
+                                            <tr
+                                                key={lead.id}
+                                                onClick={() => router.push(`/leads/${lead.id}`)}
+                                                className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
+                                            >
+                                                {/* Source badge */}
+                                                <td className="px-4 py-4 whitespace-nowrap">
+                                                    {getSourceBadge(lead.source)}
+                                                </td>
+
+                                                {/* Dynamic schema-driven columns */}
+                                                {TABLE_COLUMNS.map(col => {
+                                                    const value = getCellValue(col, meta);
+                                                    const isArray = col.type === 'multiselect' || col.type === 'chip-group';
+                                                    return (
+                                                        <td
+                                                            key={col.name}
+                                                            className="px-4 py-4 max-w-[220px]"
+                                                        >
+                                                            {isArray ? (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {(Array.isArray(meta[col.name]) ? meta[col.name] : [])
+                                                                        .slice(0, 3)
+                                                                        .map((v: string) => (
+                                                                            <span key={v} className="inline-block px-2 py-0.5 bg-blue-50 text-primary text-[10px] font-bold rounded-md">
+                                                                                {v}
+                                                                            </span>
+                                                                        ))
+                                                                    }
+                                                                    {Array.isArray(meta[col.name]) && meta[col.name].length > 3 && (
+                                                                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-md">
+                                                                            +{meta[col.name].length - 3}
+                                                                        </span>
+                                                                    )}
+                                                                    {(!Array.isArray(meta[col.name]) || meta[col.name].length === 0) && (
+                                                                        <span className="text-slate-300 text-xs">—</span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="font-semibold text-slate-700 truncate block" title={value}>
+                                                                    {value}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+
+                                                {/* Date */}
+                                                <td className="px-4 py-4 text-slate-400 text-xs whitespace-nowrap">
+                                                    {new Date(lead.created_at).toLocaleDateString('fr-FR', {
+                                                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                                                    })}
+                                                </td>
+
+                                                {/* Author */}
+                                                <td className="px-4 py-4 text-slate-500 text-xs font-semibold whitespace-nowrap">
+                                                    {lead.created_by_name || "Système"}
+                                                </td>
+
+                                                {/* Sync status */}
+                                                <td className="px-4 py-4 text-center">
+                                                    {getStatusIcon(lead.sync_status)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
         </div>
     );
 }

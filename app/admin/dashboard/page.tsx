@@ -8,161 +8,391 @@ import {
     Download,
     Users,
     ArrowLeft,
-    Settings,
     ChevronRight,
     TrendingUp,
-    Globe,
-    Monitor
+    Monitor,
+    Loader2,
+    Calendar,
+    RefreshCw,
+    Plus,
+    HardDrive,
+    Server,
+    QrCode
 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { useTranslation } from "@/src/context/LanguageContext";
 
+/**
+ * 📊 ENTERPRISE DYNAMIC DASHBOARD
+ * Core coordination center for administrators and team leaders.
+ * Strictly enforces data ownership and real-time database visibility.
+ */
 export default function AdminDashboardPage() {
+    const { t } = useTranslation();
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
     const [stats, setStats] = useState({
         totalLeads: 0,
         kioskLeads: 0,
         commercialLeads: 0,
-        rewardsGiven: 0
+        rewardsGiven: 0,
+        rewardsGivenToday: 0,
+        leadsToday: 0,
+        syncedLeads: 0,
+        recentLeads: [] as any[]
     });
 
+    // 🛡️ RBAC Session & Stats Sync
     useEffect(() => {
-        if (localStorage.getItem("admin_auth") !== "true") {
-            router.push("/admin/login");
-            return;
-        }
+        const loadDashboard = async () => {
+            try {
+                // 1. Verify Session & Unlocked State
+                const authRes = await fetch('/api/auth');
+                if (!authRes.ok) {
+                    router.push("/admin/login");
+                    return;
+                }
+                const authData = await authRes.json();
+                if (authData.user.role !== 'ADMINISTRATOR' || !authData.user.sessionHasPin) {
+                    router.push("/admin/login");
+                    return;
+                }
 
-        // Fetch stats placeholder
-        setStats({
-            totalLeads: 45,
-            kioskLeads: 28,
-            commercialLeads: 17,
-            rewardsGiven: 32
-        });
-    }, [router]);
+                // 2. Fetch Real-time Database Stats
+                const statsRes = await fetch('/api/dashboard/stats');
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(state => ({
+                        ...state,
+                        ...statsData.data
+                    }));
+                }
+            } catch (e) {
+                toast.error(t('common.error'));
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadDashboard();
+    }, [router, t]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("admin_auth");
-        router.push("/login");
+    const handleLogout = async () => {
+        await fetch('/api/auth', { method: 'DELETE' });
+        window.location.href = "/admin/login";
     };
+
+    const handleBackup = async () => {
+        setIsBackingUp(true);
+        try {
+            const res = await fetch('/api/backup');
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Backup failed');
+            }
+            const blob = await res.blob();
+            const sizeKB = res.headers.get('X-Backup-Size-KB') || '?';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Extract filename from Content-Disposition header
+            const cd = res.headers.get('Content-Disposition') || '';
+            const match = cd.match(/filename="(.+)"/);
+            a.download = match ? match[1] : `wasla_backup_${new Date().toISOString().split('T')[0]}.sqlite`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            toast.success(`✅ Sauvegarde téléchargée (${sizeKB} KB)`);
+        } catch (err: any) {
+            toast.error(err.message || 'Erreur de sauvegarde');
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const res = await fetch('/api/export');
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Export failed');
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wasla_leads_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            toast.success('✅ Export CSV téléchargé');
+        } catch (err: any) {
+            toast.error(err.message || "Erreur d'export");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4 text-slate-400">
+                    <Loader2 className="w-10 h-10 animate-spin" />
+                    <p className="font-bold uppercase tracking-widest text-[10px]">{t('common.loading')}</p>
+                </div>
+            </div>
+        );
+    }
+
+    const { totalLeads, kioskLeads, commercialLeads, rewardsGiven, leadsToday, syncedLeads, recentLeads } = stats;
 
     return (
         <div className="flex-1 flex flex-col bg-slate-50">
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.push("/dashboard")} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg text-gray-400">
-                        <ArrowLeft className="w-5 h-5" />
+                    <button onClick={() => router.push("/leads/new")} className="p-2 -ml-2 bg-primary/10 hover:bg-primary/20 rounded-lg text-primary transition-colors flex items-center gap-2">
+                        <Plus className="w-5 h-5 font-black" />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Add Lead</span>
                     </button>
-                    <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">Console Manager</h1>
+                    <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight ml-2">{t('auth.adminTitle')}</h1>
                 </div>
-                <button onClick={handleLogout} className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-error transition-colors">
-                    Déconnexion
+                <button
+                    onClick={handleLogout}
+                    className="text-[10px] font-black p-2 px-4 bg-slate-100 text-slate-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 rounded-full transition-all"
+                >
+                    {t('common.logout')}
                 </button>
             </header>
 
-            <div className="p-6 space-y-8">
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm space-y-2">
-                        <div className="w-10 h-10 bg-blue-50 text-primary rounded-xl flex items-center justify-center">
+            <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
+                {/* Real-time Business Intelligence Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
                             <Users className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-2xl font-black text-slate-900">{stats.totalLeads}</p>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Leads</p>
+                            <p className="text-2xl font-black text-slate-900 leading-none">{totalLeads}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</p>
                         </div>
                     </div>
-                    <div className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm space-y-2">
-                        <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-2xl font-black text-slate-900 leading-none">{leadsToday}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Aujourd'hui</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                            <RefreshCw className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-2xl font-black text-slate-900 leading-none">{syncedLeads}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Synchronisés</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                        <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center">
                             <Gift className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-2xl font-black text-slate-900">{stats.rewardsGiven}</p>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cadeaux</p>
+                            <div className="flex items-end gap-2">
+                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.rewardsGivenToday || 0}</p>
+                                <p className="text-sm font-bold text-slate-400 mb-0.5">/ {stats.rewardsGiven || 0} Total</p>
+                            </div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Récompenses dist. Aujourd'hui</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Source Breakdown */}
-                <div className="bg-slate-900 text-white p-6 rounded-[32px] shadow-xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <TrendingUp className="w-32 h-32" />
+                {/* Performance Mix Breakdown */}
+                <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-12 opacity-5">
+                        <TrendingUp className="w-48 h-48" />
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Répartition par source</h3>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-end text-sm font-bold">
-                                <span className="flex items-center gap-2"><Monitor className="w-4 h-4 text-blue-400" /> Kiosque</span>
-                                <span>{stats.kioskLeads}</span>
-                            </div>
-                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-blue-400 rounded-full"
-                                    style={{ width: `${(stats.kioskLeads / stats.totalLeads) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-end text-sm font-bold">
-                                <span className="flex items-center gap-2"><Users className="w-4 h-4 text-emerald-400" /> Commercial</span>
-                                <span>{stats.commercialLeads}</span>
-                            </div>
-                            <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-emerald-400 rounded-full"
-                                    style={{ width: `${(stats.commercialLeads / stats.totalLeads) * 100}%` }}
-                                />
-                            </div>
+                    <div className="relative z-10">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" /> Répartition par source
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {[
+                                { label: 'Kiosque Automatisé', value: kioskLeads, color: 'bg-blue-400', icon: Monitor },
+                                { label: 'Force de Vente', value: commercialLeads, color: 'bg-emerald-400', icon: Users }
+                            ].map((source, idx) => (
+                                <div key={idx} className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <span className="flex items-center gap-3 font-bold text-sm text-slate-300">
+                                            <source.icon className="w-5 h-5 text-slate-500" /> {source.label}
+                                        </span>
+                                        <span className="text-xl font-black">{source.value}</span>
+                                    </div>
+                                    <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full ${source.color} rounded-full transition-all duration-1000 ease-out`}
+                                            style={{ width: `${totalLeads > 0 ? (source.value / totalLeads) * 100 : 0}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Menu Grid */}
-                <div className="grid grid-cols-1 gap-4">
+                {/* Recent Intelligence Table */}
+                <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+                    <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Derniers Prospects Capturés</h3>
+                        <button onClick={() => router.push("/leads/list")} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                            Voir Tout
+                        </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-slate-50/50">
+                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Source</th>
+                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
+                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Temps</th>
+                                    <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {recentLeads.length > 0 ? (
+                                    recentLeads.map((lead) => {
+                                        const meta = JSON.parse(lead.metadata);
+                                        return (
+                                            <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-8 py-5">
+                                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${lead.source === 'kiosk' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                        {lead.source}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5 text-sm font-bold text-slate-700">
+                                                    {meta.projectType || 'Standard'}
+                                                </td>
+                                                <td className="px-8 py-5 text-sm font-medium text-slate-400 italic">
+                                                    {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <span className={`w-2 h-2 rounded-full inline-block ${lead.sync_status === 'synced' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`} />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-8 py-20 text-center">
+                                            <p className="text-slate-300 font-bold italic">{t('kiosk.emptyState')}</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Enterprise Governance Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
+                    <button
+                        onClick={() => router.push("/admin/qr")}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-indigo-400 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                    >
+                        <div className="w-12 h-12 bg-slate-100 text-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <QrCode className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Visuel QR Code</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Imprimer le mode Kiosk public</p>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => router.push("/admin/users")}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                    >
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Users className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Utilisateurs</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les accès & équipes</p>
+                        </div>
+                    </button>
+
                     <button
                         onClick={() => router.push("/admin/rewards")}
-                        className="w-full bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
                     >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
-                                <Gift className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <p className="font-bold text-slate-900">Gérer les récompenses</p>
-                                <p className="text-xs text-gray-500 font-medium">Config. catalogues, promos & cadeaux</p>
-                            </div>
+                        <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Gift className="w-6 h-6" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Catalogue Récompenses</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les quotas & cadeaux</p>
+                        </div>
                     </button>
 
                     <button
-                        onClick={() => router.push("/admin/export")}
-                        className="w-full bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group disabled:opacity-70"
                     >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-                                <Download className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <p className="font-bold text-slate-900">Export & Statistiques</p>
-                                <p className="text-xs text-gray-500 font-medium">Extraire en CSV ou JSON pour Excel</p>
-                            </div>
+                        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            {isExporting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Download className="w-6 h-6" />}
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Extraction Business</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                {isExporting ? "Génération en cours..." : "Export CSV haute qualité"}
+                            </p>
+                        </div>
                     </button>
 
                     <button
-                        onClick={() => router.push("/leads/list")}
-                        className="w-full bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm flex items-center justify-between group active:scale-[0.98] transition-all"
+                        onClick={() => router.push("/admin/settings")}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
                     >
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center">
-                                <BarChart3 className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <p className="font-bold text-slate-900">Vue liste complète</p>
-                                <p className="text-xs text-gray-500 font-medium">Consulter et filtrer tous les prospects</p>
+                        <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <BarChart3 className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Configuration Stand</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Identité & RBAC Global</p>
+                        </div>
+                    </button>
+
+                    {/* 💾 DATABASE BACKUP CARD */}
+                    <button
+                        onClick={handleBackup}
+                        disabled={isBackingUp}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group disabled:opacity-70 relative overflow-hidden"
+                    >
+                        {/* Subtle cron command hint shown on hover */}
+                        <div className="absolute inset-0 bg-slate-900 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 rounded-[32px]">
+                            <div className="text-center">
+                                <Server className="w-5 h-5 mx-auto mb-2 text-emerald-400" />
+                                <p className="text-[9px] font-mono text-emerald-400 break-all leading-relaxed">
+                                    curl -H &quot;X-Backup-Key: YOUR_KEY&quot; \ <br />
+                                    /api/backup -o backup.sqlite
+                                </p>
                             </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
+                        <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            {isBackingUp ? <Loader2 className="w-6 h-6 animate-spin" /> : <HardDrive className="w-6 h-6" />}
+                        </div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Sauvegarde DB</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                {isBackingUp ? 'Sauvegarde en cours...' : 'Télécharger .sqlite'}
+                            </p>
+                        </div>
                     </button>
                 </div>
             </div>

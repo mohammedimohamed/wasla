@@ -1,0 +1,86 @@
+{
+    "common": {
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "error": "An error occurred",
+        "success": "Success!",
+        "loading": "Loading...",
+        "selectPlaceholder": "Select..."
+    },
+    "home": {
+        "welcome": "Welcome to",
+        "kioskMode": "Kiosk Mode",
+        "commercialPortal": "Commercial Portal",
+        "adminSpace": "Admin Space",
+        "description": "Lead Collection Portal",
+        "kioskDesc": "Self-service visitor registration.",
+        "commercialDesc": "Commercial-led data entry.",
+        "adminDesc": "Real-time dashboard & stats."
+    },
+    "kiosk": {
+        "welcomeTitle": "Welcome to",
+        "welcomeSubtitle": "Scan or fill in the form to receive our exclusive offers.",
+        "startBtn": "Start",
+        "formTitle": "Register Yourself",
+        "formSubtitle": "Receive your rewards instantly by email.",
+        "successMsg": "Lead successfully registered!"
+    },
+    "commercial": {
+        "accessTitle": "Commercial Portal",
+        "accessSubtitle": "Please log in with your credentials",
+        "loginBtn": "Sign In",
+        "passwordLabel": "Password",
+        "pinSetupTitle": "PIN Setup",
+        "pinSetupDesc": "First-time login: Define a 6-digit PIN for quick access on this device.",
+        "pinVerifyTitle": "Enter PIN",
+        "pinVerifyDesc": "Enter your 6-digit PIN to resume your session.",
+        "formTitle": "Prospect Collection",
+        "formSubtitle": "Capture information quickly on the stand",
+        "emptyState": "No leads collected yet. The event awaits!"
+    },
+    "auth": {
+        "adminTitle": "Admin Space",
+        "passwordPlaceholder": "Enter password",
+        "pinPlaceholder": "Enter 6-digit PIN",
+        "resetBtn": "Reset Credentials",
+        "validate": "Confirm",
+        "incorrect": "Incorrect credentials",
+        "passwordRequired": "Please login with your password first"
+    },
+    "sync": {
+        "synced": "Synced",
+        "offline": "Offline",
+        "syncing": "Syncing...",
+        "syncingShort": "Sync...",
+        "syncInProgress": "Synchronization in progress...",
+        "clickToSync": "Click to synchronize"
+    },
+    "validation": {
+        "emailInvalid": "Invalid email",
+        "fieldRequired": "is required",
+        "checkboxMin": "Select at least one option"
+    },
+    "consent": {
+        "title": "Data Protection",
+        "law": "Law n° 18-07 of June 10, 2018",
+        "description": "Our company is responsible for the processing of personal data collected via this platform. In accordance with the provisions of law n° 18-07 relating to the protection of individuals in the context of the processing of personal data, promulgated on June 10, 2018, the circulation of these data remains limited to the national territory.",
+        "checkboxLabel": "I have read and I accept the personal data protection policy",
+        "validate": "Validate ✓"
+    },
+    "roles": {
+        "SALES_AGENT": "Sales Agent",
+        "TEAM_LEADER": "Team Leader",
+        "ADMINISTRATOR": "Administrator"
+    },
+    "audit": {
+        "CREATE": "Created",
+        "UPDATE": "Updated",
+        "DELETE": "Deleted",
+        "LOGIN": "Logged In",
+        "LOGOUT": "Logged Out",
+        "LEAD": "Lead",
+        "REWARD": "Reward",
+        "USER": "User"
+    }
+}

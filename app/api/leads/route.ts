@@ -1,102 +1,57 @@
 import { NextResponse } from 'next/server';
-import db, { initDb } from '@/lib/db';
+import { leadsDb } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
+import { getSession } from '@/lib/auth';
 
-// Initialize DB on first use
-initDb();
-
-export async function POST(request: Request) {
+/**
+ * 📊 LEADS API (LIST)
+ * Fetches visible leads based on RBAC rules.
+ */
+export async function GET() {
     try {
-        const data = await request.json();
+        const session = await getSession();
+        if (!session || !session.hasPin) {
+            return NextResponse.json({ error: 'Auth Required' }, { status: 401 });
+        }
 
-        // Prepare values
-        const query = `
-      INSERT INTO leads (
-        id, sync_status, source, created_at, 
-        societe, contact, telephone, email, ville, fonction,
-        type_client, produits, projet, quantite, delai, budget,
-        actions, note, reward_id, reward_sent, commercial, qualified_by, device_id,
-        consent_given, consent_at, consent_source
-      ) VALUES (
-        ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?
-      )
-    `;
-
-        const stmt = db.prepare(query);
-        stmt.run(
-            data.id,
-            data.sync_status || 'pending',
-            data.source || 'commercial',
-            data.created_at || new Date().toISOString(),
-            data.societe || null,
-            data.contact,
-            data.telephone || null,
-            data.email || null,
-            data.ville || null,
-            data.fonction || null,
-            data.type_client,
-            JSON.stringify(data.produits),
-            data.projet || null,
-            data.quantite || null,
-            data.delai || null,
-            data.budget || null,
-            data.actions ? JSON.stringify(data.actions) : null,
-            data.note || null,
-            data.reward_id || null,
-            data.reward_sent || 0,
-            data.commercial || null,
-            data.qualified_by || null,
-            data.device_id || null,
-            data.consent_given || 1,
-            data.consent_at || new Date().toISOString(),
-            data.consent_source || null
-        );
-
-        return NextResponse.json({ success: true, id: data.id });
+        const leads = leadsDb.getVisibleLeads(session.userId);
+        return NextResponse.json({ success: true, leads });
     } catch (error) {
-        console.error('Error creating lead:', error);
-        return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Internal Error' }, { status: 500 });
     }
 }
 
-export async function GET(request: Request) {
+/**
+ * 📥 LEADS API (CREATE)
+ * Strictly attributes leads based on the current Session.
+ */
+export async function POST(request: Request) {
     try {
-        const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status');
-        const source = searchParams.get('source');
+        const body = await request.json();
+        const { source, deviceId, ...customFields } = body;
 
-        let query = 'SELECT * FROM leads ORDER BY created_at DESC';
-        const params: any[] = [];
+        const session = await getSession();
 
-        if (status || source) {
-            query = 'SELECT * FROM leads WHERE 1=1';
-            if (status) {
-                query += ' AND sync_status = ?';
-                params.push(status);
-            }
-            if (source) {
-                query += ' AND source = ?';
-                params.push(source);
-            }
-            query += ' ORDER BY created_at DESC';
-        }
+        // 🛡️ SECURITY: Attribution strictly from JWT (Server-Side Enforcement)
+        const creatorId = session?.userId || 'SYSTEM_KIOSK';
+        const teamId = session?.teamId || null;
 
-        const stmt = db.prepare(query);
-        const leads = stmt.all(...params);
+        // 🛡️ ARCHITECTURAL FIX: Bundle all custom fields into metadata
+        const metadata = customFields || {};
 
-        return NextResponse.json({
-            success: true,
-            leads: leads.map((l: any) => ({
-                ...l,
-                produits: JSON.parse(l.produits || '[]'),
-                actions: JSON.parse(l.actions || '[]'),
-            }))
-        });
+        const id = uuidv4();
+        leadsDb.create(
+            id,
+            metadata,
+            source || 'unknown',
+            creatorId,
+            deviceId || 'localhost',
+            teamId // Force server-side team attribution
+        );
+
+        return NextResponse.json({ success: true, id }, { status: 201 });
     } catch (error) {
-        console.error('Error fetching leads:', error);
+        console.error('[API Error] Lead submission failed:', error);
         return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
     }
 }

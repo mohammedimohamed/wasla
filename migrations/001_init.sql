@@ -1,92 +1,103 @@
--- Migration 001: Initial Schema
+-- Migration 001: Enterprise White-Label Schema with RBAC & Audit Trail
 
--- Table: leads
-CREATE TABLE IF NOT EXISTS leads (
-  id              TEXT PRIMARY KEY,           -- UUID v4 généré côté client
-  sync_status     TEXT DEFAULT 'pending',     -- 'pending' | 'synced' | 'error'
-  source          TEXT DEFAULT 'commercial',  -- 'commercial' | 'kiosk' | 'qrcode'
-  created_at      TEXT NOT NULL,              -- ISO 8601 timestamp
-  synced_at       TEXT,                       -- ISO 8601 timestamp, NULL si pas encore synced
-
-  -- Informations contact
-  societe         TEXT,
-  contact         TEXT NOT NULL,              -- OBLIGATOIRE
-  telephone       TEXT,
-  email           TEXT,
-  ville           TEXT,
-  fonction        TEXT,
-
-  -- Type de client (valeur unique)
-  type_client     TEXT NOT NULL,
-  -- ENUM: 'Promoteur' | 'Hôtel' | 'Architecte' | 'Particulier' | 'Revendeur' | 'Installateur/Plombier' | 'Autre'
-
-  -- Produits d'intérêt (JSON array, min 1)
-  produits        TEXT NOT NULL,
-  -- JSON: ["Baignoire"] | ["Baignoire avec tablier"] | ["Jacuzzi"] | combinaisons
-
-  -- Détails projet (optionnels)
-  projet          TEXT,
-  quantite        TEXT,
-  delai           TEXT,
-  budget          TEXT,
-
-  -- Actions commerciales à suivre (JSON array, optionnel)
-  actions         TEXT,
-  -- JSON: ["Envoyer devis", "Envoyer catalogue", "RDV", "Rappel téléphonique"]
-
-  -- Notes libres
-  note            TEXT,
-
-  -- Récompense attribuée (pour les leads auto-enregistrés)
-  reward_id       TEXT,                       -- FK vers rewards.id
-  reward_sent     INTEGER DEFAULT 0,          -- 0 | 1 (boolean)
-
-  -- Métadonnées
-  commercial      TEXT,                       -- Nom du commercial (NULL si kiosk/qrcode)
-  qualified_by    TEXT,                       -- Nom du commercial qui a enrichi le lead (NULL si pas enrichi)
-  device_id       TEXT,                       -- Identifiant unique du device
-
-  -- Conformité Loi 18-07
-  consent_given    INTEGER NOT NULL DEFAULT 0,  -- 1 = accepté, 0 = refus (ne doit jamais être 0 en base)
-  consent_at       TEXT,                          -- ISO 8601 timestamp du moment du consentement
-  consent_source   TEXT                           -- 'kiosk' | 'qrcode' (NULL si saisie commerciale)
+-- Table: users
+CREATE TABLE IF NOT EXISTS users (
+  id              TEXT PRIMARY KEY,           -- UUID
+  name            TEXT NOT NULL,
+  email           TEXT UNIQUE NOT NULL,
+  role            TEXT NOT NULL,              -- 'SALES_AGENT' | 'TEAM_LEADER' | 'ADMINISTRATOR'
+  team_id         TEXT,                       -- ID of the team (optional)
+  password        TEXT NOT NULL,              -- Hashed strong password
+  quick_pin       TEXT,                       -- Hashed 6-digit PIN for session resumption
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  active          INTEGER DEFAULT 1
 );
 
--- Table: rewards
-CREATE TABLE IF NOT EXISTS rewards (
-  id              TEXT PRIMARY KEY,           -- UUID v4
-  type_client     TEXT NOT NULL,
-  -- ENUM: 'Promoteur' | 'Hôtel' | 'Architecte' | 'Particulier' | 'Revendeur' | 'Installateur/Plombier' | 'Autre' | 'ALL'
-  -- 'ALL' = s'applique à tous les types
-
-  reward_type     TEXT NOT NULL,
-  -- ENUM: 'catalogue_pdf' | 'promo_code' | 'guide_technique' | 'cadeau_physique'
-
-  title           TEXT NOT NULL,              -- Ex: "Catalogue Produits <Client> 2026"
-  description     TEXT,                       -- Description affichée au prospect
-  value           TEXT,                       -- Ex: code promo "BATI2026", URL PDF, texte bon cadeau
-
-  produit_filter  TEXT,
-  -- NULL = s'applique à tous les produits
-  -- JSON array: ["Jacuzzi"] = uniquement si le prospect a sélectionné Jacuzzi
-
-  active          INTEGER DEFAULT 1,          -- 0 | 1
+-- Table: teams
+CREATE TABLE IF NOT EXISTS teams (
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL,
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL
 );
 
--- Table: sync_log
-CREATE TABLE IF NOT EXISTS sync_log (
-  id              TEXT PRIMARY KEY,
-  synced_at       TEXT NOT NULL,
-  leads_count     INTEGER NOT NULL,
-  status          TEXT NOT NULL,              -- 'success' | 'partial' | 'error'
-  error_message   TEXT
+-- Table: leads
+CREATE TABLE IF NOT EXISTS leads (
+  id              TEXT PRIMARY KEY,           -- Client-side generated UUID v4
+  sync_status     TEXT DEFAULT 'pending',     -- 'pending' | 'synced' | 'failed'
+  source          TEXT DEFAULT 'kiosk',       -- 'kiosk' | 'commercial' | 'qrcode'
+  created_at      TEXT NOT NULL,              -- ISO 8601 timestamp
+  updated_at      TEXT NOT NULL,              -- ISO 8601 timestamp
+  synced_at       TEXT,                       -- ISO 8601 timestamp, NULL if not yet synced
+
+  -- RBAC & Ownership
+  created_by      TEXT,                       -- FK to users.id
+  team_id         TEXT,                       -- Ownership by team (FK to teams.id)
+
+  -- The heart of the generic system
+  metadata        TEXT NOT NULL,              -- JSON string: stores all dynamic form data
+  
+  -- Reward association
+  reward_id       TEXT,                       -- Optional FK to rewards.id
+  reward_status   TEXT DEFAULT 'none',        -- 'none' | 'sent' | 'pending' | 'failed'
+
+  -- Device info
+  device_id       TEXT,                       -- Tracking the source device
+  
+  FOREIGN KEY(created_by) REFERENCES users(id),
+  FOREIGN KEY(team_id) REFERENCES teams(id)
 );
 
--- Indexes for performance
+-- Table: rewards
+CREATE TABLE IF NOT EXISTS rewards (
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL,
+  description     TEXT,
+  trigger_rule    TEXT,                       -- JSON string: rule to match against lead metadata
+  reward_type     TEXT NOT NULL,              -- 'digital_catalog' | 'promo_code' | 'physical_gift'
+  value           TEXT,                       -- URL, code, or description
+  active          INTEGER DEFAULT 1,
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  created_by      TEXT,
+  FOREIGN KEY(created_by) REFERENCES users(id)
+);
+
+-- Table: sync_queue
+CREATE TABLE IF NOT EXISTS sync_queue (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  operation       TEXT NOT NULL,              -- 'CREATE' | 'UPDATE' | 'DELETE'
+  entity_type     TEXT NOT NULL,              -- 'lead' | 'reward'
+  entity_id       TEXT NOT NULL,
+  payload         TEXT NOT NULL,              -- Full JSON snapshot of the entity
+  status          TEXT DEFAULT 'pending',     -- 'pending' | 'failed' | 'synced'
+  error_message   TEXT,
+  attempts        INTEGER DEFAULT 0,
+  last_attempt_at TEXT,
+  created_at      TEXT NOT NULL
+);
+
+-- Table: audit_logs
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id              TEXT PRIMARY KEY,           -- UUID
+  user_id         TEXT NOT NULL,              -- FK to users.id
+  action          TEXT NOT NULL,              -- 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT'
+  entity_type     TEXT NOT NULL,              -- 'LEAD' | 'REWARD' | 'USER'
+  entity_id       TEXT,
+  description     TEXT,
+  timestamp       TEXT NOT NULL,
+  metadata        TEXT,                       -- Optional JSON details
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- Indexes for performance & security
 CREATE INDEX IF NOT EXISTS idx_leads_sync_status ON leads(sync_status);
-CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
-CREATE INDEX IF NOT EXISTS idx_leads_telephone ON leads(telephone);
-CREATE INDEX IF NOT EXISTS idx_rewards_type_client ON rewards(type_client);
+CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at);
+CREATE INDEX IF NOT EXISTS idx_leads_created_by ON leads(created_by);
+CREATE INDEX IF NOT EXISTS idx_leads_team_id ON leads(team_id);
+CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
 CREATE INDEX IF NOT EXISTS idx_rewards_active ON rewards(active);
