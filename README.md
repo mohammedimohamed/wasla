@@ -1,8 +1,8 @@
-# Wasla CRM 🚀
+# Wasla CRM 
 
 A fast, offline-first Lead Management Engine designed for high-velocity Exhibition Environments like Batimatec.
 
-## ⚡ Quick Start Guide
+## Quick Start Guide
 
 Follow these simple steps to clone the repository and get the app running on your local machine.
 
@@ -50,10 +50,10 @@ The app will now be available on your local network on port `3000`.
 
 ---
 
-## 🔑 Default Administrator Login
+## Default Administrator Login
 Once the app is running, go to `/admin/login` and use the following credentials:
-- **Email:** `admin@wasla.dev`
-- **Password:** `adminpassword`
+- **Email:** `admin@wasla.dz`
+- **Password:** `admin123`
 
-## 🧹 Useful Commands
+## Useful Commands
 - `npm run db:reset` - Wipes all scanned leads and resets reward inventory to 0 (useful right before a new event begins, without deleting your sales agent accounts or settings).
