@@ -1,77 +1,59 @@
 # Wasla CRM 🚀
-*The ultimate offline-first, white-label Lead Management Engine designed natively for high-velocity Exhibition Environments.*
 
-![Wasla Kiosk UI](./docs/kiosk_preview.png) *(Preview placeholder)*
+A fast, offline-first Lead Management Engine designed for high-velocity Exhibition Environments like Batimatec.
 
-## 🏗️ Architecture & Stack
-- **Framework**: Next.js 14 App Router (Server-Side Focused).
-- **Database**: `better-sqlite3` strictly utilizing persistent local-volume binding. Zero external Cloud SaaS points of failure.
-- **Styling**: Tailwind CSS configured with a fully responsive Dark/Light Admin Extranet dynamically pushing `.env` parameter brands onto Kiosk elements.
-- **Validation**: Strict `Zod` API typing mapping natively to React-Hook-Forms mitigating all injection structures.
+## ⚡ Quick Start Guide
 
----
+Follow these simple steps to clone the repository and get the app running on your local machine.
 
-## 🔑 Installation & Deployment Process
-
-### 1. Basic Setup
-Ensure `Node.js 18+` is active natively.
+### 1. Clone the Repository
+Open your terminal and clone the project:
 ```bash
-git clone https://github.com/organization/wasla.git
+git clone https://github.com/mohammedimohamed/wasla.git
 cd wasla
+```
+
+### 2. Install Dependencies
+Make sure you have Node.js (version 18+) installed, then run:
+```bash
 npm install
 ```
 
-### 2. Configure Environment
-Create `.env` mirroring the `.env.example`.
-```env
-# Absolute Route binding to your Docker Volume securely:
-DB_PATH=./database/wasla.sqlite
-JWT_SECRET="YOUR_SUPER_SECURE_RANDOM_HASH_HERE"
+### 3. Setup Environment Variables
+Create a `.env` file in the root directory. You can copy the contents of `.env.example`:
+```bash
+cp .env.example .env
 ```
+*(If you are on Windows, simply duplicate the `.env.example` file and rename the copy to `.env`)*
 
-### 3. Initialize & Seed SQLite
-The Migration system enforces schema synchronicity dynamically generating Users & Standardized Theming out-of-the-box.
+### 4. Initialize Database
+Run the seed script to create the local SQLite database and populate the default administrator account:
 ```bash
 npm run seed
 ```
-**Default Administrator:** 
-`admin@wasla.dev` / `adminpassword`
 
----
+### 5. Run the Application
 
-## 💻 Operating The Platform
-
-### Development
-Exposes the CRM to your local network (`0.0.0.0`) permitting iPad / iPhone testing:
+**For Development (Live Reload):**
 ```bash
 npm run dev
 ```
 
-### Production Build
+**For Production (Optimized & Offline capabilities enabled):**
 ```bash
 npm run build
 npm start
 ```
 
----
-
-## 🔥 Key Commands & Scripts
-
-- `npm run seed`: Wipes the entire database back to zero and rebuilds the `users`, `teams`, and `tenant_settings` with the default state.
-- `npm run db:reset`: **CRITICAL TRADE-SHOW COMMAND.** Leaves your Sales Agents and Settings completely untouched, but irreversibly wipes ALL `leads` and resets Active Reward `claimed_count` capacities back to 0. Use strictly when launching a new event.
+The app will now be available on your local network on port `3000`. 
+* Example: `http://localhost:3000` or `http://192.168.x.x:3000`
 
 ---
 
-## 🔒 Security Posture & RBAC Layers
-The entire platform isolates visibility natively depending on the session cookie signature matching:
-1. **Administrators**: God-Mode. Manipulate underlying schema brands, deploy QR Tracking codes, and wipe constraints natively.
-2. **Team Leaders**: See aggregated lead capture arrays mapped linearly down to their specific reporting sub-agents.
-3. **Sales Agents**: Isolates inputs mapping strictly to `<Self>` preventing aggressive poaching.
+## 🔑 Default Administrator Login
+Once the app is running, go to `/admin/login` and use the following credentials:
+- **Email:** `admin@wasla.dev`
+- **Password:** `adminpassword`
 
----
-
-## 🌐 Offline-First Resilience (PWA Mode)
-Wasla runs securely disconnected. If standard 4G/5G connections drop completely inside a Trade Show Hall:
-1. **PWA Install**: iPads can natively "Add to Homescreen", permanently locking assets out of Safari memory ceilings.
-2. **Offline Queues**: If `fetch()` connections crash natively resolving timeouts or `!navigator.onLine` constraints, payloads sink into an encrypted `localStorage` array.
-3. **Auto-Recovery**: Background Workers universally poll for Wi-Fi recovery firing isolated Batches to `/api/sync` instantly archiving them back into the Administrator's Mainframe.
+## 🧹 Useful Commands
+- `npm run db:reset` - Wipes all scanned leads and resets reward inventory to 0 (useful right before a new event begins, without deleting your sales agent accounts or settings).
