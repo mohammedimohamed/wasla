@@ -135,7 +135,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({ source, onSubmitSuccess, lea
             const bodyObj = leadId
                 ? data
                 : {
-                    metadata: data,
+                    // ✅ FIX: Spread form fields directly at the top level.
+                    // The API destructures { source, deviceId, ...customFields } from this body,
+                    // so customFields will be the flat form data — no double-nesting.
+                    ...data,
                     source,
                     deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
                 };

@@ -26,13 +26,19 @@ interface Reward {
 export default function KioskSuccessPage() {
     const router = useRouter();
     const [reward, setReward] = useState<Reward | null>(null);
-    const [settings, setSettings] = useState<any>(null);
+    // Start with fallback settings so page renders immediately even when offline
+    const [settings, setSettings] = useState<any>({
+        primary_color: typeof window !== 'undefined'
+            ? (getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#4f46e5')
+            : '#4f46e5',
+        event_name: ''
+    });
     const [countdown, setCountdown] = useState(10);
     const [copied, setCopied] = useState(false);
     const [returnUrl, setReturnUrl] = useState('/kiosk');
 
     useEffect(() => {
-        // Fetch Settings
+        // Non-blocking: fetch settings but do NOT block rendering on failure (e.g. offline kiosk)
         fetch('/api/settings')
             .then(res => res.json())
             .then(data => {
@@ -40,6 +46,9 @@ export default function KioskSuccessPage() {
                     setSettings(data.settings);
                     document.documentElement.style.setProperty('--primary-color', data.settings.primary_color);
                 }
+            })
+            .catch(() => {
+                // Already have fallback in state — no action needed
             });
 
         // Load Reward from Session
@@ -53,7 +62,7 @@ export default function KioskSuccessPage() {
         // Clean up session immediately to prevent stale states on navigation
         sessionStorage.removeItem('kiosk_reward');
 
-        // Grab location to restart securely 
+        // Grab location to restart securely
         const searchParams = new URLSearchParams(window.location.search);
         const location = searchParams.get('location');
         const targetUrl = location ? `/kiosk?location=${encodeURIComponent(location)}` : '/kiosk';
@@ -83,13 +92,7 @@ export default function KioskSuccessPage() {
         }
     };
 
-    if (!settings) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <Loader2 className="w-12 h-12 animate-spin text-slate-300" />
-            </div>
-        );
-    }
+    // No loading gate — page renders immediately with fallback settings
 
     const primaryColor = settings.primary_color;
 

@@ -10,6 +10,18 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '@/src/context/LanguageContext';
 import { toast } from 'react-hot-toast';
+import { useFormConfig, getTableFields, FormField } from '@/src/hooks/useFormConfig';
+
+/** Unwrap old double-nested leads and return a flat metadata object */
+function resolveMeta(lead: any): Record<string, any> {
+    try {
+        const parsed = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {});
+        if (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata)) {
+            return parsed.metadata;
+        }
+        return parsed;
+    } catch (_) { return {}; }
+}
 
 interface SessionUser {
     id: string;
@@ -20,6 +32,8 @@ interface SessionUser {
 export default function CommercialPage() {
     const { t } = useTranslation();
     const router = useRouter();
+    const { config: formConfig } = useFormConfig();
+    const TABLE_COLUMNS = formConfig ? getTableFields(formConfig) : [];
 
     // Session Context
     const [user, setUser] = useState<SessionUser | null>(null);
@@ -156,11 +170,10 @@ export default function CommercialPage() {
                     <div className="flex p-1 bg-slate-200/50 rounded-2xl mb-8 w-fit mx-auto border border-slate-200">
                         <button
                             onClick={() => setActiveTab('ADD')}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
-                                activeTab === 'ADD'
-                                    ? 'bg-white text-primary shadow-md'
-                                    : 'text-slate-500 hover:text-slate-700'
-                            }`}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'ADD'
+                                ? 'bg-white text-primary shadow-md'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
                         >
                             <Plus className="w-4 h-4" />
                             Ajouter un Lead
@@ -170,11 +183,10 @@ export default function CommercialPage() {
                                 setActiveTab('LIST');
                                 fetchDashboardData();
                             }}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
-                                activeTab === 'LIST'
-                                    ? 'bg-white text-primary shadow-md'
-                                    : 'text-slate-500 hover:text-slate-700'
-                            }`}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'LIST'
+                                ? 'bg-white text-primary shadow-md'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
                         >
                             <List className="w-4 h-4" />
                             {isTeamLeader ? 'Leads Équipe' : 'Mes Leads'}
@@ -235,20 +247,23 @@ export default function CommercialPage() {
                                                 {isTeamLeader && (
                                                     <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Auteur</th>
                                                 )}
-                                                <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Informations</th>
+                                                {TABLE_COLUMNS.map(col => (
+                                                    <th key={col.name} className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                        {col.label}
+                                                    </th>
+                                                ))}
                                                 <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Source</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
                                             {leads.map((lead: any) => {
-                                                let meta: any = {};
-                                                try { meta = JSON.parse(lead.metadata || '{}'); } catch (_) {}
-                                                const info = Object.values(meta)
-                                                    .filter(Boolean)
-                                                    .map((v: any) => Array.isArray(v) ? v.join(', ') : String(v))
-                                                    .join(' · ');
+                                                const meta = resolveMeta(lead);
                                                 return (
-                                                    <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors">
+                                                    <tr
+                                                        key={lead.id}
+                                                        onClick={() => router.push(`/leads/${lead.id}`)}
+                                                        className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                                                    >
                                                         <td className="px-6 py-4 whitespace-nowrap text-slate-600 font-medium text-xs">
                                                             {new Date(lead.created_at).toLocaleDateString('fr-FR', {
                                                                 day: '2-digit', month: '2-digit',
@@ -260,9 +275,37 @@ export default function CommercialPage() {
                                                                 {lead.created_by_name || 'Inconnu'}
                                                             </td>
                                                         )}
-                                                        <td className="px-6 py-4 text-slate-500 text-xs max-w-xs truncate" title={info}>
-                                                            {info || '—'}
-                                                        </td>
+                                                        {TABLE_COLUMNS.map(col => {
+                                                            const raw = meta[col.name];
+                                                            let value = "—";
+                                                            if (raw !== null && raw !== undefined) {
+                                                                value = Array.isArray(raw) ? (raw.join(", ") || "—") : String(raw) || "—";
+                                                            }
+                                                            const isArray = col.type === 'multiselect' || col.type === 'chip-group';
+                                                            return (
+                                                                <td key={col.name} className="px-6 py-4 max-w-xs truncate">
+                                                                    {isArray ? (
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {(Array.isArray(raw) ? raw : []).slice(0, 2).map((v: string) => (
+                                                                                <span key={v} className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">
+                                                                                    {v}
+                                                                                </span>
+                                                                            ))}
+                                                                            {Array.isArray(raw) && raw.length > 2 && (
+                                                                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">
+                                                                                    +{raw.length - 2}
+                                                                                </span>
+                                                                            )}
+                                                                            {(!Array.isArray(raw) || raw.length === 0) && (
+                                                                                <span className="text-slate-300 text-xs">—</span>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-slate-500 text-xs" title={value}>{value}</span>
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
                                                         <td className="px-6 py-4">
                                                             <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">
                                                                 {lead.source}

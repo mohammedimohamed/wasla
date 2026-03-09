@@ -59,6 +59,23 @@ function getSourceBadge(source: string) {
     );
 }
 
+/**
+ * Resolve the flat metadata object from a lead row.
+ * Handles both old broken leads (double-nested: {metadata:{...}}) and new flat leads ({...}).
+ */
+function resolveMeta(lead: Lead): Record<string, any> {
+    try {
+        const parsed = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {});
+        // If double-nested (old bug), unwrap it
+        if (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata)) {
+            return parsed.metadata;
+        }
+        return parsed;
+    } catch (_) {
+        return {};
+    }
+}
+
 /** Resolve a field's value from a parsed metadata object */
 function getCellValue(field: FormField, meta: Record<string, any>): string {
     const raw = meta[field.name];
@@ -136,8 +153,7 @@ export default function LeadsListPage() {
 
     // Filter: search across all metadata string values & source filter
     const filteredLeads = leads.filter(lead => {
-        let meta: Record<string, any> = {};
-        try { meta = JSON.parse(lead.metadata || "{}"); } catch (_) { }
+        const meta = resolveMeta(lead);
 
         const searchable = Object.values(meta)
             .map(v => (Array.isArray(v) ? v.join(" ") : String(v ?? "")))
@@ -266,8 +282,7 @@ export default function LeadsListPage() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {filteredLeads.map(lead => {
-                                        let meta: Record<string, any> = {};
-                                        try { meta = JSON.parse(lead.metadata || "{}"); } catch (_) { }
+                                        const meta = resolveMeta(lead);
 
                                         return (
                                             <tr

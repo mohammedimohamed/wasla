@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getSession } from '@/lib/auth';
 
 export async function GET(
     request: Request,
@@ -18,16 +19,32 @@ export async function GET(
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
         }
 
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ success: false, error: 'Unauthenticated' }, { status: 401 });
+        }
+
+        // 🛡️ SECURITY: Scope Check per user role
+        if (session.role === 'SALES_AGENT' && lead.created_by !== session.userId) {
+            return NextResponse.json({ success: false, error: 'Forbidden. This lead does not belong to you.' }, { status: 403 });
+        }
+        if (session.role === 'TEAM_LEADER' && lead.team_id !== session.teamId) {
+            return NextResponse.json({ success: false, error: 'Forbidden. This lead does not belong to your team.' }, { status: 403 });
+        }
+
         // 🛡️ ARCHITECTURAL FIX: Parse metadata and flatten for frontend
-        const meta = JSON.parse(lead.metadata || '{}');
+        const rawMeta = JSON.parse(lead.metadata || '{}');
+        // Backward-compat: unwrap old double-nested {metadata: {...}} leads
+        const meta = (rawMeta.metadata && typeof rawMeta.metadata === 'object' && !Array.isArray(rawMeta.metadata))
+            ? rawMeta.metadata
+            : rawMeta;
+
         const flattenedLead = {
             ...lead,
             ...meta,
-            // Ensure products and actions are arrays even if missing in metadata
-            produits: meta.produits || [],
-            actions: meta.actions || [],
-            contact: meta.nom || meta.contact || "Inconnu",
-            societe: meta.societe || meta.entreprise
+            // Map common identifier fields to a stable 'contact' key for the profile header
+            contact: meta.contact || meta.nom || meta.name || meta.prenom || "—",
+            societe: meta.societe || meta.entreprise || meta.company || null,
         };
 
         return NextResponse.json({

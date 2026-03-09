@@ -18,27 +18,17 @@ import {
     AlertTriangle
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useFormConfig } from "@/src/hooks/useFormConfig";
 
 interface Lead {
     id: string;
     contact: string;
     societe?: string;
-    telephone?: string;
-    email?: string;
-    ville?: string;
-    fonction?: string;
-    type_client: string;
-    produits: string[];
-    projet?: string;
-    quantite?: string;
-    delai?: string;
-    budget?: string;
-    actions: string[];
-    note?: string;
     source: string;
     created_at: string;
     sync_status: string;
     qualified_by?: string;
+    [key: string]: any;
 }
 
 export default function LeadDetailPage() {
@@ -47,6 +37,7 @@ export default function LeadDetailPage() {
     const [lead, setLead] = useState<Lead | null>(null);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState<string | null>(null);
+    const { config: formConfig } = useFormConfig();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -128,131 +119,56 @@ export default function LeadDetailPage() {
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{lead.contact}</h2>
-                            <p className="text-gray-500">{lead.societe || "Particulier"}</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 pt-2">
-                        {lead.telephone && (
-                            <div className="flex items-center gap-3 text-gray-700">
-                                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
-                                    <Phone className="w-4 h-4" />
-                                </div>
-                                <a href={`tel:${lead.telephone}`} className="text-sm font-semibold">{lead.telephone}</a>
-                            </div>
-                        )}
-                        {lead.email && (
-                            <div className="flex items-center gap-3 text-gray-700">
-                                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
-                                    <Mail className="w-4 h-4" />
-                                </div>
-                                <a href={`mailto:${lead.email}`} className="text-sm font-semibold">{lead.email}</a>
-                            </div>
-                        )}
-                        {lead.ville && (
-                            <div className="flex items-center gap-3 text-gray-700">
-                                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
-                                    <MapPin className="w-4 h-4" />
-                                </div>
-                                <span className="text-sm font-semibold">{lead.ville}</span>
-                            </div>
-                        )}
-                        {lead.fonction && (
-                            <div className="flex items-center gap-3 text-gray-700">
-                                <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
-                                    <Briefcase className="w-4 h-4" />
-                                </div>
-                                <span className="text-sm font-semibold">{lead.fonction}</span>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className="space-y-3">
-                    <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-primary" />
-                        Profil & Intérêts
-                    </h3>
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                        <div>
-                            <p className="text-[10px] text-gray-400 uppercase font-black mb-2 px-1">Type de client</p>
-                            <span className="inline-block px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold">
-                                {lead.type_client}
-                            </span>
-                        </div>
-                        <div>
-                            <p className="text-[10px] text-gray-400 uppercase font-black mb-2 px-1">Produits d'intérêt</p>
-                            <div className="flex flex-wrap gap-2">
-                                {lead.produits.map(p => (
-                                    <span key={p} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold ring-1 ring-gray-200">
-                                        {p}
-                                    </span>
-                                ))}
-                            </div>
+                            <p className="text-gray-500">{lead.societe}</p>
                         </div>
                     </div>
                 </section>
 
-                {(lead.projet || lead.quantite || lead.delai || lead.budget) && (
-                    <section className="space-y-3">
-                        <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-primary" />
-                            Détails Projet
-                        </h3>
-                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                            {lead.projet && (
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">Description</p>
-                                    <p className="text-sm text-gray-700 leading-relaxed">{lead.projet}</p>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                                {lead.quantite && (
-                                    <div>
-                                        <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">Quantité</p>
-                                        <p className="text-sm font-bold text-gray-800">{lead.quantite}</p>
-                                    </div>
-                                )}
-                                {lead.delai && (
-                                    <div>
-                                        <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">Délai</p>
-                                        <p className="text-sm font-bold text-gray-800">{lead.delai}</p>
-                                    </div>
-                                )}
-                            </div>
-                            {lead.budget && (
-                                <div>
-                                    <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">Budget</p>
-                                    <p className="text-sm font-bold text-gray-800">{lead.budget}</p>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                )}
+                {formConfig?.pages.map(page =>
+                    page.sections.map(section => {
+                        const hasData = section.fields.some(f => {
+                            const val = lead[f.name];
+                            if (Array.isArray(val)) return val.length > 0;
+                            return val !== undefined && val !== null && val !== "";
+                        });
 
-                {lead.actions && lead.actions.length > 0 && (
-                    <section className="space-y-3">
-                        <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-primary" />
-                            Actions à suivre
-                        </h3>
-                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-wrap gap-2">
-                            {lead.actions.map(action => (
-                                <span key={action} className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-bold ring-1 ring-green-100">
-                                    {action}
-                                </span>
-                            ))}
-                        </div>
-                    </section>
-                )}
+                        if (!hasData) return null;
 
-                {lead.note && (
-                    <section className="space-y-3">
-                        <h3 className="font-bold text-gray-900 text-sm ml-2">Notes</h3>
-                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                            <p className="text-sm text-gray-700 italic">"{lead.note}"</p>
-                        </div>
-                    </section>
+                        return (
+                            <section key={section.id} className="space-y-3">
+                                <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-primary" />
+                                    {section.title}
+                                </h3>
+                                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                                    {section.fields.map(field => {
+                                        const raw = lead[field.name];
+                                        if (raw === undefined || raw === null || raw === "") return null;
+                                        if (Array.isArray(raw) && raw.length === 0) return null;
+
+                                        const isArray = Array.isArray(raw) || field.type === 'multiselect' || field.type === 'chip-group';
+
+                                        return (
+                                            <div key={field.name}>
+                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">{field.label}</p>
+                                                {isArray ? (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(Array.isArray(raw) ? raw : [raw]).map((v: string) => (
+                                                            <span key={v} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold ring-1 ring-blue-100">
+                                                                {v}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm font-semibold text-gray-800 break-words whitespace-pre-wrap">{String(raw)}</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        );
+                    })
                 )}
 
                 <div className="pt-6 text-center">
