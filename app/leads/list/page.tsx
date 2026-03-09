@@ -156,7 +156,7 @@ export default function LeadsListPage() {
 
             {/* ── HEADER ─────────────────────────────────────────────────────── */}
             <header className="bg-white border-b px-4 md:px-6 py-4 sticky top-0 z-20 shadow-sm">
-                <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+                <div className="w-full flex items-center gap-3 flex-wrap">
                     <button
                         onClick={() => router.push(isManager ? "/admin/dashboard" : "/dashboard")}
                         className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
@@ -199,7 +199,7 @@ export default function LeadsListPage() {
 
             {/* ── FILTERS ────────────────────────────────────────────────────── */}
             <div className="bg-white border-b px-4 md:px-6 py-3 sticky top-[65px] z-10">
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3">
+                <div className="w-full flex flex-col sm:flex-row gap-3">
                     {/* Search */}
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -218,8 +218,8 @@ export default function LeadsListPage() {
                                 key={f}
                                 onClick={() => setFilterSource(f)}
                                 className={`px-3 py-2 border rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all ${filterSource === f
-                                        ? "bg-slate-900 border-slate-900 text-white"
-                                        : "bg-white border-gray-200 text-gray-500 hover:border-slate-400"
+                                    ? "bg-slate-900 border-slate-900 text-white"
+                                    : "bg-white border-gray-200 text-gray-500 hover:border-slate-400"
                                     }`}
                             >
                                 {f === "all" ? "Tous" : f}
@@ -231,7 +231,7 @@ export default function LeadsListPage() {
 
             {/* ── TABLE ──────────────────────────────────────────────────────── */}
             <div className="flex-1 overflow-auto p-4 md:p-6">
-                <div className="max-w-7xl mx-auto bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
+                <div className="w-full bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
                     {loading ? (
                         <div className="flex items-center justify-center p-20 text-slate-300">
                             <Loader2 className="w-10 h-10 animate-spin" />
@@ -247,21 +247,21 @@ export default function LeadsListPage() {
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-100">
                                         {/* System columns */}
-                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Source</th>
+                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Source</th>
                                         {/* Schema-driven columns from formSchema */}
                                         {TABLE_COLUMNS.map(col => (
                                             <th
                                                 key={col.name}
-                                                className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap"
+                                                className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap"
                                                 style={col.tableWidth ? { minWidth: col.tableWidth } : undefined}
                                             >
                                                 {col.label}
                                             </th>
                                         ))}
                                         {/* Trailing columns */}
-                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date</th>
-                                        <th className="px-4 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Auteur</th>
-                                        <th className="px-4 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync</th>
+                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date</th>
+                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Auteur</th>
+                                        <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -276,7 +276,7 @@ export default function LeadsListPage() {
                                                 className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
                                             >
                                                 {/* Source badge */}
-                                                <td className="px-4 py-4 whitespace-nowrap">
+                                                <td className="px-6 py-5 whitespace-nowrap">
                                                     {getSourceBadge(lead.source)}
                                                 </td>
 
@@ -287,7 +287,7 @@ export default function LeadsListPage() {
                                                     return (
                                                         <td
                                                             key={col.name}
-                                                            className="px-4 py-4 max-w-[220px]"
+                                                            className="px-6 py-5 max-w-[220px]"
                                                         >
                                                             {isArray ? (
                                                                 <div className="flex flex-wrap gap-1">
@@ -318,19 +318,19 @@ export default function LeadsListPage() {
                                                 })}
 
                                                 {/* Date */}
-                                                <td className="px-4 py-4 text-slate-400 text-xs whitespace-nowrap">
+                                                <td className="px-6 py-5 text-slate-400 text-xs whitespace-nowrap">
                                                     {new Date(lead.created_at).toLocaleDateString('fr-FR', {
                                                         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
                                                     })}
                                                 </td>
 
                                                 {/* Author */}
-                                                <td className="px-4 py-4 text-slate-500 text-xs font-semibold whitespace-nowrap">
+                                                <td className="px-6 py-5 text-slate-500 text-xs font-semibold whitespace-nowrap">
                                                     {lead.created_by_name || "Système"}
                                                 </td>
 
                                                 {/* Sync status */}
-                                                <td className="px-4 py-4 text-center">
+                                                <td className="px-6 py-5 text-center">
                                                     {getStatusIcon(lead.sync_status)}
                                                 </td>
                                             </tr>

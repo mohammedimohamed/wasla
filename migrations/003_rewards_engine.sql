@@ -6,11 +6,8 @@
 -- We use a trigger-checks workaround by adding columns that default safely.
 
 -- Add inventory tracking columns (will silently pass if column already exists via app-level guard)
-ALTER TABLE rewards ADD COLUMN total_quantity INTEGER DEFAULT -1;  -- -1 = unlimited (digital)
-ALTER TABLE rewards ADD COLUMN claimed_count INTEGER DEFAULT 0;
-ALTER TABLE rewards ADD COLUMN is_active INTEGER DEFAULT 1;
-ALTER TABLE rewards ADD COLUMN rule_match TEXT;                    -- JSON: {field, operator, value}
-ALTER TABLE rewards ADD COLUMN reward_code TEXT;                   -- Promo code or download URL
+-- (ALTER TABLE ADD COLUMN statements have been removed from this SQL migration)
+-- (They are automatically/dynamically handled in lib/db.ts to avoid crashing on restarts)
 
 -- Create an index for fast active reward lookups
 CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active);
