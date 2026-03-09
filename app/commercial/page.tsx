@@ -164,58 +164,58 @@ export default function CommercialPage() {
 
             {/* ── MAIN CONTENT ─────────────────────────────────────── */}
             <main className="flex-1 overflow-y-auto pt-6 pb-20">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
-                    {/* Navigation Tabs */}
-                    <div className="flex p-1 bg-slate-200/50 rounded-2xl mb-8 w-fit mx-auto border border-slate-200">
-                        <button
-                            onClick={() => setActiveTab('ADD')}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'ADD'
-                                ? 'bg-white text-primary shadow-md'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                        >
-                            <Plus className="w-4 h-4" />
-                            Ajouter un Lead
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('LIST');
-                                fetchDashboardData();
-                            }}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'LIST'
-                                ? 'bg-white text-primary shadow-md'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                        >
-                            <List className="w-4 h-4" />
-                            {isTeamLeader ? 'Leads Équipe' : 'Mes Leads'}
-                        </button>
+                {/* Navigation Tabs */}
+                <div className="flex p-1 bg-slate-200/50 rounded-2xl mb-8 w-fit mx-auto border border-slate-200">
+                    <button
+                        onClick={() => setActiveTab('ADD')}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'ADD'
+                            ? 'bg-white text-primary shadow-md'
+                            : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        <Plus className="w-4 h-4" />
+                        Ajouter un Lead
+                    </button>
+                    <button
+                        onClick={() => {
+                            setActiveTab('LIST');
+                            fetchDashboardData();
+                        }}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === 'LIST'
+                            ? 'bg-white text-primary shadow-md'
+                            : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        <List className="w-4 h-4" />
+                        {isTeamLeader ? 'Leads Équipe' : 'Mes Leads'}
+                    </button>
+                </div>
+
+                {/* ── TAB: ADD LEAD ──────────────────────────── */}
+                {activeTab === 'ADD' && (
+                    <div className="max-w-4xl mx-auto px-4 sm:px-6">
+                        <div className="mb-6 text-center space-y-2">
+                            <h3 className="text-3xl font-black text-slate-900 tracking-tight">{t('commercial.formTitle')}</h3>
+                            <p className="text-sm text-gray-500 font-medium">{t('commercial.formSubtitle')}</p>
+                        </div>
+
+                        <div className="max-w-2xl mx-auto bg-white p-8 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10 transition-all hover:shadow-primary/5">
+                            <LeadForm
+                                source="commercial"
+                                onSubmitSuccess={() => {
+                                    toast.success(t('kiosk.successMsg'));
+                                    fetchDashboardData();
+                                }}
+                            />
+                        </div>
                     </div>
+                )}
 
-                    {/* ── TAB: ADD LEAD ──────────────────────────── */}
-                    {activeTab === 'ADD' && (
-                        <>
-                            <div className="mb-6 text-center space-y-2">
-                                <h3 className="text-3xl font-black text-slate-900 tracking-tight">{t('commercial.formTitle')}</h3>
-                                <p className="text-sm text-gray-500 font-medium">{t('commercial.formSubtitle')}</p>
-                            </div>
-
-                            <div className="max-w-2xl mx-auto bg-white p-8 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10 transition-all hover:shadow-primary/5">
-                                <LeadForm
-                                    source="commercial"
-                                    onSubmitSuccess={() => {
-                                        toast.success(t('kiosk.successMsg'));
-                                        fetchDashboardData();
-                                    }}
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    {/* ── TAB: LEADS LIST ────────────────────────── */}
-                    {activeTab === 'LIST' && (
-                        <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+                {/* ── TAB: LEADS LIST — full width ───────────── */}
+                {activeTab === 'LIST' && (
+                    <div className="px-4 sm:px-6">
+                        <div className="w-full bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
                             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-50">
                                 <div>
                                     <h3 className="text-lg font-black text-slate-900 tracking-tight">
@@ -319,8 +319,8 @@ export default function CommercialPage() {
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </main>
         </div>
     );
