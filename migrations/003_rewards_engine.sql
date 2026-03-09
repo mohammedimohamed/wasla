@@ -1,14 +1,13 @@
 -- Migration 003: Enhance rewards table with inventory tracking
 -- Adds quantity management columns needed for the Rewards Engine.
--- Uses ALTER TABLE ... ADD COLUMN with safe IF NOT EXISTS pattern.
-
--- NOTE: SQLite does not support IF NOT EXISTS on ALTER TABLE.
--- We use a trigger-checks workaround by adding columns that default safely.
-
--- Add inventory tracking columns (will silently pass if column already exists via app-level guard)
--- (ALTER TABLE ADD COLUMN statements have been removed from this SQL migration)
--- (They are automatically/dynamically handled in lib/db.ts to avoid crashing on restarts)
-
--- Create an index for fast active reward lookups
-CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active);
-CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status);
+--
+-- NOTE: SQLite ALTER TABLE does not support IF NOT EXISTS.
+-- All column additions (total_quantity, claimed_count, is_active, rule_match, reward_code)
+-- are handled dynamically in lib/db.ts AFTER migrations run, using pragma table_info().
+--
+-- Indexes that depend on those columns (idx_rewards_is_active, idx_leads_reward_status)
+-- are also deferred to lib/db.ts for the same reason; they cannot be created here
+-- because the columns they reference may not exist yet on a fresh database.
+--
+-- This file intentionally left without DDL statements.
+SELECT 1; -- no-op placeholder so the file is not empty

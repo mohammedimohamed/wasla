@@ -54,23 +54,29 @@ export function initDb() {
     }
 
     // 🔄 Safe Rewards Engine Migration (ALTER TABLE is not transactional in SQLite)
-    // We check column existence before adding to avoid 'duplicate column' errors on restart.
-    const rewardsColumns = (db.pragma('table_info(rewards)') as { name: string }[]).map(c => c.name);
-    const rewardsMigrations: [string, string][] = [
-        ['total_quantity', 'ALTER TABLE rewards ADD COLUMN total_quantity INTEGER DEFAULT -1'],
-        ['claimed_count', 'ALTER TABLE rewards ADD COLUMN claimed_count INTEGER DEFAULT 0'],
-        ['is_active', 'ALTER TABLE rewards ADD COLUMN is_active INTEGER DEFAULT 1'],
-        ['rule_match', 'ALTER TABLE rewards ADD COLUMN rule_match TEXT'],
-        ['reward_code', 'ALTER TABLE rewards ADD COLUMN reward_code TEXT'],
-    ];
-    for (const [col, stmt] of rewardsMigrations) {
-        if (!rewardsColumns.includes(col)) {
-            try { db.exec(stmt); } catch (e) { /* Column may have been added by another process */ }
+    // Only run if the rewards table exists (migrations may have partially failed)
+    const rewardsTableExists = db.prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='rewards'`
+    ).get();
+
+    if (rewardsTableExists) {
+        const rewardsColumns = (db.pragma('table_info(rewards)') as { name: string }[]).map(c => c.name);
+        const rewardsMigrations: [string, string][] = [
+            ['total_quantity', 'ALTER TABLE rewards ADD COLUMN total_quantity INTEGER DEFAULT -1'],
+            ['claimed_count', 'ALTER TABLE rewards ADD COLUMN claimed_count INTEGER DEFAULT 0'],
+            ['is_active', 'ALTER TABLE rewards ADD COLUMN is_active INTEGER DEFAULT 1'],
+            ['rule_match', 'ALTER TABLE rewards ADD COLUMN rule_match TEXT'],
+            ['reward_code', 'ALTER TABLE rewards ADD COLUMN reward_code TEXT'],
+        ];
+        for (const [col, stmt] of rewardsMigrations) {
+            if (!rewardsColumns.includes(col)) {
+                try { db.exec(stmt); } catch (e) { /* Column may have been added by another process */ }
+            }
         }
+        // Indexes (idempotent, deferred here because they depend on columns added above)
+        try { db.exec(`CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active)`); } catch (_) { }
+        try { db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status)`); } catch (_) { }
     }
-    // Indexes (idempotent)
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active)`);
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status)`);
 }
 
 // Enterprise Audit Logging Utility
