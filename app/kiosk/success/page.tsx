@@ -64,8 +64,10 @@ export default function KioskSuccessPage() {
 
         // Grab location to restart securely
         const searchParams = new URLSearchParams(window.location.search);
-        const location = searchParams.get('location');
-        const targetUrl = location ? `/kiosk?location=${encodeURIComponent(location)}` : '/kiosk';
+        const rawLocation = searchParams.get('location') || '';
+        const cleanLocation = rawLocation.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
+
+        const targetUrl = cleanLocation ? `/kiosk?location=${encodeURIComponent(cleanLocation)}` : '/kiosk';
         setReturnUrl(targetUrl);
 
         // Auto-redirect Timer

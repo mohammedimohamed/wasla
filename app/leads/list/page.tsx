@@ -26,6 +26,7 @@ interface Lead {
     created_at: string;
     sync_status: string;
     created_by_name?: string;
+    form_version?: number;
     metadata: string; // Raw JSON from DB — we parse it per-row
     [key: string]: any; // Dynamic metadata fields
 }
@@ -264,6 +265,7 @@ export default function LeadsListPage() {
                                     <tr className="bg-slate-50 border-b border-slate-100">
                                         {/* System columns */}
                                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Source</th>
+                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Version</th>
                                         {/* Schema-driven columns from formSchema */}
                                         {TABLE_COLUMNS.map(col => (
                                             <th
@@ -293,6 +295,13 @@ export default function LeadsListPage() {
                                                 {/* Source badge */}
                                                 <td className="px-6 py-5 whitespace-nowrap">
                                                     {getSourceBadge(lead.source)}
+                                                </td>
+
+                                                {/* Form version badge */}
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-bold text-[10px] uppercase border border-slate-200">
+                                                        v{lead.form_version || 1}
+                                                    </span>
                                                 </td>
 
                                                 {/* Dynamic schema-driven columns */}

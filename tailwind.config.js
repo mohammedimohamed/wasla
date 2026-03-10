@@ -20,6 +20,9 @@ module.exports = {
                 alert: '#D97706',
                 error: '#DC2626',
             },
+            animation: {
+                'spin-slow': 'spin 3s linear infinite',
+            }
         },
     },
     plugins: [],

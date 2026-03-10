@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { leadsDb, rewardsDb, auditTrail } from '@/lib/db';
+import { leadsDb, rewardsDb, auditTrail, formConfigDb } from '@/lib/db';
 import db from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -30,27 +30,27 @@ export async function POST(request: Request) {
         // 1. Separate rewards into rule-based and universal (no rules)
         const ruleBased: any[] = [];
         const universal: any[] = [];
-        
+
         for (const reward of availableRewards) {
-            if (reward.rule_match) {
-                try {
-                    ruleBased.push({ ...reward, ruleObj: JSON.parse(reward.rule_match) });
-                } catch(e) { /* ignore invalid rules */ console.error("Invalid rule JSON", reward.rule_match); }
-            } else {
-                universal.push(reward);
-            }
+          if (reward.rule_match) {
+            try {
+              ruleBased.push({ ...reward, ruleObj: JSON.parse(reward.rule_match) });
+            } catch (e) { /* ignore invalid rules */ console.error("Invalid rule JSON", reward.rule_match); }
+          } else {
+            universal.push(reward);
+          }
         }
 
         // 2. Try to find a matching rule
         let matchedRewards = ruleBased.filter(r => {
-            const { field, value } = r.ruleObj;
-            if (!field || !value) return false;
-            
-            const metaValue = body[field];
-            if (Array.isArray(metaValue)) {
-                return metaValue.includes(value);
-            }
-            return String(metaValue) === String(value);
+          const { field, value } = r.ruleObj;
+          if (!field || !value) return false;
+
+          const metaValue = body[field];
+          if (Array.isArray(metaValue)) {
+            return metaValue.includes(value);
+          }
+          return String(metaValue) === String(value);
         });
 
         // 3. If no rules match, fallback to universal pool
@@ -79,6 +79,14 @@ export async function POST(request: Request) {
     // ─────────────────────────────────────────────────────────────────
     const metadataStr = JSON.stringify(body);
 
+    // Grab active form version
+    const config = formConfigDb.get();
+    const formVersion = config ? config._version : 1;
+
+    // 🛡️ Data Sanitization: Prevent injected XSS strings
+    const rawDevice = body.device_id ? String(body.device_id) : 'Generic_QR';
+    const cleanDevice = rawDevice.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'Generic_QR';
+
     const newLead = {
       id,
       metadata: metadataStr,
@@ -87,7 +95,7 @@ export async function POST(request: Request) {
       created_by: null,                     // No Agent assigned
       reward_id: wonReward ? wonReward.id : null,
       reward_status: wonReward ? 'sent' : 'pending',
-      device_id: body.device_id || null,    // Multi-iPad tracking
+      device_id: cleanDevice,               // Multi-iPad tracking, sanitized
     };
 
     // Insert using existing leadsDb function setup. Kiosk leads have no session.userId.
@@ -95,8 +103,8 @@ export async function POST(request: Request) {
     // Looking at `leadsDb.create`, let's just use raw insertion if `create` fails due to no auth.
     // Wait, `create` might just use a string.
     db.prepare(`
-            INSERT INTO leads (id, source, metadata, sync_status, created_by, reward_id, reward_status, device_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO leads (id, source, metadata, sync_status, created_by, reward_id, reward_status, device_id, form_version, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
       newLead.id,
       newLead.source,
@@ -106,6 +114,7 @@ export async function POST(request: Request) {
       newLead.reward_id,
       newLead.reward_status,
       newLead.device_id,
+      formVersion,
       new Date().toISOString(),
       new Date().toISOString()
     );

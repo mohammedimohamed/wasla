@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
-import { MoveRight, MoveLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { MoveRight, MoveLeft, Loader2, CheckCircle2, AlertCircle, Monitor } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveLeadOffline } from "@/lib/offlineQueue";
 import { useFormConfig, FormPage, FormField } from "@/src/hooks/useFormConfig";
+import IdleTracker from "@/src/components/IdleTracker";
+import MediashowOverlay from "./MediashowOverlay";
 
 type FormValues = Record<string, any>;
 
@@ -26,6 +28,7 @@ function FieldRenderer({
     primaryColor: string;
     watch: any;
 }) {
+    if (!register) return null;
     const isFull = field.colSpan === 2 || field.type === 'textarea';
     const hasError = !!errors[field.name];
     const baseInput = `w-full bg-slate-50 border ${hasError ? 'border-red-400 focus:ring-red-50' : 'border-slate-200 focus:ring-slate-100'} px-5 py-4 min-h-[56px] rounded-[20px] text-base font-medium focus:border-slate-400 focus:ring-4 outline-none transition-all placeholder:text-slate-300 shadow-sm`;
@@ -128,21 +131,66 @@ export default function KioskPage() {
     const [settings, setSettings] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentPage, setCurrentPage] = useState(0);
+    const [isSignageMode, setIsSignageMode] = useState(false);
+    const [mediashowAssets, setMediashowAssets] = useState<any[]>([]);
 
     const { config, isLoading: schemaLoading } = useFormConfig();
-    const { register, handleSubmit, control, watch, trigger, formState: { errors } } = useForm<FormValues>();
+    const form = useForm<FormValues>();
+    const { register, handleSubmit, control, watch, trigger, reset, formState: { errors } } = form;
+
+    // 🛡️ EFFECTIVE RESET ENGINE
+    // This centralizes privacy wipes and prevents "register is undefined" race conditions
+    useEffect(() => {
+        if (isSignageMode && typeof reset === 'function') {
+            reset();
+            setCurrentPage(0);
+        }
+    }, [isSignageMode, reset]);
 
     useEffect(() => {
-        fetch('/api/settings')
-            .then(res => res.json())
-            .then(data => {
+        const loadSettings = async () => {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
                 if (data.success) {
                     setSettings(data.settings);
                     document.documentElement.style.setProperty('--primary-color', data.settings.primary_color);
+
+                    // If mediashow is enabled, fetch assets from PUBLIC API
+                    if (data.settings.mediashow_enabled) {
+                        const assetsRes = await fetch('/api/mediashow');
+                        const assetsData = await assetsRes.json();
+                        if (assetsData.success) {
+                            setMediashowAssets(assetsData.assets);
+
+                            // 🚀 PRE-FETCH ASSETS FOR OFFLINE READINESS
+                            // We do this silently to populate Service Worker Cache
+                            if (navigator.onLine) {
+                                assetsData.assets.forEach((asset: any) => {
+                                    const link = document.createElement('link');
+                                    link.rel = asset.type === 'video' ? 'preload' : 'prefetch';
+                                    link.as = asset.type;
+                                    link.href = asset.url;
+                                    document.head.appendChild(link);
+                                });
+                            }
+                        }
+                    }
                 }
-            })
-            .catch(() => toast.error("Impossible de charger la configuration."));
+            } catch (err) {
+                toast.error("Impossible de charger la configuration.");
+            }
+        };
+        loadSettings();
     }, []);
+
+    const resetForm = () => {
+        setIsSignageMode(false);
+    };
+
+    const handleMarketingMode = () => {
+        setIsSignageMode(true);
+    };
 
     const onSubmit = async (data: FormValues) => {
         if (!data.consent_given) {
@@ -153,8 +201,10 @@ export default function KioskPage() {
         setIsSubmitting(true);
         try {
             const searchParams = new URLSearchParams(window.location.search);
-            const location = searchParams.get('location');
-            const payload = { ...data, device_id: location || null };
+            const rawLocation = searchParams.get('location') || '';
+            const location = rawLocation.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
+
+            const payload = { ...data, device_id: location || 'Generic_QR' };
             let isOfflineFallback = false;
 
             if (!navigator.onLine) {
@@ -226,7 +276,16 @@ export default function KioskPage() {
     const isLastPage = currentPage === totalPages - 1;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl">
+        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl overflow-hidden">
+
+            {/* 📺 MEDIASHOW OVERLAY ENGINE */}
+            {!!settings.mediashow_enabled && (
+                <MediashowOverlay
+                    assets={mediashowAssets || []}
+                    isVisible={isSignageMode}
+                    onDismiss={resetForm}
+                />
+            )}
 
             {/* ── LEFT: WELCOME PANEL ─────────────────────────────────────────── */}
             <div
@@ -378,6 +437,19 @@ export default function KioskPage() {
                             </div>
                         )}
                     </form>
+
+                    {/* 🔘 MARKETING MODE TRIGGER (Subtle Footer) */}
+                    {!!settings.mediashow_enabled && (
+                        <div className="absolute bottom-6 right-6">
+                            <button
+                                type="button"
+                                onClick={handleMarketingMode}
+                                className="w-12 h-12 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all group"
+                            >
+                                <Monitor className="w-5 h-5 group-hover:text-rose-400" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

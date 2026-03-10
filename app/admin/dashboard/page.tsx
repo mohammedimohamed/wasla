@@ -398,6 +398,19 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
+                    <button
+                        onClick={() => router.push("/admin/settings/mediashow")}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                    >
+                        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Monitor className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Mediashow</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Écran de Veille & Publicité</p>
+                        </div>
+                    </button>
+
                     {/* 💾 DATABASE BACKUP CARD */}
                     <button
                         onClick={handleBackup}

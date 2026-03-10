@@ -76,6 +76,39 @@ export function initDb() {
         // Indexes (idempotent, deferred here because they depend on columns added above)
         try { db.exec(`CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active)`); } catch (_) { }
         try { db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status)`); } catch (_) { }
+
+        // Phase 8.4: Managed QR Locations table
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS kiosk_locations (
+                name TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL,
+                created_by TEXT
+            )`);
+        } catch (_) { }
+
+        // Phase 12.5: Form Versioning Migration
+        try { db.exec(`ALTER TABLE form_configs ADD COLUMN version INTEGER DEFAULT 1`); } catch (_) { }
+        try { db.exec(`ALTER TABLE leads ADD COLUMN form_version INTEGER DEFAULT 1`); } catch (_) { }
+
+        // Phase 13: Mediashow Migration
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS mediashow_assets (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,         -- 'image' | 'video'
+                url TEXT NOT NULL,
+                order_index INTEGER DEFAULT 0,
+                duration INTEGER DEFAULT 10, -- seconds (relevant for images)
+                created_at TEXT NOT NULL
+            )`);
+        } catch (_) { }
+
+        const settingsColumns = (db.pragma('table_info(tenant_settings)') as { name: string }[]).map(c => c.name);
+        if (!settingsColumns.includes('mediashow_enabled')) {
+            try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN mediashow_enabled INTEGER DEFAULT 0`); } catch (_) { }
+        }
+        if (!settingsColumns.includes('idle_timeout')) {
+            try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN idle_timeout INTEGER DEFAULT 60`); } catch (_) { }
+        }
     }
 }
 
@@ -99,7 +132,7 @@ export const auditTrail = {
 
 // Enterprise Data Access Layer (with Ownership & RBAC)
 export const leadsDb = {
-    create: (id: string, metadata: any, source: string, creatorId: string, deviceId?: string, teamId?: string | null) => {
+    create: (id: string, metadata: any, source: string, creatorId: string, deviceId?: string, teamId?: string | null, formVersion: number = 1) => {
         const timestamp = new Date().toISOString();
         const metadataStr = JSON.stringify(metadata || {});
 
@@ -111,8 +144,8 @@ export const leadsDb = {
         }
 
         const insertLead = db.prepare(`
-          INSERT INTO leads (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, sync_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+          INSERT INTO leads (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, sync_status, form_version)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
         `);
 
         const insertQueue = db.prepare(`
@@ -122,8 +155,8 @@ export const leadsDb = {
 
         try {
             const transaction = db.transaction(() => {
-                insertLead.run(id, metadataStr, source, deviceId || 'localhost', timestamp, timestamp, creatorId, finalTeamId);
-                insertQueue.run(id, JSON.stringify({ metadata, source, device_id: deviceId, created_by: creatorId, team_id: finalTeamId }), timestamp);
+                insertLead.run(id, metadataStr, source, deviceId || 'localhost', timestamp, timestamp, creatorId, finalTeamId, formVersion);
+                insertQueue.run(id, JSON.stringify({ metadata, source, device_id: deviceId, created_by: creatorId, team_id: finalTeamId, form_version: formVersion }), timestamp);
                 auditTrail.logAction(creatorId, 'CREATE', 'LEAD', id, `Lead created from source: ${source}`, metadata);
             });
             transaction();
@@ -458,7 +491,14 @@ export const settingsDb = {
         };
     },
 
-    update: (fields: { event_name?: string, primary_color?: string, logo_url?: string | null, kiosk_welcome_text?: string }, adminId: string) => {
+    update: (fields: {
+        event_name?: string,
+        primary_color?: string,
+        logo_url?: string | null,
+        kiosk_welcome_text?: string,
+        mediashow_enabled?: number,
+        idle_timeout?: number
+    }, adminId: string) => {
         const now = new Date().toISOString();
         const sets: string[] = ['updated_at = ?'];
         const params: any[] = [now];
@@ -467,11 +507,48 @@ export const settingsDb = {
         if (fields.primary_color !== undefined) { sets.push('primary_color = ?'); params.push(fields.primary_color); }
         if (fields.logo_url !== undefined) { sets.push('logo_url = ?'); params.push(fields.logo_url); }
         if (fields.kiosk_welcome_text !== undefined) { sets.push('kiosk_welcome_text = ?'); params.push(fields.kiosk_welcome_text); }
+        if (fields.mediashow_enabled !== undefined) { sets.push('mediashow_enabled = ?'); params.push(fields.mediashow_enabled); }
+        if (fields.idle_timeout !== undefined) { sets.push('idle_timeout = ?'); params.push(fields.idle_timeout); }
 
         if (sets.length === 1) return; // Only updated_at
 
         db.prepare(`UPDATE tenant_settings SET ${sets.join(', ')} WHERE id = 'global'`).run(...params);
         auditTrail.logAction(adminId, 'UPDATE', 'SETTINGS', 'global', `Admin updated branding/event settings`);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 📺 MEDIASHOW (Digital Signage)
+// ─────────────────────────────────────────────────────────────────────────────
+export const mediashowDb = {
+    list: () => {
+        return db.prepare("SELECT * FROM mediashow_assets ORDER BY order_index ASC, created_at DESC").all() as any[];
+    },
+
+    add: (asset: { type: string, url: string, duration?: number }) => {
+        const id = uuidv4();
+        const now = new Date().toISOString();
+        const lastOrder = db.prepare("SELECT MAX(order_index) as maxOrder FROM mediashow_assets").get() as { maxOrder: number | null };
+        const nextOrder = (lastOrder?.maxOrder ?? -1) + 1;
+
+        return db.prepare(`
+            INSERT INTO mediashow_assets (id, type, url, order_index, duration, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(id, asset.type, asset.url, nextOrder, asset.duration || 10, now);
+    },
+
+    updateOrder: (orders: { id: string, order_index: number }[]) => {
+        const stmt = db.prepare("UPDATE mediashow_assets SET order_index = ? WHERE id = ?");
+        const transaction = db.transaction((items) => {
+            for (const item of items) {
+                stmt.run(item.order_index, item.id);
+            }
+        });
+        transaction(orders);
+    },
+
+    delete: (id: string) => {
+        return db.prepare("DELETE FROM mediashow_assets WHERE id = ?").run(id);
     }
 };
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { leadsDb } from '@/lib/db';
+import { leadsDb, formConfigDb } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getSession } from '@/lib/auth';
 
@@ -39,6 +39,10 @@ export async function POST(request: Request) {
         // 🛡️ ARCHITECTURAL FIX: Bundle all custom fields into metadata
         const metadata = customFields || {};
 
+        // Grab active form version
+        const config = formConfigDb.get();
+        const formVersion = config ? config._version : 1;
+
         const id = uuidv4();
         leadsDb.create(
             id,
@@ -46,7 +50,8 @@ export async function POST(request: Request) {
             source || 'unknown',
             creatorId,
             deviceId || 'localhost',
-            teamId // Force server-side team attribution
+            teamId, // Force server-side team attribution
+            formVersion
         );
 
         return NextResponse.json({ success: true, id }, { status: 201 });

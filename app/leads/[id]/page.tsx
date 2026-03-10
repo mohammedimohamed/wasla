@@ -28,6 +28,7 @@ interface Lead {
     created_at: string;
     sync_status: string;
     qualified_by?: string;
+    form_version?: number;
     [key: string]: any;
 }
 
@@ -120,6 +121,15 @@ export default function LeadDetailPage() {
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">{lead.contact}</h2>
                             <p className="text-gray-500">{lead.societe}</p>
+                            {lead.source === 'kiosk' && lead.device_id && (
+                                <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md bg-indigo-50 text-[11px] font-black text-indigo-600 uppercase tracking-widest border border-indigo-100/50 mr-2">
+                                    <MapPin className="w-3 h-3" />
+                                    {lead.device_id === 'Generic_QR' ? 'QR Générique (Kiosk)' : `Kiosk: ${lead.device_id}`}
+                                </span>
+                            )}
+                            <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-200">
+                                Formulaire v{lead.form_version || 1}
+                            </span>
                         </div>
                     </div>
                 </section>

@@ -22,6 +22,7 @@ function FieldWidget({ field, register, control, errors }: {
     control: any;
     errors: any;
 }) {
+    if (!register) return null;
     const hasError = !!errors[field.name];
     const baseInput = `w-full bg-slate-50 border-2 ${hasError ? 'border-red-300' : 'border-slate-100'} px-4 py-3.5 rounded-2xl font-medium text-slate-900 outline-none focus:border-primary focus:bg-white transition-all placeholder:text-slate-300`;
 

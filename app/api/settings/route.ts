@@ -19,6 +19,8 @@ const settingsSchema = z.object({
     primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color like #4f46e5"),
     logo_url: z.string().url("Must be a valid URL").optional().nullable().or(z.literal('')),
     kiosk_welcome_text: z.string().min(2, "Welcome text required"),
+    mediashow_enabled: z.boolean().optional(),
+    idle_timeout: z.number().optional(),
 });
 
 /** GET /api/settings — Retrieve global tenant configuration (Available to all) */
@@ -45,12 +47,22 @@ export async function PUT(request: Request) {
         // Transform empty string back to null for logo_url
         if (body.logo_url === '') body.logo_url = null;
 
-        const parsed = settingsSchema.safeParse(body);
+        const parsed = settingsSchema.partial().safeParse(body);
         if (!parsed.success) {
-            return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
+            const details = parsed.error.flatten();
+            console.error('[Settings Validation Failure]', details);
+            return NextResponse.json({ error: 'Validation failed', details }, { status: 400 });
         }
 
-        settingsDb.update(parsed.data, auth.session!.userId);
+        // Convert Booleans back to Integers for better-sqlite3 compatibility
+        const finalData = {
+            ...parsed.data,
+            mediashow_enabled: parsed.data.mediashow_enabled !== undefined
+                ? (parsed.data.mediashow_enabled ? 1 : 0)
+                : undefined
+        };
+
+        settingsDb.update(finalData as any, auth.session!.userId);
 
         const updatedSettings = settingsDb.get();
         return NextResponse.json({ success: true, settings: updatedSettings });

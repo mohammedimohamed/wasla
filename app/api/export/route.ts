@@ -42,73 +42,129 @@ export async function GET(request: Request) {
             `).all(session.teamId) as any[];
         }
 
-        // ── 4. SHARED: Flatten metadata into each row ────────────────────────
-        const flattenedRows = rows.map(row => {
-            let meta: Record<string, any> = {};
-            try { meta = JSON.parse(row.metadata || '{}'); } catch (_) { /* noop */ }
-            // Merge metadata fields into root object, exclude raw metadata string
+        // ── 4. Determine Output Format & Process Metadata ────────────────────
+        /**
+         * Resolve the flat metadata object from a lead row.
+         * Handles both old broken leads (double-nested: {metadata:{...}}) and new flat leads.
+         */
+        const resolveMeta = (row: any): Record<string, any> => {
+            try {
+                const parsed = typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : (row.metadata || {});
+                // If double-nested (old bug), unwrap it
+                if (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata)) {
+                    return parsed.metadata;
+                }
+                return parsed;
+            } catch (_) {
+                return {};
+            }
+        };
+
+        // Parse metadata for all rows and collect all unique metadata keys
+        const allUsedMetaKeys = new Set<string>();
+        const processedRows = rows.map(row => {
+            const meta = resolveMeta(row);
+
+            Object.keys(meta).forEach(key => {
+                // Filter out technical keys that shouldn't be in business export
+                const blacklist = ['metadata', 'consent_given', 'device_id'];
+                if (!blacklist.includes(key)) {
+                    allUsedMetaKeys.add(key);
+                }
+            });
+
             const { metadata: _raw, ...rootFields } = row;
-            return { ...rootFields, ...meta };
+            return { ...rootFields, _meta: meta };
         });
 
         // ── 5a. JSON FORMAT ───────────────────────────────────────────────────
         if (format === 'json') {
+            const jsonOutput = processedRows.map(r => {
+                const { _meta, ...root } = r;
+                return { ...root, ..._meta };
+            });
             return NextResponse.json({
                 success: true,
-                count: flattenedRows.length,
+                count: jsonOutput.length,
                 exportedAt: new Date().toISOString(),
-                leads: flattenedRows,
+                leads: jsonOutput,
             });
         }
 
-        // ── 5b. CSV FORMAT (default) ──────────────────────────────────────────
-        const configRecord = formConfigDb.get();
-        let config;
-        try {
-            config = configRecord ? JSON.parse(configRecord.config) : { pages: [] };
-        } catch (e) {
-            config = { pages: [] };
-        }
+        // ── 5b. CSV FORMAT (Version-Agnostic Union) ──────────────────────────
+        // 1. Fetch all form configs to build a universal dictionary of Field Keys -> Most Recent Labels
+        const allConfigs = db.prepare('SELECT version, config FROM form_configs ORDER BY version DESC').all() as any[];
 
-        const getAllFields = (cfg: any) => {
-            let fields: any[] = [];
-            cfg.pages.forEach((p: any) => {
-                p.sections.forEach((s: any) => {
-                    if (s.groups) {
-                        s.groups.forEach((g: any) => fields.push(...g.fields));
-                    } else if (s.fields) {
-                        fields.push(...s.fields);
-                    }
+        // Build a mapping from fieldName -> { label, isArray }
+        const fieldMetaMap = new Map<string, { label: string, isArray: boolean }>();
+
+        // Process from oldest to newest so newer versions overwrite older labels
+        const sortedConfigs = [...allConfigs].sort((a, b) => a.version - b.version);
+        for (const record of sortedConfigs) {
+            let schema;
+            try {
+                schema = typeof record.config === 'string' ? JSON.parse(record.config) : record.config;
+                schema.pages?.forEach((p: any) => {
+                    p.sections?.forEach((s: any) => {
+                        const fields = s.groups ? s.groups.flatMap((g: any) => g.fields) : s.fields;
+                        fields?.forEach((f: any) => {
+                            if (f && f.name) {
+                                fieldMetaMap.set(f.name, {
+                                    label: f.label || f.name,
+                                    isArray: f.type === 'multiselect' || f.type === 'chip-group'
+                                });
+                            }
+                        });
+                    });
                 });
-            });
-            return fields;
-        };
+            } catch (e) { /* ignore parse error */ }
+        }
 
-        const schemaFields = getAllFields(config);
-        const arrayFieldNames = new Set(
-            schemaFields
-                .filter((f: any) => f.type === 'multiselect' || f.type === 'chip-group')
-                .map((f: any) => f.name)
-        );
-
+        // 2. Define standard system columns
         const systemCols = [
             { key: 'id', label: 'ID' },
+            { key: 'form_version', label: 'Version Form' },
             { key: 'source', label: 'Source' },
             { key: 'sync_status', label: 'Statut Sync' },
             { key: 'created_at', label: 'Date de Saisie' },
             { key: 'created_by_name', label: 'Auteur' },
         ];
 
-        const schemaCols = schemaFields.map(f => ({
-            key: f.name,
-            label: f.label,
-            isArray: arrayFieldNames.has(f.name),
-        }));
+        // 3. Prepare Schema Columns (The Union of all keys found in leads' metadata)
+        // We order them by checking if they are in the dictionary first, then alphabetical
+        const dynamicMetaKeys = Array.from(allUsedMetaKeys).sort((a, b) => {
+            const hasA = fieldMetaMap.has(a);
+            const hasB = fieldMetaMap.has(b);
+            if (hasA && !hasB) return -1;
+            if (!hasA && hasB) return 1;
+            return a.localeCompare(b);
+        });
 
+        const schemaCols = dynamicMetaKeys.map(key => {
+            const metaInfo = fieldMetaMap.get(key);
+            return {
+                key,
+                label: metaInfo ? metaInfo.label : key, // Fallback to key if no label found
+                isArray: metaInfo ? metaInfo.isArray : false,
+            };
+        });
+
+        // 4. Generate CSV
         const esc = (val: any): string => {
-            if (val === null || val === undefined) return '';
-            const s = String(val).replace(/"/g, '""');
-            return (s.includes(',') || s.includes('\n') || s.includes('"')) ? `"${s}"` : s;
+            if (val === null || val === undefined || val === '') return '—';
+
+            // Handle Objects/Arrays to prevent [object Object]
+            let s: string;
+            if (Array.isArray(val)) {
+                s = val.map(v => (v && typeof v === 'object' ? JSON.stringify(v) : String(v))).join(' | ');
+            } else if (typeof val === 'object') {
+                s = JSON.stringify(val);
+            } else {
+                s = String(val);
+            }
+
+            const clean = s.replace(/"/g, '""');
+            return (clean.includes(',') || clean.includes('\n') || clean.includes('"')) ? `"${clean}"` : clean;
         };
 
         const headers = [
@@ -116,16 +172,22 @@ export async function GET(request: Request) {
             ...schemaCols.map(c => esc(c.label)),
         ].join(',');
 
-        const dataRows = flattenedRows.map(row => {
-            const sysVals = systemCols.map(col =>
-                col.key === 'created_at'
-                    ? esc(new Date(row[col.key]).toLocaleString('fr-DZ'))
-                    : esc(row[col.key])
-            );
-            const schVals = schemaCols.map(col => {
-                const raw = row[col.key];
-                return col.isArray && Array.isArray(raw) ? esc(raw.join(' | ')) : esc(raw);
+        const dataRows = processedRows.map(row => {
+            const sysVals = systemCols.map(col => {
+                if (col.key === 'form_version') {
+                    return esc(row.form_version ? `v${row.form_version}` : 'v1');
+                }
+                if (col.key === 'created_at') {
+                    return esc(new Date(row[col.key]).toLocaleString('fr-DZ'));
+                }
+                return esc(row[col.key]);
             });
+
+            const schVals = schemaCols.map(col => {
+                const raw = row._meta[col.key];
+                return esc(raw);
+            });
+
             return [...sysVals, ...schVals].join(',');
         });
 
