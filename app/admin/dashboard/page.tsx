@@ -19,7 +19,8 @@ import {
     Server,
     QrCode,
     LayoutTemplate,
-    Brain
+    Brain,
+    ShieldCheck
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
@@ -33,7 +34,6 @@ export default function AdminDashboardPage() {
     const { t } = useTranslation();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
-    const [isExporting, setIsExporting] = useState(false);
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [stats, setStats] = useState({
         totalLeads: 0,
@@ -41,6 +41,8 @@ export default function AdminDashboardPage() {
         commercialLeads: 0,
         rewardsGiven: 0,
         rewardsGivenToday: 0,
+        totalRewards: 0,
+        rewardsDistributed: 0,
         leadsToday: 0,
         syncedLeads: 0,
         recentLeads: [] as any[]
@@ -117,30 +119,6 @@ export default function AdminDashboardPage() {
         }
     };
 
-    const handleExport = async () => {
-        setIsExporting(true);
-        try {
-            const res = await fetch('/api/export');
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Export failed');
-            }
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `wasla_leads_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-            toast.success('✅ Export CSV téléchargé');
-        } catch (err: any) {
-            toast.error(err.message || "Erreur d'export");
-        } finally {
-            setIsExporting(false);
-        }
-    };
 
     if (isLoading) {
         return (
@@ -209,10 +187,10 @@ export default function AdminDashboardPage() {
                         </div>
                         <div>
                             <div className="flex items-end gap-2">
-                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.rewardsGivenToday || 0}</p>
-                                <p className="text-sm font-bold text-slate-400 mb-0.5">/ {stats.rewardsGiven || 0} Total</p>
+                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.rewardsDistributed || 0}</p>
+                                <p className="text-sm font-bold text-slate-400 mb-0.5">/ {stats.totalRewards || 0} Campaigns</p>
                             </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Récompenses dist. Aujourd'hui</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Distributed / Active Types</p>
                         </div>
                     </div>
                 </div>
@@ -358,18 +336,16 @@ export default function AdminDashboardPage() {
                     </button>
 
                     <button
-                        onClick={handleExport}
-                        disabled={isExporting}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group disabled:opacity-70"
+                        onClick={() => router.push("/admin/golden-records")}
+                        className="p-6 bg-amber-50 rounded-[32px] border border-amber-200 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-100 transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
                     >
-                        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            {isExporting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Download className="w-6 h-6" />}
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-400 opacity-10 rounded-full blur-xl group-hover:opacity-30 group-hover:scale-150 transition-all duration-700" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl shadow-lg shadow-amber-200 flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
+                            <ShieldCheck className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Extraction Business</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">
-                                {isExporting ? "Génération en cours..." : "Export CSV haute qualité"}
-                            </p>
+                        <div className="relative z-10">
+                            <p className="font-black text-amber-900 uppercase tracking-tight text-xs">{t('intelligence.goldenRecordsMenu') || 'Golden Records'}</p>
+                            <p className="text-[10px] text-amber-700/80 font-medium mt-1">{t('intelligence.cleanRoomDesc') || 'Premium Verified Leads'}</p>
                         </div>
                     </button>
 

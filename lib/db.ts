@@ -330,10 +330,21 @@ export const leadsDb = {
             LIMIT 5
         `).all(params);
 
-        // 🏆 Rewards Claimed: leads with an active reward association
+        // 🏆 Rewards Intelligence
         let rewardsGiven = { count: 0 };
         let rewardsGivenToday = { count: 0 };
+        let totalRewards = 0;
+        let rewardsDistributed = 0;
+        
         try {
+            // Count unique active reward configurations
+            const rewardTypes = db.prepare("SELECT COUNT(*) as count FROM rewards WHERE is_active = 1").get() as { count: number };
+            totalRewards = rewardTypes?.count || 0;
+
+            // Sum of all items actually distributed
+            const distributed = db.prepare("SELECT SUM(claimed_count) as count FROM rewards WHERE is_active = 1").get() as { count: number };
+            rewardsDistributed = distributed?.count || 0;
+
             const rewardsFilter = filter
                 ? `${filter} AND reward_status = 'sent'`
                 : " WHERE reward_status = 'sent'";
@@ -353,8 +364,10 @@ export const leadsDb = {
             syncedLeads: syncedLeads.count,
             kioskLeads: kioskLeads.count,
             commercialLeads: commercialLeads.count,
-            rewardsGiven: rewardsGiven.count,
+            rewardsGiven: rewardsGiven.count, // Leads with reward_status = 'sent'
             rewardsGivenToday: rewardsGivenToday.count,
+            totalRewards, // Count of active reward rows 
+            rewardsDistributed, // Sum of claimed_count
             recentLeads
         };
     },
@@ -501,32 +514,84 @@ export const leadsDb = {
      * 🧬 Consolidation v3: The "Merge Commit" Strategy
      * No deletion. Secondary is archived, Primary is updated with selected metadata.
      */
-    mergeLeads: (primaryId: string, secondaryId: string, mergedMetadata: any, adminId: string) => {
+    mergeLeads: (primaryId: string, secondaryId: string, resolvedChoices: any, adminId: string) => {
         const primary = db.prepare("SELECT * FROM leads WHERE id = ?").get(primaryId) as any;
         const secondary = db.prepare("SELECT * FROM leads WHERE id = ?").get(secondaryId) as any;
         if (!primary || !secondary) throw new Error("Leads not found");
 
+        const m1 = JSON.parse(primary.metadata || '{}');
+        const m2 = JSON.parse(secondary.metadata || '{}');
+
+        // ── Phase 15.6: ACCUMULATIVE UNION LOGIC ──────────────────────────────
+        const mergedMetadata: any = { ...resolvedChoices };
+
+        // 1. Accumulate phone array (dedupe)
+        const phones: string[] = [];
+        const addPhone = (v: any) => {
+            if (!v) return;
+            const arr = Array.isArray(v) ? v : [v];
+            arr.forEach(p => { if (p && !phones.includes(p)) phones.push(p); });
+        };
+        addPhone(m1.phone); addPhone(m2.phone);
+        mergedMetadata.phone = phones;
+
+        // 2. Accumulate email array (dedupe)
+        const emails: string[] = [];
+        const addEmail = (v: any) => {
+            if (!v) return;
+            const arr = Array.isArray(v) ? v : [v];
+            arr.forEach(e => { if (e && !emails.includes(e)) emails.push(e); });
+        };
+        addEmail(m1.email); addEmail(m2.email);
+        mergedMetadata.email = emails;
+
+        // 3. Accumulate associated entities (company names)
+        const existingEntities: string[] = Array.isArray(m1.associated_entities) ? m1.associated_entities : [];
+        const secondaryCompany = m2.company || m2.companyName || m2.organisation;
+        if (secondaryCompany && !existingEntities.includes(secondaryCompany)) {
+            existingEntities.push(secondaryCompany);
+        }
+        mergedMetadata.associated_entities = existingEntities;
+
+        // 4. Concatenate free-text fields with Version separator
+        const textFields = ['comment', 'description', 'projectDescription', 'notes', 'note'];
+        for (const field of textFields) {
+            const v1 = m1[field]; const v2 = m2[field];
+            if (v1 && v2 && v1 !== v2) {
+                const company1 = m1.company || m1.companyName || 'Lead A';
+                const company2 = m2.company || m2.companyName || 'Lead B';
+                mergedMetadata[field] = `--- Version: ${company1} ---\n${v1}\n--- Version: ${company2} ---\n${v2}`;
+            }
+        }
+
         const tx = db.transaction(() => {
             const timestamp = new Date().toISOString();
+            const dateStr = new Date().toLocaleDateString('en-GB');
 
-            // 1. Mark Secondary as Archived (Git: Branch Closed)
+            // 1. Archive secondary lead
             db.prepare("UPDATE leads SET status = 'archived', updated_at = ? WHERE id = ?")
                 .run(timestamp, secondaryId);
 
-            // 2. Update Primary with Merged Data (Git: Merge Commit)
+            // 2. Update primary with accumulated merged data
             db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?")
                 .run(JSON.stringify(mergedMetadata), timestamp, primaryId);
 
-            // 3. Record History (The "Commit")
+            // 3. Commit to version history
             leadsDb.commitHistory(primaryId, mergedMetadata, adminId, 'MERGE_COMMIT');
 
-            // 4. Create Lineage Link (The "Pointer")
-            db.prepare(`
-                INSERT INTO lead_lineage (id, parent_id, child_id, created_at)
-                VALUES (?, ?, ?, ?)
-            `).run(uuidv4(), secondaryId, primaryId, timestamp);
+            // 4. Record lineage pointer
+            db.prepare(`INSERT INTO lead_lineage (id, parent_id, child_id, created_at) VALUES (?, ?, ?, ?)`)
+                .run(uuidv4(), secondaryId, primaryId, timestamp);
 
-            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(MERGE)', primaryId, `Identity consolidated with ${secondaryId} (Versioned)`);
+            // 5. Phase 15.7: Generate Sales Intel Memo
+            const secondaryName = m2.name || m2.fullName || 'Unknown';
+            const secondaryOrg = m2.company || m2.companyName || '';
+            const intelNote = `💡 SALES INTEL: Contact also associated with ${secondaryOrg ? secondaryOrg + ' (' + secondaryName + ')' : secondaryName}. Linked on ${dateStr} via Identity Merge.`;
+            db.prepare(`INSERT INTO lead_intelligence_logs (id, lead_id, type, message, severity, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+                .run(uuidv4(), primaryId, 'SALES_INTEL', intelNote, 'info', timestamp);
+
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(MERGE)', primaryId,
+                `Accumulative merge with ${secondaryId}. Phones: ${phones.join(', ')}. Entities: ${existingEntities.join(', ')}.`);
         });
         tx();
         return true;

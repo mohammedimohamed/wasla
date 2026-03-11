@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/admin/settings/mediashow/page": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/settings/mediashow/page.js"
+      "static/chunks/app/admin/dashboard/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,50 +11,40 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/kiosk/page": [
+    "/admin/intelligence/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/kiosk/page.js"
+      "static/chunks/app/admin/intelligence/page.js"
     ],
-    "/page": [
+    "/leads/list/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/leads/list/page.js"
     ],
-    "/admin/dashboard/page": [
+    "/leads/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/page.js"
+      "static/chunks/app/leads/[id]/page.js"
     ],
-    "/admin/login/page": [
+    "/leads/new/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/login/page.js"
-    ],
-    "/commercial/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/commercial/page.js"
-    ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
+      "static/chunks/app/leads/new/page.js"
     ],
     "/admin/settings/form-builder/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/settings/form-builder/page.js"
     ],
-    "/admin/rewards/page": [
+    "/admin/golden-records/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/rewards/page.js"
+      "static/chunks/app/admin/golden-records/page.js"
     ],
-    "/admin/intelligence/page": [
+    "/leads/[id]/edit/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/intelligence/page.js"
+      "static/chunks/app/leads/[id]/edit/page.js"
     ]
   }
 }

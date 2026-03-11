@@ -24,7 +24,8 @@
         "startBtn": "ابدأ",
         "formTitle": "سجل نفسك",
         "formSubtitle": "احصلي على مكافآتك فوراً عبر البريد الإلكتروني.",
-        "successMsg": "تم تسجيل البيانات بنجاح!"
+        "successMsg": "تم تسجيل البيانات بنجاح!",
+        "touchToStart": "المس للبدء"
     },
     "commercial": {
         "accessTitle": "بوابة التجاري",
@@ -95,6 +96,23 @@
         "revert": "إلغاء الدمج",
         "rollbackSuccess": "تمت الاستعادة بنجاح. تم استرجاع البيانات الأصلية.",
         "conflictTitle": "حل النزاع",
-        "conflictDesc": "اختر القيم التي تريد الاحتفاظ بها في السجل الذهبي."
+        "conflictDesc": "اختر القيم التي تريد الاحتفاظ بها في السجل الذهبي.",
+        "accumulativeDesc": "اتحاد تراكمي — صفر فقدان بيانات. جميع جهات الاتصال محفوظة.",
+        "collectAll": "جمع الكل",
+        "collectAllHint": "اختر الكل للاحتفاظ بكل جهة اتصال",
+        "salesIntel": "ذكاء المبيعات",
+        "multipleIdentities": "هويات متعددة",
+        "associatedEntities": "كيانات مرتبطة",
+        "goldenRecord": "السجل الذهبي",
+        "identityLineage": "السلالة التاريخية",
+        "consolidatedHistory": "تاريخ الدمج",
+        "secondaryIdentities": "هويات ثانوية",
+        "intelligenceStory": "قصة الدمج",
+        "primaryContact": "جهة الاتصال الرئيسية",
+        "goldenRecordsMenu": "السجلات الذهبية",
+        "promoteToGold": "ترقية للسجلات الذهبية",
+        "verifyAndPromote": "تحقق وترقية",
+        "cleanRoomDesc": "ملفات موثقة ومتعددة الهويات وذات جودة عالية",
+        "rawLeads": "العملاء المحتملين الخام"
     }
 }

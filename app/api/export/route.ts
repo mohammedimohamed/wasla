@@ -60,6 +60,14 @@ export async function GET(request: Request) {
             }
         };
 
+        // Pre-fetch intelligence logs to avoid N+1 problem
+        const logs = db.prepare(`SELECT lead_id, message FROM lead_intelligence_logs WHERE type = 'SALES_INTEL'`).all() as { lead_id: string, message: string }[];
+        const intelMap = new Map<string, string[]>();
+        for (const log of logs) {
+            if (!intelMap.has(log.lead_id)) intelMap.set(log.lead_id, []);
+            intelMap.get(log.lead_id)!.push(log.message);
+        }
+
         // Parse metadata for all rows and collect all unique metadata keys
         const allUsedMetaKeys = new Set<string>();
         const processedRows = rows.map(row => {
@@ -73,8 +81,21 @@ export async function GET(request: Request) {
                 }
             });
 
+            const intelMessages = intelMap.get(row.id) || [];
+            const multiCount = (Array.isArray(meta.phone) ? meta.phone.length : 0) + (Array.isArray(meta.email) ? meta.email.length : 0);
+            const isGoldenRecord = multiCount > 2 || (Array.isArray(meta.associated_entities) && meta.associated_entities.length > 0);
+            
+            let story = null;
+            if (isGoldenRecord) {
+                story = `Consolidated Identity (Golden Record). ${intelMessages.join(' | ')}`;
+            }
+
+            const phones = Array.isArray(meta.phone) ? meta.phone : [meta.phone];
+            const emails = Array.isArray(meta.email) ? meta.email : [meta.email];
+            const contactPoints = Array.from(new Set([...phones, ...emails].filter(Boolean))).join(' | ');
+
             const { metadata: _raw, ...rootFields } = row;
-            return { ...rootFields, _meta: meta };
+            return { ...rootFields, _meta: meta, intelligence_story: story, contact_points: contactPoints };
         });
 
         // ── 5a. JSON FORMAT ───────────────────────────────────────────────────
@@ -128,6 +149,8 @@ export async function GET(request: Request) {
             { key: 'sync_status', label: 'Statut Sync' },
             { key: 'created_at', label: 'Date de Saisie' },
             { key: 'created_by_name', label: 'Auteur' },
+            { key: 'contact_points', label: 'Contact_Points' },
+            { key: 'intelligence_story', label: 'Intelligence_Story' },
         ];
 
         // 3. Prepare Schema Columns (The Union of all keys found in leads' metadata)

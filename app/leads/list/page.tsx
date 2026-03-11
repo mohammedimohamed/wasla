@@ -14,8 +14,11 @@ import {
     User as UserIcon,
     Monitor,
     QrCode,
+    Link2,
+    ShieldCheck
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from "@/src/context/LanguageContext";
 import { useFormConfig, getTableFields, FormField } from "@/src/hooks/useFormConfig";
 
 // TABLE_COLUMNS are now derived from the DB schema inside the component.
@@ -86,6 +89,7 @@ function getCellValue(field: FormField, meta: Record<string, any>): string {
 }
 
 export default function LeadsListPage() {
+    const { t } = useTranslation();
     const router = useRouter();
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
@@ -124,6 +128,35 @@ export default function LeadsListPage() {
             toast.error("Erreur de chargement des leads");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePromoteToGold = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const res = await fetch('/api/admin/golden-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'PROMOTE', id })
+            });
+
+            if (res.ok) {
+                toast.success(t('intelligence.promoteToGold') || "Promoted to Golden Record");
+                // Immediately update local state to reflect promotion visually
+                setLeads(prev => prev.map(lead => {
+                     if (lead.id === id) {
+                          const meta = JSON.parse(lead.metadata || '{}');
+                          const flat = meta.metadata && !Array.isArray(meta.metadata) ? meta.metadata : meta;
+                          flat._is_golden = true;
+                          return { ...lead, metadata: JSON.stringify(flat) };
+                     }
+                     return lead;
+                }));
+            } else {
+                toast.error("Error promoting lead");
+            }
+        } catch (error) {
+            toast.error("Internal Server Error");
         }
     };
 
@@ -280,11 +313,21 @@ export default function LeadsListPage() {
                                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date</th>
                                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Auteur</th>
                                         <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync</th>
+                                        {isManager && (
+                                            <th className="px-6 py-5 text-right text-[10px] font-black text-amber-500 uppercase tracking-widest">{t('intelligence.promoteToGold') || "Gold"}</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {filteredLeads.map(lead => {
                                         const meta = resolveMeta(lead);
+                                        const phones = meta.phone;
+                                        const emails = meta.email;
+                                        const multiCount = (
+                                            (Array.isArray(phones) ? phones.length : 0) +
+                                            (Array.isArray(emails) ? emails.length : 0)
+                                        );
+                                        const isGoldenRecord = multiCount > 2;
 
                                         return (
                                             <tr
@@ -308,6 +351,10 @@ export default function LeadsListPage() {
                                                 {TABLE_COLUMNS.map(col => {
                                                     const value = getCellValue(col, meta);
                                                     const isArray = col.type === 'multiselect' || col.type === 'chip-group';
+
+                                                    // Check if this is the 'name' column to attach multi-identity badge
+                                                    const isNameCol = col.name === 'name' || col.name === 'fullName';
+
                                                     return (
                                                         <td
                                                             key={col.name}
@@ -333,8 +380,14 @@ export default function LeadsListPage() {
                                                                     )}
                                                                 </div>
                                                             ) : (
-                                                                <span className="font-semibold text-slate-700 truncate block" title={value}>
+                                                                <span className="font-semibold text-slate-700 truncate flex items-center gap-2" title={value}>
                                                                     {value}
+                                                                    {isNameCol && isGoldenRecord && (
+                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded-md text-[9px] font-black animate-pulse">
+                                                                            <Link2 className="w-2.5 h-2.5" />
+                                                                            +{multiCount - 2}
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                             )}
                                                         </td>
@@ -357,6 +410,25 @@ export default function LeadsListPage() {
                                                 <td className="px-6 py-5 text-center">
                                                     {getStatusIcon(lead.sync_status)}
                                                 </td>
+
+                                                {/* Promote to Gold */}
+                                                {isManager && (
+                                                    <td className="px-6 py-5 text-right">
+                                                        {(!isGoldenRecord && meta._is_golden !== true) ? (
+                                                            <button 
+                                                                onClick={(e) => handlePromoteToGold(lead.id, e)}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors shadow-sm"
+                                                            >
+                                                                <ShieldCheck className="w-3 h-3" />
+                                                                {t('intelligence.verifyAndPromote') || "Verify"}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">
+                                                                <ShieldCheck className="w-3 h-3" /> Or
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}

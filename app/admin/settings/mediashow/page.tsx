@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft, Plus, Trash2, GripVertical, Save, Loader2,
-    Image as ImageIcon, Film, Upload, RefreshCw, Eye, MoveUp, MoveDown
+    Image as ImageIcon, Film, Upload, RefreshCw, Eye, MoveUp, MoveDown, Monitor
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -249,7 +249,12 @@ export default function MediashowAdminPage() {
                 {/* 📂 ASSET MANAGEMENT */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Playliste Multimédia</h3>
+                        <div className="space-y-1">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Playliste Multimédia</h3>
+                            <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter flex items-center gap-1">
+                                <Monitor className="w-3 h-3" /> Ideal: 1920x1080 (Landscape Fullscreen)
+                            </p>
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => router.push('/kiosk')}

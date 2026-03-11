@@ -27,6 +27,8 @@ export async function GET() {
                 commercialLeads: stats.commercialLeads ?? 0,
                 rewardsGiven: stats.rewardsGiven ?? 0,
                 rewardsGivenToday: stats.rewardsGivenToday ?? 0,
+                totalRewards: stats.totalRewards ?? 0,
+                rewardsDistributed: stats.rewardsDistributed ?? 0,
                 recentLeads: stats.recentLeads ?? [],
             }
         });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
+import { useTranslation } from '@/src/context/LanguageContext';
 
 interface Asset {
     id: string;
@@ -16,6 +17,7 @@ interface MediashowOverlayProps {
 }
 
 export default function MediashowOverlay({ assets, isVisible, onDismiss }: MediashowOverlayProps) {
+    const { t } = useTranslation();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,7 +81,7 @@ export default function MediashowOverlay({ assets, isVisible, onDismiss }: Media
             {/* 📺 CRT Scanline Effect (Premium Aesthetic) */}
             <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
 
-            <div className={`w-full h-full transition-opacity duration-500 flex items-center justify-center ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <div className={`w-full h-full transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
                 {currentAsset.type === 'video' ? (
                     <video
                         src={currentAsset.url}
@@ -88,20 +90,20 @@ export default function MediashowOverlay({ assets, isVisible, onDismiss }: Media
                         loop
                         playsInline
                         onEnded={next}
-                        className="max-w-full max-h-full object-contain"
+                        className="w-full h-full object-cover !w-full !h-full"
                     />
                 ) : (
                     <img
                         src={currentAsset.url}
                         alt="Mediashow image"
-                        className="max-w-full max-h-full object-contain"
+                        className="w-full h-full object-cover !w-full !h-full"
                     />
                 )}
             </div>
 
-            {/* Overlay hint to tap - very subtle */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/30 text-xs font-black uppercase tracking-[0.3em] pointer-events-none animate-pulse">
-                Touch to start
+            {/* Overlay hint to tap - high z-index and subtle drop shadow */}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50 text-xs font-black uppercase tracking-[0.3em] pointer-events-none animate-pulse z-50 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                {t('kiosk.touchToStart')}
             </div>
         </div>
     );

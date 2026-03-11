@@ -39,12 +39,45 @@ export async function GET(
             ? rawMeta.metadata
             : rawMeta;
 
+        // Fetch Lineage Story (Phase 16)
+        const lineageRows = db.prepare(`
+            SELECT l.id, l.metadata, l.status, lin.created_at
+            FROM lead_lineage lin
+            JOIN leads l ON lin.parent_id = l.id
+            WHERE lin.child_id = ?
+            ORDER BY lin.created_at DESC
+        `).all(params.id) as any[];
+
+        const lineage = lineageRows.map(row => {
+            const rowMetaRaw = JSON.parse(row.metadata || '{}');
+            const rowMeta = (rowMetaRaw.metadata && typeof rowMetaRaw.metadata === 'object' && !Array.isArray(rowMetaRaw.metadata)) ? rowMetaRaw.metadata : rowMetaRaw;
+            return {
+                id: row.id,
+                status: row.status,
+                created_at: row.created_at,
+                name: rowMeta.contact || rowMeta.nom || rowMeta.name || rowMeta.prenom || 'Anonymous',
+                company: rowMeta.societe || rowMeta.entreprise || rowMeta.company || '',
+                phone: rowMeta.phone || '',
+                email: rowMeta.email || '',
+            };
+        });
+
+        // Fetch Intelligence Logs (Phase 16)
+        const logs = db.prepare(`
+            SELECT message, created_at, type 
+            FROM lead_intelligence_logs 
+            WHERE lead_id = ? AND type = 'SALES_INTEL' 
+            ORDER BY created_at DESC
+        `).all(params.id) as any[];
+
         const flattenedLead = {
             ...lead,
             ...meta,
             // Map common identifier fields to a stable 'contact' key for the profile header
             contact: meta.contact || meta.nom || meta.name || meta.prenom || "—",
             societe: meta.societe || meta.entreprise || meta.company || null,
+            _lineage: lineage,
+            _logs: logs
         };
 
         return NextResponse.json({

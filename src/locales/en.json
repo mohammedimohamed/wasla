@@ -24,7 +24,8 @@
         "startBtn": "Start",
         "formTitle": "Register Yourself",
         "formSubtitle": "Receive your rewards instantly by email.",
-        "successMsg": "Lead successfully registered!"
+        "successMsg": "Lead successfully registered!",
+        "touchToStart": "Touch to Start"
     },
     "commercial": {
         "accessTitle": "Commercial Portal",
@@ -104,6 +105,23 @@
         "revert": "Revert Merge",
         "rollbackSuccess": "Rollback successful. Parents restored.",
         "conflictTitle": "Conflict Resolution",
-        "conflictDesc": "Select which values to keep for the Golden Record."
+        "conflictDesc": "Select which values to keep for the Golden Record.",
+        "accumulativeDesc": "Accumulative Union — Zero Data Loss. All contacts preserved.",
+        "collectAll": "Collect All",
+        "collectAllHint": "Select all to keep every contact",
+        "salesIntel": "Sales Intelligence",
+        "multipleIdentities": "Multiple Identities",
+        "associatedEntities": "Associated Entities",
+        "goldenRecord": "Golden Record",
+        "identityLineage": "Lineage",
+        "consolidatedHistory": "Consolidated History",
+        "secondaryIdentities": "Secondary Identities",
+        "intelligenceStory": "Intelligence Story",
+        "primaryContact": "Primary Contact",
+        "goldenRecordsMenu": "Golden Records",
+        "promoteToGold": "Promote to Gold",
+        "verifyAndPromote": "Verify & Promote",
+        "cleanRoomDesc": "Verified and Multi-Identity Premium Profiles",
+        "rawLeads": "Raw Leads"
     }
 }

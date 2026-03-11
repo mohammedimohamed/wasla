@@ -24,7 +24,8 @@
         "startBtn": "Commencer",
         "formTitle": "Enregistrez-vous",
         "formSubtitle": "Recevez vos récompenses instantanément par email.",
-        "successMsg": "Lead enregistré avec succès !"
+        "successMsg": "Lead enregistré avec succès !",
+        "touchToStart": "Toucher pour commencer"
     },
     "commercial": {
         "accessTitle": "Portail Commercial",
@@ -95,6 +96,23 @@
         "revert": "Annuler la Fusion",
         "rollbackSuccess": "Retour en arrière réussi. Leads parents restaurés.",
         "conflictTitle": "Résolution de Conflit",
-        "conflictDesc": "Sélectionnez les valeurs à conserver pour le Golden Record."
+        "conflictDesc": "Sélectionnez les valeurs à conserver pour le Golden Record.",
+        "accumulativeDesc": "Union Accumulative — Zéro Perte de Données. Tous les contacts préservés.",
+        "collectAll": "Tout Collecter",
+        "collectAllHint": "Sélectionner tout pour garder chaque contact",
+        "salesIntel": "Intelligence Commerciale",
+        "multipleIdentities": "Identités Multiples",
+        "associatedEntities": "Entités Associées",
+        "goldenRecord": "Enregistrement Principal",
+        "identityLineage": "Lignée",
+        "consolidatedHistory": "Historique Consolidé",
+        "secondaryIdentities": "Identités Secondaires",
+        "intelligenceStory": "Historique des Fusions",
+        "primaryContact": "Contact Principal",
+        "goldenRecordsMenu": "Dossiers Or",
+        "promoteToGold": "Promouvoir en Or",
+        "verifyAndPromote": "Vérifier & Promouvoir",
+        "cleanRoomDesc": "Profils Premium Vérifiés et Multi-Identités",
+        "rawLeads": "Prospects Bruts"
     }
 }

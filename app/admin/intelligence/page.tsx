@@ -58,11 +58,56 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
     const m1 = JSON.parse(merge.meta1);
     const m2 = JSON.parse(merge.meta2);
 
-    // Combined keys from both leads
+    // Multi-value fields use checkboxes; all others use radio selection
+    const MULTI_FIELDS = ['phone', 'email'];
+
+    // Combined unique keys from both leads
     const allKeys = Array.from(new Set([...Object.keys(m1), ...Object.keys(m2)]))
         .filter(k => k !== 'id' && k !== 'created_at');
 
-    const [resolved, setResolved] = useState<any>({ ...m2, ...m1 });
+    // State: for single-value fields, store the chosen string. For multi-value, store a Set of checked strings.
+    const [resolved, setResolved] = useState<any>(() => {
+        const init: any = {};
+        allKeys.forEach(k => {
+            if (MULTI_FIELDS.includes(k)) {
+                // Start with all unique values pre-checked
+                const vals = new Set<string>();
+                [m1[k], m2[k]].forEach(v => { if (v) vals.add(v); });
+                init[k] = vals;
+            } else {
+                init[k] = m1[k] ?? m2[k];
+            }
+        });
+        return init;
+    });
+
+    const toggleMulti = (key: string, value: string) => {
+        const current = new Set<string>(resolved[key]);
+        if (current.has(value)) { current.delete(value); } else { current.add(value); }
+        setResolved({ ...resolved, [key]: current });
+    };
+
+    const collectAll = () => {
+        const updated = { ...resolved };
+        MULTI_FIELDS.forEach(k => {
+            const vals = new Set<string>();
+            [m1[k], m2[k]].forEach(v => { if (v) vals.add(v); });
+            updated[k] = vals;
+        });
+        setResolved(updated);
+    };
+
+    const buildPayload = () => {
+        const payload: any = {};
+        allKeys.forEach(k => {
+            if (MULTI_FIELDS.includes(k)) {
+                payload[k] = Array.from(resolved[k] as Set<string>);
+            } else {
+                payload[k] = resolved[k];
+            }
+        });
+        return payload;
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
@@ -70,40 +115,88 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                 <div className="px-8 py-6 border-b flex items-center justify-between bg-slate-50">
                     <div>
                         <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('intelligence.conflictTitle')}</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('intelligence.conflictDesc')}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('intelligence.accumulativeDesc')}</p>
                     </div>
-                    <button onClick={onCancel} className="p-2 hover:bg-slate-200 rounded-full transition-all">
-                        <X className="w-5 h-5 text-slate-500" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={collectAll}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all flex items-center gap-2"
+                        >
+                            <CheckCircle2 className="w-4 h-4" /> {t('intelligence.collectAll')}
+                        </button>
+                        <button onClick={onCancel} className="p-2 hover:bg-slate-200 rounded-full transition-all">
+                            <X className="w-5 h-5 text-slate-500" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    {/* Column headers */}
                     <div className="grid grid-cols-3 gap-6 mb-4 px-4">
                         <div className="text-[10px] font-black uppercase text-slate-400">Field</div>
-                        <div className="text-[10px] font-black uppercase text-slate-400">Lead #1 (Latest)</div>
+                        <div className="text-[10px] font-black uppercase text-indigo-500">Lead #1 (Latest)</div>
                         <div className="text-[10px] font-black uppercase text-slate-400">Lead #2 (Oldest)</div>
                     </div>
 
                     <div className="space-y-3">
-                        {allKeys.map(key => (
-                            <div key={key} className="grid grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 items-center">
-                                <div className="font-bold text-xs text-slate-600 capitalize">{key}</div>
+                        {allKeys.map(key => {
+                            const isMulti = MULTI_FIELDS.includes(key);
+                            const val1 = m1[key]; const val2 = m2[key];
+                            const areSame = val1 === val2;
 
-                                <button
-                                    onClick={() => setResolved({ ...resolved, [key]: m1[key] })}
-                                    className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === m1[key] ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
-                                >
-                                    <p className="text-[11px] font-black text-slate-800 truncate">{m1[key] || '-'}</p>
-                                </button>
+                            if (isMulti) {
+                                // Checkbox multi-select for phone/email
+                                const checkedSet = resolved[key] as Set<string>;
+                                const allVals = Array.from(new Set([val1, val2].filter(Boolean)));
+                                return (
+                                    <div key={key} className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="font-black text-xs text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4" /> {key} — {t('intelligence.collectAllHint')}
+                                            </span>
+                                            <span className="text-[9px] font-black bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full uppercase">{checkedSet.size} selected</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-3">
+                                            {allVals.map((v, idx) => (
+                                                <label key={idx} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${checkedSet.has(v) ? 'border-emerald-500 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checkedSet.has(v)}
+                                                        onChange={() => toggleMulti(key, v)}
+                                                        className="accent-emerald-600"
+                                                    />
+                                                    <span className="text-xs font-black text-slate-800">{v}</span>
+                                                    {v === val1 && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 rounded font-black">L1</span>}
+                                                    {v === val2 && <span className="text-[9px] bg-slate-200 text-slate-500 px-1.5 rounded font-black">L2</span>}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            }
 
-                                <button
-                                    onClick={() => setResolved({ ...resolved, [key]: m2[key] })}
-                                    className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === m2[key] ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
-                                >
-                                    <p className="text-[11px] font-black text-slate-800 truncate">{m2[key] || '-'}</p>
-                                </button>
-                            </div>
-                        ))}
+                            // Radio selection for scalar fields
+                            return (
+                                <div key={key} className={`grid grid-cols-3 gap-4 p-4 rounded-2xl border items-center ${areSame ? 'bg-slate-50 border-slate-100' : 'bg-white border-amber-100'}`}>
+                                    <div className="font-bold text-xs text-slate-600 capitalize flex items-center gap-2">
+                                        {!areSame && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />}
+                                        {key}
+                                    </div>
+                                    <button
+                                        onClick={() => setResolved({ ...resolved, [key]: val1 })}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val1 ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
+                                    >
+                                        <p className="text-[11px] font-black text-slate-800 truncate">{val1 || '—'}</p>
+                                    </button>
+                                    <button
+                                        onClick={() => setResolved({ ...resolved, [key]: val2 })}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val2 ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
+                                    >
+                                        <p className="text-[11px] font-black text-slate-800 truncate">{val2 || '—'}</p>
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -114,7 +207,7 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merge Strategy</p>
-                            <p className="text-sm font-black text-slate-900">Git-Style Merge Commit</p>
+                            <p className="text-sm font-black text-slate-900">Accumulative Union · Zero Data Loss</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -122,7 +215,7 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                             {t('common.cancel')}
                         </button>
                         <button
-                            onClick={() => onMerge(resolved)}
+                            onClick={() => onMerge(buildPayload())}
                             className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 hover:bg-slate-900 transition-all"
                         >
                             {t('intelligence.mergeBtn')}
