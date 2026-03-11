@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/admin/dashboard/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/page.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,40 +11,35 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/admin/intelligence/page": [
+    "/admin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/intelligence/page.js"
+      "static/chunks/app/admin/page.js"
     ],
-    "/leads/list/page": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/leads/list/page.js"
-    ],
-    "/leads/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/leads/[id]/page.js"
-    ],
-    "/leads/new/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/leads/new/page.js"
-    ],
-    "/admin/settings/form-builder/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/settings/form-builder/page.js"
+      "static/chunks/app/admin/dashboard/page.js"
     ],
     "/admin/golden-records/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/golden-records/page.js"
     ],
-    "/leads/[id]/edit/page": [
+    "/admin/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/leads/[id]/edit/page.js"
+      "static/chunks/app/admin/login/page.js"
+    ],
+    "/kiosk/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/kiosk/page.js"
+    ],
+    "/kiosk/success/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/kiosk/success/page.js"
     ]
   }
 }

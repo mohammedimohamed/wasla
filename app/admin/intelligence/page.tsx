@@ -65,6 +65,13 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
     const allKeys = Array.from(new Set([...Object.keys(m1), ...Object.keys(m2)]))
         .filter(k => k !== 'id' && k !== 'created_at');
 
+    // Helper to flatten scalar or array values
+    const flatten = (val: any): string[] => {
+        if (!val) return [];
+        if (Array.isArray(val)) return val.map(v => String(v));
+        return [String(val)];
+    };
+
     // State: for single-value fields, store the chosen string. For multi-value, store a Set of checked strings.
     const [resolved, setResolved] = useState<any>(() => {
         const init: any = {};
@@ -72,7 +79,9 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
             if (MULTI_FIELDS.includes(k)) {
                 // Start with all unique values pre-checked
                 const vals = new Set<string>();
-                [m1[k], m2[k]].forEach(v => { if (v) vals.add(v); });
+                [m1[k], m2[k]].forEach(v => { 
+                    flatten(v).forEach(item => vals.add(item));
+                });
                 init[k] = vals;
             } else {
                 init[k] = m1[k] ?? m2[k];
@@ -91,7 +100,9 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
         const updated = { ...resolved };
         MULTI_FIELDS.forEach(k => {
             const vals = new Set<string>();
-            [m1[k], m2[k]].forEach(v => { if (v) vals.add(v); });
+            [m1[k], m2[k]].forEach(v => { 
+                flatten(v).forEach(item => vals.add(item));
+            });
             updated[k] = vals;
         });
         setResolved(updated);
@@ -147,7 +158,10 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                             if (isMulti) {
                                 // Checkbox multi-select for phone/email
                                 const checkedSet = resolved[key] as Set<string>;
-                                const allVals = Array.from(new Set([val1, val2].filter(Boolean)));
+                                const allVals = Array.from(new Set([...flatten(val1), ...flatten(val2)]));
+                                const f1 = flatten(val1);
+                                const f2 = flatten(val2);
+
                                 return (
                                     <div key={key} className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
                                         <div className="flex items-center justify-between mb-3">
@@ -166,8 +180,8 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                                                         className="accent-emerald-600"
                                                     />
                                                     <span className="text-xs font-black text-slate-800">{v}</span>
-                                                    {v === val1 && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 rounded font-black">L1</span>}
-                                                    {v === val2 && <span className="text-[9px] bg-slate-200 text-slate-500 px-1.5 rounded font-black">L2</span>}
+                                                    {f1.includes(v) && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 rounded font-black">L1</span>}
+                                                    {f2.includes(v) && <span className="text-[9px] bg-slate-200 text-slate-500 px-1.5 rounded font-black">L2</span>}
                                                 </label>
                                             ))}
                                         </div>
