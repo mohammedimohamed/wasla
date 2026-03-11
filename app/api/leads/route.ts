@@ -36,7 +36,6 @@ export async function POST(request: Request) {
         const creatorId = session?.userId || 'SYSTEM_KIOSK';
         const teamId = session?.teamId || null;
 
-        // 🛡️ ARCHITECTURAL FIX: Bundle all custom fields into metadata
         const metadata = customFields || {};
 
         // Grab active form version
@@ -53,6 +52,9 @@ export async function POST(request: Request) {
             teamId, // Force server-side team attribution
             formVersion
         );
+
+        // ⚡ ASYNCHRONOUS INTELLIGENCE LAYER
+        leadsDb.analyzeLead(id).catch(err => console.error('[Intel Error]', err));
 
         return NextResponse.json({ success: true, id }, { status: 201 });
     } catch (error) {

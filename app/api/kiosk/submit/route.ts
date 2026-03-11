@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const id = uuidv4();
 
     // ─────────────────────────────────────────────────────────────────
-    // 1. REWARD MATCHING ENGINE (Transaction isolation)
+    // 🎁 1. INSTANT REWARD MATCHING ENGINE
     // ─────────────────────────────────────────────────────────────────
     let wonReward: any = null;
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       const availableRewards = db.prepare(`
                 SELECT * FROM rewards 
                 WHERE is_active = 1 
-                  AND (total_quantity = -1 OR (total_quantity - claimed_count) > 0)
+                    AND (total_quantity = -1 OR (total_quantity - claimed_count) > 0)
             `).all() as any[];
 
       if (availableRewards.length > 0) {
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     assignReward();
 
     // ─────────────────────────────────────────────────────────────────
-    // 2. LEAD PERSISTENCE
+    // 2. FAST LEAD PERSISTENCE
     // ─────────────────────────────────────────────────────────────────
     const metadataStr = JSON.stringify(body);
 
@@ -83,25 +83,21 @@ export async function POST(request: Request) {
     const config = formConfigDb.get();
     const formVersion = config ? config._version : 1;
 
-    // 🛡️ Data Sanitization: Prevent injected XSS strings
+    // 🛡️ Data Sanitization
     const rawDevice = body.device_id ? String(body.device_id) : 'Generic_QR';
     const cleanDevice = rawDevice.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'Generic_QR';
 
     const newLead = {
       id,
       metadata: metadataStr,
-      source: 'kiosk',                      // Tagged strictly as a Kiosk Lead
-      sync_status: 'synced',                // Saved directly to DB, so it's instantly synced
-      created_by: null,                     // No Agent assigned
+      source: 'kiosk',
+      sync_status: 'synced',
+      created_by: null,
       reward_id: wonReward ? wonReward.id : null,
       reward_status: wonReward ? 'sent' : 'pending',
-      device_id: cleanDevice,               // Multi-iPad tracking, sanitized
+      device_id: cleanDevice,
     };
 
-    // Insert using existing leadsDb function setup. Kiosk leads have no session.userId.
-    // We'll insert it manually since `leadsDb.create` requires a `session.userId` parameter normally, or we mock one.
-    // Looking at `leadsDb.create`, let's just use raw insertion if `create` fails due to no auth.
-    // Wait, `create` might just use a string.
     db.prepare(`
             INSERT INTO leads (id, source, metadata, sync_status, created_by, reward_id, reward_status, device_id, form_version, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -110,7 +106,7 @@ export async function POST(request: Request) {
       newLead.source,
       newLead.metadata,
       newLead.sync_status,
-      null, // Kiosk has no agent
+      null,
       newLead.reward_id,
       newLead.reward_status,
       newLead.device_id,
@@ -119,11 +115,18 @@ export async function POST(request: Request) {
       new Date().toISOString()
     );
 
-    // System-level Audit explicitly marking KIOSK submission
-    auditTrail.logAction('system', 'CREATE', 'LEAD(KIOSK)', id, `Public Kiosk registration. Reward given: ${wonReward ? wonReward.name : 'None'}`);
+    // System-level Audit
+    auditTrail.logAction('system', 'CREATE', 'LEAD(KIOSK)', id, `Public Kiosk registration.`);
 
     // ─────────────────────────────────────────────────────────────────
-    // 3. RESPOND TO CLIENT
+    // ⚡ 3. ASYNCHRONOUS INTELLIGENCE LAYER (Non-Blocking)
+    // ─────────────────────────────────────────────────────────────────
+    // We trigger the analysis in the background. In a serverless env, we'd use a queue.
+    // In this Node environment, we just start the promise.
+    leadsDb.analyzeLead(id).catch(err => console.error('[Intel Error]', err));
+
+    // ─────────────────────────────────────────────────────────────────
+    // 4. RESPOND TO CLIENT (FAST)
     // ─────────────────────────────────────────────────────────────────
     return NextResponse.json({
       success: true,

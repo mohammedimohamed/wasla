@@ -1,11 +1,10 @@
 {
-  "/admin/settings/mediashow/page": "app/admin/settings/mediashow/page.js",
-  "/kiosk/page": "app/kiosk/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/api/auth/route": "app/api/auth/route.js",
   "/admin/login/page": "app/admin/login/page.js",
-  "/page": "app/page.js",
+  "/admin/settings/form-builder/page": "app/admin/settings/form-builder/page.js",
+  "/admin/rewards/page": "app/admin/rewards/page.js",
+  "/admin/intelligence/page": "app/admin/intelligence/page.js",
+  "/commercial/page": "app/commercial/page.js",
   "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
-  "/api/admin/mediashow/route": "app/api/admin/mediashow/route.js",
-  "/api/settings/route": "app/api/settings/route.js"
+  "/api/auth/route": "app/api/auth/route.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }

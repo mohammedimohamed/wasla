@@ -66,7 +66,7 @@
         "law": "Law n° 18-07 of June 10, 2018",
         "description": "Our company is responsible for the processing of personal data collected via this platform. In accordance with the provisions of law n° 18-07 relating to the protection of individuals in the context of the processing of personal data, promulgated on June 10, 2018, the circulation of these data remains limited to the national territory.",
         "checkboxLabel": "I have read and I accept the personal data protection policy",
-        "validate": "Validate ✓"
+        "validate": "Validate"
     },
     "roles": {
         "SALES_AGENT": "Sales Agent",
@@ -82,5 +82,28 @@
         "LEAD": "Lead",
         "REWARD": "Reward",
         "USER": "User"
+    },
+    "intelligence": {
+        "title": "Lead Intelligence",
+        "suggestedMerge": "Suggested Merge",
+        "mergeBtn": "Merge Leads",
+        "mergeSuccess": "Leads successfully merged into a Golden Record",
+        "fraudDetected": "Fraud Detected",
+        "leadQuality": "Lead Quality",
+        "garbageRate": "Garbage Rate",
+        "duplicateContact": "This contact is already registered.",
+        "commonThreads": "Common Threads (Email or Phone)",
+        "statusClean": "Clean",
+        "statusDuplicate": "Duplicate",
+        "statusFraud": "Fraud",
+        "statusMerged": "Merged",
+        "pendingQC": "Pending QC",
+        "commit": "Commit",
+        "mergeCommit": "Merge Commit",
+        "lineage": "View Lineage",
+        "revert": "Revert Merge",
+        "rollbackSuccess": "Rollback successful. Parents restored.",
+        "conflictTitle": "Conflict Resolution",
+        "conflictDesc": "Select which values to keep for the Golden Record."
     }
 }

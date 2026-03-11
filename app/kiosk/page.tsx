@@ -9,6 +9,7 @@ import { saveLeadOffline } from "@/lib/offlineQueue";
 import { useFormConfig, FormPage, FormField } from "@/src/hooks/useFormConfig";
 import IdleTracker from "@/src/components/IdleTracker";
 import MediashowOverlay from "./MediashowOverlay";
+import { useTranslation } from "@/src/context/LanguageContext";
 
 type FormValues = Record<string, any>;
 
@@ -128,6 +129,7 @@ function FieldRenderer({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function KioskPage() {
     const router = useRouter();
+    const { t } = useTranslation();
     const [settings, setSettings] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentPage, setCurrentPage] = useState(0);
@@ -216,6 +218,14 @@ export default function KioskPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     });
+
+                    if (res.status === 409) {
+                        const err = await res.json();
+                        toast.error(err.message || t('intelligence.duplicateContact'));
+                        setIsSubmitting(false);
+                        return;
+                    }
+
                     if (!res.ok) throw new Error("Server Error");
                     const result = await res.json();
                     if (result.reward) {

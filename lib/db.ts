@@ -109,6 +109,79 @@ export function initDb() {
         if (!settingsColumns.includes('idle_timeout')) {
             try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN idle_timeout INTEGER DEFAULT 60`); } catch (_) { }
         }
+
+        // Phase 15 (v2): Asynchronous Lead Intelligence & Quality Control
+        try {
+            const leadsCols = (db.pragma('table_info(leads)') as { name: string }[]).map(c => c.name);
+            if (!leadsCols.includes('quality_score')) {
+                db.exec(`ALTER TABLE leads ADD COLUMN quality_score INTEGER DEFAULT 100`);
+                db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_quality_score ON leads(quality_score)`);
+            }
+            if (!leadsCols.includes('status')) {
+                db.exec(`ALTER TABLE leads ADD COLUMN status TEXT DEFAULT 'active'`);
+                db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`);
+            }
+        } catch (_) { }
+
+        // Phase 15 (v3): Git-Style Identity Resolution & Versioning
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS leads_history (
+                id TEXT PRIMARY KEY,
+                lead_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                metadata TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                updated_by TEXT,
+                change_type TEXT, -- 'COMMIT' | 'MERGE_COMMIT'
+                FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
+            )`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_history_lead_id ON leads_history(lead_id)`);
+        } catch (_) { }
+
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS lead_lineage (
+                id TEXT PRIMARY KEY,
+                parent_id TEXT NOT NULL,
+                child_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(parent_id) REFERENCES leads(id) ON DELETE CASCADE,
+                FOREIGN KEY(child_id) REFERENCES leads(id) ON DELETE CASCADE
+            )`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_lineage_child ON lead_lineage(child_id)`);
+        } catch (_) { }
+
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS lead_intelligence_logs (
+                id TEXT PRIMARY KEY,
+                lead_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                message TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
+            )`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_intel_lead_id ON lead_intelligence_logs(lead_id)`);
+        } catch (_) { }
+
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS leads_archive (
+                id TEXT PRIMARY KEY,
+                metadata TEXT NOT NULL,
+                source TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                synced_at TEXT,
+                created_by TEXT,
+                team_id TEXT,
+                reward_id TEXT,
+                reward_status TEXT,
+                device_id TEXT,
+                form_version INTEGER,
+                quality_score INTEGER,
+                archived_at TEXT NOT NULL,
+                reason TEXT
+            )`);
+        } catch (_) { }
     }
 }
 
@@ -132,6 +205,22 @@ export const auditTrail = {
 
 // Enterprise Data Access Layer (with Ownership & RBAC)
 export const leadsDb = {
+    /**
+     * 📂 Git Principle: Create an immutable version entry
+     */
+    commitHistory: (leadId: string, metadata: any, updatedBy: string, changeType: 'COMMIT' | 'MERGE_COMMIT' = 'COMMIT') => {
+        const lastVersion = db.prepare("SELECT MAX(version) as v FROM leads_history WHERE lead_id = ?").get(leadId) as { v: number } | undefined;
+        const nextVersion = (lastVersion?.v || 0) + 1;
+        const timestamp = new Date().toISOString();
+
+        db.prepare(`
+            INSERT INTO leads_history (id, lead_id, version, metadata, updated_at, updated_by, change_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(uuidv4(), leadId, nextVersion, JSON.stringify(metadata), timestamp, updatedBy, changeType);
+
+        return nextVersion;
+    },
+
     create: (id: string, metadata: any, source: string, creatorId: string, deviceId?: string, teamId?: string | null, formVersion: number = 1) => {
         const timestamp = new Date().toISOString();
         const metadataStr = JSON.stringify(metadata || {});
@@ -157,6 +246,10 @@ export const leadsDb = {
             const transaction = db.transaction(() => {
                 insertLead.run(id, metadataStr, source, deviceId || 'localhost', timestamp, timestamp, creatorId, finalTeamId, formVersion);
                 insertQueue.run(id, JSON.stringify({ metadata, source, device_id: deviceId, created_by: creatorId, team_id: finalTeamId, form_version: formVersion }), timestamp);
+
+                // 📂 Phase 15 v3: Initial Commit
+                leadsDb.commitHistory(id, metadata, creatorId, 'COMMIT');
+
                 auditTrail.logAction(creatorId, 'CREATE', 'LEAD', id, `Lead created from source: ${source}`, metadata);
             });
             transaction();
@@ -264,8 +357,290 @@ export const leadsDb = {
             rewardsGivenToday: rewardsGivenToday.count,
             recentLeads
         };
+    },
+
+    /**
+     * 🛡️ Identity Resolution: Check if Email+Phone pair exists (Internal use)
+     */
+    checkDuplicate: (email?: string, phone?: string, excludeId?: string) => {
+        if (!email || !phone) return false;
+
+        let query = `
+            SELECT id FROM leads 
+            WHERE json_extract(metadata, '$.email') = ? 
+              AND json_extract(metadata, '$.phone') = ?
+        `;
+        const params: any[] = [email, phone];
+
+        if (excludeId) {
+            query += " AND id != ?";
+            params.push(excludeId);
+        }
+
+        const existing = db.prepare(query + " LIMIT 1").get(params);
+        return !!existing;
+    },
+
+    /**
+     * 🚫 Fraud Engine v2: Advanced Pattern Detection
+     */
+    calculateQualityScore: (metadata: any) => {
+        let score = 100;
+
+        // 1. Detect Garbage Literals
+        const garbageLiterals = [/12345/i, /abcde/i, /test/i, /fake/i, /dummy/i, /none/i];
+
+        // 2. Keyboard Mashing / Repeating Chars
+        const repeatPattern = /(.)\1{3,}/;           // Same char repeated 4+ times (e.g. aaaa)
+        const consonantMash = /[bcdfghjklmnpqrstvwxyz]{5,}/i; // 5 consonants in a row
+        const rowMash = /asdf|sdfg|dfgh|fghj|ghjk|hjkl|qwert|werty|ertyu|rtyui|tyuio|yuiop|zxcv|xcvb|cvbn|vbnm/i;
+
+        for (const value of Object.values(metadata)) {
+            const strVal = String(value).toLowerCase();
+            if (garbageLiterals.some(p => p.test(strVal))) score -= 40;
+            if (repeatPattern.test(strVal)) score -= 30;
+            if (consonantMash.test(strVal)) score -= 40;
+            if (rowMash.test(strVal)) score -= 50;
+        }
+
+        // 3. Email Validation Patterns
+        const email = String(metadata.email || '').toLowerCase();
+        if (email.includes('test@') || email.endsWith('@example.com') || email.endsWith('@test.com')) {
+            score -= 50;
+        }
+
+        // 4. Fake Phone Patterns
+        const phone = String(metadata.phone || '');
+        if (/^0+$/.test(phone) || /^1234/.test(phone) || phone.length < 8) {
+            score -= 60;
+        }
+
+        return Math.max(0, score);
+    },
+
+    /**
+     * ⚡ Asynchronous Intelligence Engine: Analyzes a lead post-submission
+     */
+    analyzeLead: async (leadId: string) => {
+        const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(leadId) as any;
+        if (!lead) return;
+
+        const metadata = JSON.parse(lead.metadata);
+        const score = leadsDb.calculateQualityScore(metadata);
+        const logs: any[] = [];
+        const timestamp = new Date().toISOString();
+
+        // Check for duplicates
+        const existingDuplicate = db.prepare(`
+            SELECT id FROM leads 
+            WHERE id != ? AND 
+                  json_extract(metadata, '$.email') = ? AND 
+                  json_extract(metadata, '$.phone') = ?
+            LIMIT 1
+        `).get(leadId, metadata.email, metadata.phone) as { id: string } | undefined;
+
+        if (existingDuplicate) {
+            logs.push({
+                type: 'POTENTIAL_DUPLICATE',
+                message: `Same Email+Phone already registered (Lead ID: ${existingDuplicate.id})`,
+                severity: 'WARNING'
+            });
+        }
+
+        if (score < 50) {
+            logs.push({
+                type: 'FRAUD_DETECTION',
+                message: `Suspect activity detected (Score: ${score}%)`,
+                severity: score < 20 ? 'CRITICAL' : 'WARNING'
+            });
+        }
+
+        // Apply findings
+        const tx = db.transaction(() => {
+            db.prepare("UPDATE leads SET quality_score = ? WHERE id = ?").run(score, leadId);
+
+            // If high fraud score, flag reward for QC
+            if (score < 20 && lead.reward_status !== 'none') {
+                db.prepare("UPDATE leads SET reward_status = 'pending_qc' WHERE id = ?").run(leadId);
+            }
+
+            for (const log of logs) {
+                db.prepare(`
+                    INSERT INTO lead_intelligence_logs (id, lead_id, type, message, severity, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `).run(uuidv4(), leadId, log.type, log.message, log.severity, timestamp);
+            }
+        });
+        tx();
+    },
+
+    /**
+     * 📋 Intelligence: Suggested Merges
+     */
+    getSuggestedMerges: () => {
+        return db.prepare(`
+            SELECT 
+                l1.id as id1, l1.metadata as meta1, l1.quality_score as score1,
+                l2.id as id2, l2.metadata as meta2, l2.quality_score as score2,
+                json_extract(l1.metadata, '$.email') as email,
+                json_extract(l1.metadata, '$.phone') as phone
+            FROM leads l1
+            JOIN leads l2 ON l1.id < l2.id
+            WHERE (l1.status = 'active' OR l1.status IS NULL)
+              AND (l2.status = 'active' OR l2.status IS NULL)
+              AND (
+                (json_extract(l1.metadata, '$.email') = json_extract(l2.metadata, '$.email') AND json_extract(l1.metadata, '$.email') IS NOT NULL AND json_extract(l1.metadata, '$.email') != '')
+                OR 
+                (json_extract(l1.metadata, '$.phone') = json_extract(l2.metadata, '$.phone') AND json_extract(l1.metadata, '$.phone') IS NOT NULL AND json_extract(l1.metadata, '$.phone') != '')
+              )
+            LIMIT 50
+        `).all();
+    },
+
+    /**
+     * 🧬 Consolidation v3: The "Merge Commit" Strategy
+     * No deletion. Secondary is archived, Primary is updated with selected metadata.
+     */
+    mergeLeads: (primaryId: string, secondaryId: string, mergedMetadata: any, adminId: string) => {
+        const primary = db.prepare("SELECT * FROM leads WHERE id = ?").get(primaryId) as any;
+        const secondary = db.prepare("SELECT * FROM leads WHERE id = ?").get(secondaryId) as any;
+        if (!primary || !secondary) throw new Error("Leads not found");
+
+        const tx = db.transaction(() => {
+            const timestamp = new Date().toISOString();
+
+            // 1. Mark Secondary as Archived (Git: Branch Closed)
+            db.prepare("UPDATE leads SET status = 'archived', updated_at = ? WHERE id = ?")
+                .run(timestamp, secondaryId);
+
+            // 2. Update Primary with Merged Data (Git: Merge Commit)
+            db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?")
+                .run(JSON.stringify(mergedMetadata), timestamp, primaryId);
+
+            // 3. Record History (The "Commit")
+            leadsDb.commitHistory(primaryId, mergedMetadata, adminId, 'MERGE_COMMIT');
+
+            // 4. Create Lineage Link (The "Pointer")
+            db.prepare(`
+                INSERT INTO lead_lineage (id, parent_id, child_id, created_at)
+                VALUES (?, ?, ?, ?)
+            `).run(uuidv4(), secondaryId, primaryId, timestamp);
+
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(MERGE)', primaryId, `Identity consolidated with ${secondaryId} (Versioned)`);
+        });
+        tx();
+        return true;
+    },
+
+    /**
+     * ⏪ Git Rollback: Restore parents and cleanup lineage
+     */
+    revertMerge: (childId: string, adminId: string) => {
+        const lineage = db.prepare("SELECT parent_id FROM lead_lineage WHERE child_id = ?").all(childId) as { parent_id: string }[];
+        if (lineage.length === 0) throw new Error("No lineage found for this lead");
+
+        const tx = db.transaction(() => {
+            const timestamp = new Date().toISOString();
+
+            // Restore all parents
+            for (const { parent_id } of lineage) {
+                db.prepare("UPDATE leads SET status = 'active', updated_at = ? WHERE id = ?")
+                    .run(timestamp, parent_id);
+            }
+
+            // Restore primary metadata to previous version (before Merge Commit)
+            const history = db.prepare(`
+                SELECT metadata FROM leads_history 
+                WHERE lead_id = ? AND change_type != 'MERGE_COMMIT' 
+                ORDER BY version DESC LIMIT 1
+            `).get(childId) as { metadata: string } | undefined;
+
+            if (history) {
+                db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?")
+                    .run(history.metadata, timestamp, childId);
+            }
+
+            // Cleanup lineage
+            db.prepare("DELETE FROM lead_lineage WHERE child_id = ?").run(childId);
+
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(REVERT)', childId, 'Merge reverted. Parent leads restored.');
+        });
+        tx();
+        return true;
+    },
+
+    getLineage: (leadId: string) => {
+        return db.prepare(`
+            SELECT l.id, l.metadata, l.status, lin.created_at
+            FROM lead_lineage lin
+            JOIN leads l ON lin.parent_id = l.id
+            WHERE lin.child_id = ?
+        `).all(leadId);
+    },
+
+    /**
+     * 📊 Agent Performance: Ranking by Quality Score
+     */
+    getAgentQualityRanking: () => {
+        return db.prepare(`
+            SELECT 
+                u.name as agent_name,
+                COUNT(l.id) as total_leads,
+                AVG(l.quality_score) as avg_score,
+                SUM(CASE WHEN l.quality_score < 50 THEN 1 ELSE 0 END) as low_quality_count
+            FROM leads l
+            JOIN users u ON l.created_by = u.id
+            WHERE l.status = 'active' OR l.status IS NULL
+            GROUP BY u.id
+            ORDER BY avg_score DESC
+        `).all();
+    },
+
+    /**
+     * 🚩 Intelligence: Fetch Leads with suspected issues (logs)
+     */
+    getFlaggedLeads: () => {
+        return db.prepare(`
+            SELECT 
+                l.id, l.metadata, l.quality_score, l.reward_status, l.source,
+                GROUP_CONCAT(i.message, ' | ') as risk_messages
+            FROM leads l
+            JOIN lead_intelligence_logs i ON l.id = i.lead_id
+            WHERE l.status = 'active' OR l.status IS NULL
+            GROUP BY l.id
+            ORDER BY l.created_at DESC
+            LIMIT 100
+        `).all();
+    },
+
+    /**
+     * ✅ Intelligence: Fetch Leads with NO suspected issues
+     */
+    getCleanLeads: () => {
+        return db.prepare(`
+            SELECT id, metadata, quality_score, reward_status, source, created_at
+            FROM leads 
+            WHERE (status = 'active' OR status IS NULL)
+              AND quality_score >= 80 
+              AND id NOT IN (SELECT lead_id FROM lead_intelligence_logs)
+            ORDER BY created_at DESC
+            LIMIT 50
+        `).all();
+    },
+
+    /**
+     * ✅ Quality Control: Manually approve a reward that was blocked
+     */
+    approveReward: (leadId: string, adminId: string) => {
+        const tx = db.transaction(() => {
+            db.prepare("UPDATE leads SET reward_status = 'sent' WHERE id = ? AND reward_status = 'pending_qc'").run(leadId);
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(QC_APPROVE)', leadId, 'Reward manually approved after quality check.');
+        });
+        tx();
+        return true;
     }
-};
+}
+    ;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🏆 REWARDS DATA ACCESS LAYER

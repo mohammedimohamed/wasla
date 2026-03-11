@@ -57,7 +57,7 @@
         "law": "Loi n° 18-07 du 10 juin 2018",
         "description": "Notre entreprise est responsable du traitement des données à caractère personnel collectées via cette plateforme. Conformément aux dispositions de la loi n° 18-07 relative à la protection des personnes physiques dans le cadre du traitement des données à caractère personnel, promulguée le 10 juin 2018, la circulation de ces données demeure limitée au territoire national.",
         "checkboxLabel": "J'ai lu et j'accepte la politique de protection des données",
-        "validate": "Valider ✓"
+        "validate": "Valider"
     },
     "roles": {
         "SALES_AGENT": "Agent Commercial",
@@ -73,5 +73,28 @@
         "LEAD": "Lead",
         "REWARD": "Récompense",
         "USER": "Utilisateur"
+    },
+    "intelligence": {
+        "title": "Intelligence des Leads",
+        "suggestedMerge": "Fusion Suggérée",
+        "mergeBtn": "Fusionner les Leads",
+        "mergeSuccess": "Leads fusionnés avec succès en un 'Golden Record'",
+        "fraudDetected": "Fraude Détectée",
+        "leadQuality": "Qualité du Lead",
+        "garbageRate": "Taux de Données Corrompues",
+        "duplicateContact": "Ce contact est déjà enregistré.",
+        "commonThreads": "Fils Conducteurs Communs (Email ou Téléphone)",
+        "statusClean": "Sain",
+        "statusDuplicate": "Doublon",
+        "statusFraud": "Fraude",
+        "statusMerged": "Fusionné",
+        "pendingQC": "Attente QC",
+        "commit": "Commit",
+        "mergeCommit": "Commit de Fusion",
+        "lineage": "Voir la Lignée",
+        "revert": "Annuler la Fusion",
+        "rollbackSuccess": "Retour en arrière réussi. Leads parents restaurés.",
+        "conflictTitle": "Résolution de Conflit",
+        "conflictDesc": "Sélectionnez les valeurs à conserver pour le Golden Record."
     }
 }

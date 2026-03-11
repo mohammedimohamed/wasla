@@ -149,6 +149,13 @@ export const LeadForm: React.FC<LeadFormProps> = ({ source, onSubmitSuccess, lea
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyObj),
             });
+
+            if (response.status === 409) {
+                const err = await response.json();
+                toast.error(err.message || t('intelligence.duplicateContact'));
+                return;
+            }
+
             if (!response.ok) throw new Error(t('common.error'));
             toast.success(t('common.success'));
             if (!leadId) reset(); // don't wipe out edit form on save
