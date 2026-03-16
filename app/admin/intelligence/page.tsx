@@ -52,6 +52,21 @@ interface IntelligenceLead {
     status?: string;
 }
 
+export const getDisplayName = (meta: any, fallbackStr: string = 'Anonymous') => {
+    if (!meta) return fallbackStr;
+    const nameKeys = ['name', 'fullName', 'full_name', 'firstName', 'first_name', 'Nom', 'Prénom', 'nom', 'prenom'];
+    for (const key of nameKeys) {
+        if (meta[key] && typeof meta[key] === 'string' && meta[key].trim() !== '') return meta[key];
+    }
+    const dynamicKey = Object.keys(meta).find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('nom'));
+    if (dynamicKey && meta[dynamicKey] && typeof meta[dynamicKey] === 'string' && meta[dynamicKey].trim() !== '') {
+        return meta[dynamicKey];
+    }
+    if (meta.email) return Array.isArray(meta.email) ? meta.email[0] : meta.email;
+    if (meta.phone) return Array.isArray(meta.phone) ? meta.phone[0] : meta.phone;
+    return fallbackStr;
+};
+
 // ── CONFLICT RESOLVER MODAL ──────────────────────────────────────────
 function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, onMerge: (data: any) => void, onCancel: () => void }) {
     const { t } = useTranslation();
@@ -305,7 +320,7 @@ function LineageModal({ leadId, onClose }: { leadId: string, onClose: () => void
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Parent Lead</p>
-                                                    <p className="font-black text-slate-800 text-sm">{meta.name || 'Anonymous'}</p>
+                                                    <p className="font-black text-slate-800 text-sm">{getDisplayName(meta, "Anonymous")}</p>
                                                 </div>
                                                 <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">Archived</span>
                                             </div>
@@ -715,9 +730,9 @@ export default function IntelligencePage() {
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-1.5 h-10 bg-indigo-200 rounded-full" />
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-black text-slate-800 truncate">{m1.name || 'User 1'}</p>
+                                                                <p className="text-xs font-black text-slate-800 truncate">{getDisplayName(m1, "User 1")}</p>
                                                                 <p className="text-[10px] font-medium text-slate-400 truncate">{m1.email || m1.phone}</p>
-                                                                <p className="text-xs font-black text-slate-700 truncate mt-1">{m2.name || 'User 2'}</p>
+                                                                <p className="text-xs font-black text-slate-700 truncate mt-1">{getDisplayName(m2, "User 2")}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -782,7 +797,7 @@ export default function IntelligencePage() {
                                                                         <ShieldAlert className="w-6 h-6" />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="font-black text-slate-900 text-base leading-tight truncate max-w-[150px]">{meta.name || 'Visitor'}</p>
+                                                                        <p className="font-black text-slate-900 text-base leading-tight truncate max-w-[150px]">{getDisplayName(meta, "Visitor")}</p>
                                                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">ID: {lead.id.slice(0, 8)}</p>
                                                                     </div>
                                                                 </div>
@@ -860,7 +875,7 @@ export default function IntelligencePage() {
                                                                         <ShieldCheck className="w-6 h-6" />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="font-black text-slate-900 text-base leading-tight truncate max-w-[150px]">{meta.name || 'Verified User'}</p>
+                                                                        <p className="font-black text-slate-900 text-base leading-tight truncate max-w-[150px]">{getDisplayName(meta, "Verified User")}</p>
                                                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Golden Record Verified</p>
                                                                     </div>
                                                                 </div>
