@@ -1,45 +1,56 @@
-# Dependencies
+# --- Dependencies ---
 node_modules/
-/.pnp
+.pnp
 .pnp.js
 
-# Next.js Build Output
+# --- Next.js / Build Output ---
 .next/
 out/
-
-# Production Build
 build/
+dist/
+.vercel
+.turbo
 
-# SQLite Database Files
-# Prevents local lead data and temporary journals from being pushed
+# --- SQLite & Database Files ---
+# Covers all .db files and temporary journals in any directory
 *.db
 *.db-journal
 *.db-wal
-data/*.db
-data/*.db-journal
-data/*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
 
-# Environment Variables
-# Crucial for protecting your SALES_PIN and ADMIN_PIN
+# --- Environment Variables ---
+# Extremely important for your SALES_PIN and ADMIN_PIN security
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
-# Debug logs
+# --- Debug & Logs ---
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Operating System Files
+# --- Operating System Files ---
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+desktop.ini
 
-# SSH Keys (found in your root)
-# It is highly recommended to keep these out of the repo
+# --- Security & Credentials ---
+# Keeps your personal SSH keys and private files out of the repo
 mohammedimohamed_85_gmail_com
 mohammedimohamed_85_gmail_com.pub
+*.pem
+*.key
+*.pub
 
-# TypeScript
-tsbuildinfo
+# --- TypeScript ---
+*.tsbuildinfo
+next-env.d.ts
