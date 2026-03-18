@@ -57,3 +57,25 @@ Once the app is running, go to `/admin/login` and use the following credentials:
 
 ## Useful Commands
 - `npm run db:reset` - Wipes all scanned leads and resets reward inventory to 0 (useful right before a new event begins, without deleting your sales agent accounts or settings).
+
+---
+
+## 💾 Automated Remote Backups
+Wasla CRM includes a built-in Safe-Streaming backup route that lets you download the live SQLite production database without stopping the server. This is especially useful for ephemeral hostings like Render.
+
+### **1. Configure the API Key**
+In your production environment variables (or `.env`), set a secure key:
+```env
+BACKUP_API_KEY=your_secure_password_here
+```
+
+### **2. Setup a Cron Job**
+Use this `curl` command on any external machine (like your personal laptop or a VPS cron job) to trigger the backup download securely over the wire:
+
+```bash
+# This downloads the sqlite database and saves it with a daily timestamp
+curl -X GET "https://your-domain.render.com/api/backup" \
+     -H "x-api-key: your_secure_password_here" \
+     --output "wasla_backup_$(date +%Y-%m-%d).db"
+```
+*Note: Make sure to replace `https://your-domain.render.com` with your actual production URL.*

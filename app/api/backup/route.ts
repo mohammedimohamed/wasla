@@ -29,47 +29,60 @@ import os from 'os';
 export async function GET(request: Request) {
     try {
         // ── 1. DUAL AUTH: JWT Session OR Cron Secret Key ─────────────────────
-        const backupKey = request.headers.get('X-Backup-Key');
-        const isValidCronKey = backupKey && backupKey === dynamicConfig.backupSecretKey;
+        const apiKey = request.headers.get('x-api-key');
+        const expectedApiKey = process.env.BACKUP_API_KEY;
+        
+        // Strict verification: ensure the env variable is actually set in production!
+        const isValidCronKey = apiKey && expectedApiKey && apiKey === expectedApiKey;
 
         if (!isValidCronKey) {
             // Fall back to JWT session auth (for UI-triggered backups)
             const session = await getSession();
-            if (!session) {
+            if (!session || session.role !== 'ADMINISTRATOR') {
                 return NextResponse.json(
-                    { error: 'Authentication required. Use a JWT session or X-Backup-Key header.' },
+                    { error: 'Unauthorized. Provide a valid x-api-key header or use an ADMINISTRATOR session.' },
                     { status: 401 }
-                );
-            }
-            if (session.role !== 'ADMINISTRATOR') {
-                return NextResponse.json(
-                    { error: 'Only ADMINISTRATOR can trigger a database backup.' },
-                    { status: 403 }
                 );
             }
         }
 
         // ── 2. BACKUP: Use SQLite online hot-backup API ───────────────────────
-        // Write to OS temp dir to avoid interfering with the live DB directory
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_');
         const backupFilename = `wasla_backup_${timestamp}.sqlite`;
         const backupPath = path.join(os.tmpdir(), backupFilename);
 
-        // better-sqlite3's backup() is synchronous and transaction-safe
         await db.backup(backupPath);
-
-        // ── 3. STREAM: Read backup file and respond ───────────────────────────
-        const fileBuffer = fs.readFileSync(backupPath);
         const fileSize = fs.statSync(backupPath).size;
 
-        // Clean up temp file after reading
-        fs.unlinkSync(backupPath);
+        // ── 3. STREAM: Safe Streaming Implementation ──────────────────────────
+        // Using a Web ReadableStream to prevent memory crashes on heavy DB files.
+        const nodeStream = fs.createReadStream(backupPath);
+        const webStream = new ReadableStream({
+            start(controller) {
+                nodeStream.on('data', (chunk: any) => {
+                    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+                    controller.enqueue(new Uint8Array(buffer));
+                });
+                nodeStream.on('end', () => {
+                    controller.close();
+                    fs.unlink(backupPath, () => {}); // Async cleanup
+                });
+                nodeStream.on('error', (err) => {
+                    controller.error(err);
+                    fs.unlink(backupPath, () => {});
+                });
+            },
+            cancel() {
+                nodeStream.destroy();
+                fs.unlink(backupPath, () => {});
+            }
+        });
 
         // ── 4. LOG: Audit trail ───────────────────────────────────────────────
-        const authMethod = isValidCronKey ? 'cron-key' : 'jwt-session';
-        console.log(`[Backup] ✅ Successful backup triggered via ${authMethod}. Size: ${(fileSize / 1024).toFixed(1)} KB`);
+        const authMethod = isValidCronKey ? 'api-key' : 'jwt-session';
+        console.log(`[Backup] ✅ Successful backup streaming triggered via ${authMethod}. Size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
 
-        return new Response(fileBuffer, {
+        return new Response(webStream as unknown as BodyInit, {
             status: 200,
             headers: {
                 'Content-Type': 'application/octet-stream',
