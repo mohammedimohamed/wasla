@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
-import { auditTrail } from '@/lib/db';
+import { db, auditTrail, leadsDb, formConfigDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,67 +8,107 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { leads } = body;
 
-        // Verify array payload structure cleanly
         if (!Array.isArray(leads) || leads.length === 0) {
-            return NextResponse.json({ success: true, synced_ids: [] });
+            return NextResponse.json({ success: true, synced_ids: [], failed_ids: [] });
         }
 
-        const syncedIds: string[] = [];
-
-        // Identify current session context securely (could be null for Kiosk)
         const session = await getSession();
+        const syncedIds: string[] = [];
+        const failedIds: string[] = [];
 
-        // 1. Transaction strictly locks processing ensuring partial failures rollback
-        const executeSync = db.transaction(() => {
-            for (const item of leads) {
-                // Extracts payload shape configured heavily natively by Next/TypeScript
-                const { id: offlineId, type, payload } = item;
+        // Grab form version once — batch is assumed homogenous
+        let formVersion = 1;
+        try {
+            const config = formConfigDb.get();
+            formVersion = config ? config._version : 1;
+        } catch (_) { }
 
-                // Establish definitive unique key ignoring the temporary localStorage key
+        for (const item of leads) {
+            /**
+             * item shape (from IndexedDB OfflineLead):
+             *   client_uuid: string  ← idempotency key
+             *   type: 'kiosk' | 'commercial'
+             *   payload: any
+             *   timestamp: number
+             */
+            const { client_uuid, type, payload } = item;
+
+            // Guard: skip malformed entries
+            if (!client_uuid || !payload) {
+                console.warn('[Sync API] Skipping malformed item:', item);
+                continue;
+            }
+
+            try {
+                // ── IDEMPOTENCY CHECK ─────────────────────────────────────
+                // If the client_uuid was already committed (e.g. flickering connection),
+                // just acknowledge it so the client removes it from the local queue.
+                const existing = db.prepare(
+                    `SELECT id FROM leads WHERE json_extract(metadata, '$.client_uuid') = ? LIMIT 1`
+                ).get(client_uuid) as { id: string } | undefined;
+
+                if (existing) {
+                    console.log(`[Sync API] Duplicate detected for client_uuid: ${client_uuid} — skipping insert.`);
+                    syncedIds.push(client_uuid);
+                    continue;
+                }
+
+                // ── INSERT ────────────────────────────────────────────────
                 const definitiveId = uuidv4();
+                const source = type || 'kiosk';
+                const cleanDevice = payload.device_id
+                    ? String(payload.device_id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'offline'
+                    : 'offline';
 
-                const source = type; // "kiosk" || "commercial"
-                const deviceId = payload.device_id || null;
-
-                // Determine Creator (Anonymous if Kiosk natively, otherwise parse user Session securely)
                 const createdBy = type === 'commercial'
                     ? (session?.userId || payload.created_by || null)
                     : null;
 
-                // Serialize dynamic form layout securely into standardized raw column layout
-                const metadataStr = JSON.stringify(payload);
+                // Embed client_uuid inside metadata so idempotency check works
+                const enrichedPayload = { ...payload, client_uuid };
+                const metadataStr = JSON.stringify(enrichedPayload);
 
-                // Insert into generic WASLA mapping bypassing logic handlers like Reward distribution naturally 
-                // since they occurred entirely offline with zero visibility over Active limits.
                 db.prepare(`
-                    INSERT INTO leads (id, source, metadata, sync_status, created_by, device_id, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO leads (id, source, metadata, sync_status, created_by, device_id, form_version, created_at, updated_at)
+                    VALUES (?, ?, ?, 'synced', ?, ?, ?, ?, ?)
                 `).run(
                     definitiveId,
                     source,
                     metadataStr,
-                    'synced', // Mark definitively recovered natively meaning Admin Dashboard captures it immediately 
                     createdBy,
-                    deviceId,
-                    new Date().toISOString(),
+                    cleanDevice,
+                    formVersion,
+                    new Date(item.timestamp || Date.now()).toISOString(),
                     new Date().toISOString()
                 );
 
-                // Push temporary localStorage ID indicating to the React hook to permanently delete it off-device 
-                syncedIds.push(offlineId);
-            }
+                // Fire async intelligence analysis — non-blocking
+                leadsDb.analyzeLead(definitiveId).catch(err =>
+                    console.error('[Sync API] Analytics error:', err)
+                );
 
-            // Log full event block indicating exactly how many hits were recovered over the Wi-Fi restoration
-            auditTrail.logAction('system', 'SYNC', 'LEADS(BATCH)', 'batch', `Synchronized ${syncedIds.length} offline leads contextually from background loop.`);
-            return syncedIds;
+                syncedIds.push(client_uuid);
+            } catch (itemError) {
+                console.error(`[Sync API] Failed to process client_uuid: ${client_uuid}`, itemError);
+                failedIds.push(client_uuid);
+            }
+        }
+
+        if (syncedIds.length > 0) {
+            auditTrail.logAction(
+                'system', 'SYNC', 'LEADS(BATCH)', 'batch',
+                `Background sync committed ${syncedIds.length} offline leads. Failed: ${failedIds.length}.`
+            );
+        }
+
+        return NextResponse.json({
+            success: true,
+            synced_ids: syncedIds,
+            failed_ids: failedIds,
         });
 
-        const completedIds = executeSync();
-
-        // Send IDs explicitly ensuring frontend deletion
-        return NextResponse.json({ success: true, synced_ids: completedIds });
     } catch (error) {
-        console.error('[Sync API Execution Fault]', error);
-        return NextResponse.json({ error: 'Failed aggressively during sync transaction sequence.' }, { status: 500 });
+        console.error('[Sync API] Fatal error:', error);
+        return NextResponse.json({ error: 'Sync transaction failed.' }, { status: 500 });
     }
 }

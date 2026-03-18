@@ -1,24 +1,56 @@
 {
     "name": "Wasla CRM Kiosk",
     "short_name": "WaslaCRM",
-    "description": "Enterprise Event Capture Interface",
+    "description": "Enterprise Event Lead Capture — works offline and syncs automatically",
     "start_url": "/kiosk",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#2563eb",
+    "background_color": "#f8fafc",
+    "theme_color": "#1e293b",
     "orientation": "portrait-primary",
+    "lang": "fr",
+    "categories": ["business", "productivity"],
+    "prefer_related_applications": false,
     "icons": [
         {
             "src": "/icons/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
         },
         {
             "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Ouvrir le Kiosk",
+            "short_name": "Kiosk",
+            "description": "Capture de leads depuis le kiosk événementiel",
+            "url": "/kiosk",
+            "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Synchroniser",
+            "short_name": "Sync",
+            "description": "Forcer la synchronisation des données hors ligne",
+            "url": "/sync",
+            "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
         }
     ]
 }

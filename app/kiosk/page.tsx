@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { MoveRight, MoveLeft, Loader2, CheckCircle2, AlertCircle, Monitor } from "lucide-react";
 import toast from "react-hot-toast";
-import { saveLeadOffline } from "@/lib/offlineQueue";
+import { saveLeadOffline, markLeadSynced, markLeadFailed } from "@/lib/offlineQueue";
 import { useFormConfig, FormPage, FormField } from "@/src/hooks/useFormConfig";
 import IdleTracker from "@/src/components/IdleTracker";
 import MediashowOverlay from "./MediashowOverlay";
@@ -201,58 +201,66 @@ export default function KioskPage() {
         }
 
         setIsSubmitting(true);
-        try {
-            const searchParams = new URLSearchParams(window.location.search);
-            const rawLocation = searchParams.get('location') || '';
-            const location = rawLocation.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
 
-            const payload = { ...data, device_id: location || 'Generic_QR' };
-            let isOfflineFallback = false;
+        const searchParams = new URLSearchParams(window.location.search);
+        const rawLocation = searchParams.get('location') || '';
+        const location = rawLocation.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
+        const payload = { ...data, device_id: location || 'Generic_QR' };
 
-            if (!navigator.onLine) {
-                isOfflineFallback = true;
-            } else {
-                try {
-                    const res = await fetch('/api/kiosk/submit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
+        // ─── STEP 1: WRITE TO IndexedDB IMMEDIATELY — never blocks the user ───
+        // This is the source of truth. Even if the device dies right after,
+        // the data is safe and the SyncManager will recover it on next launch.
+        const localRecord = await saveLeadOffline(payload, 'kiosk');
 
-                    if (res.status === 409) {
-                        const err = await res.json();
-                        toast.error(err.message || t('intelligence.duplicateContact'));
-                        setIsSubmitting(false);
-                        return;
-                    }
+        // ─── STEP 2: NAVIGATE IMMEDIATELY — user experience is never blocked ──
+        // The success screen appears while the server request fires in background.
+        sessionStorage.removeItem('kiosk_reward');
+        const successPath = location
+            ? `/kiosk/success?location=${encodeURIComponent(location)}`
+            : '/kiosk/success';
 
-                    if (!res.ok) throw new Error("Server Error");
+        // ─── STEP 3: BACKGROUND SERVER REQUEST (fire-and-forget) ──────────────
+        // We DON'T await this. We start it and let it settle.
+        (async () => {
+            // If the device is offline, skip — SyncManager handles this via the online event
+            if (!navigator.onLine) return;
+
+            try {
+                const res = await fetch('/api/kiosk/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Embed the client_uuid so the server uses it as the idempotency key
+                    body: JSON.stringify({ ...payload, client_uuid: localRecord.client_uuid }),
+                });
+
+                if (res.status === 409) {
+                    // Duplicate — server already has this lead (different session).
+                    // Mark local as synced so SyncManager doesn't retry it.
+                    await markLeadSynced(localRecord.client_uuid);
+                    return;
+                }
+
+                if (res.ok) {
                     const result = await res.json();
+                    // Mark local record as synced — zero-data-loss achieved
+                    await markLeadSynced(localRecord.client_uuid);
+                    // Cache reward for the success screen (if the page is still loading)
                     if (result.reward) {
                         sessionStorage.setItem('kiosk_reward', JSON.stringify(result.reward));
-                    } else {
-                        sessionStorage.removeItem('kiosk_reward');
                     }
-                } catch (err) {
-                    isOfflineFallback = true;
+                } else {
+                    // 5xx: server error — leave as 'pending' so SyncManager retries
+                    await markLeadFailed(localRecord.client_uuid, `HTTP ${res.status}`);
                 }
+            } catch (networkErr) {
+                // Network cut mid-request — record stays 'pending' in IndexedDB.
+                // SyncManager will pick it up on the next 'online' event or poll.
+                console.warn('[Kiosk] Background sync failed — SyncManager will retry:', networkErr);
             }
+        })();
 
-            if (isOfflineFallback) {
-                saveLeadOffline(payload, 'kiosk');
-                toast.success("Hors ligne: Lead sauvegardé localement 📶❌", { duration: 5000 });
-                sessionStorage.removeItem('kiosk_reward');
-            }
-
-            if (location) {
-                router.push(`/kiosk/success?location=${encodeURIComponent(location)}`);
-            } else {
-                router.push('/kiosk/success');
-            }
-        } catch (error) {
-            toast.error("Une erreur est survenue, veuillez réessayer.");
-            setIsSubmitting(false);
-        }
+        // Navigate — this happens synchronously after firing the background task
+        router.push(successPath);
     };
 
     const handleNext = async () => {

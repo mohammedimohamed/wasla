@@ -1,15 +1,31 @@
 import { NextResponse } from 'next/server';
-import { leadsDb, rewardsDb, auditTrail, formConfigDb } from '@/lib/db';
-import db from '@/lib/db';
+import { leadsDb, rewardsDb, auditTrail, formConfigDb, db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 🎁 POST /api/kiosk/submit
  * Public endpoint to save a lead from the Kiosk mode and compute instant rewards.
+ * Supports idempotency via `client_uuid` to prevent duplicate records from
+ * offline-first background retries.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    // ── IDEMPOTENCY CHECK ─────────────────────────────────────────────────────
+    // If the offline-first client repeats this request, we return the original
+    // result rather than duplicating the record.
+    if (body.client_uuid) {
+      const existing = db.prepare(
+        `SELECT id FROM leads WHERE json_extract(metadata, '$.client_uuid') = ? LIMIT 1`
+      ).get(body.client_uuid) as { id: string } | undefined;
+
+      if (existing) {
+        console.log(`[Kiosk Submit] Idempotent repeat for client_uuid ${body.client_uuid} — returning existing.`);
+        return NextResponse.json({ success: true, lead_id: existing.id, reward: null }, { status: 200 });
+      }
+    }
+
     const id = uuidv4();
 
     // ─────────────────────────────────────────────────────────────────
