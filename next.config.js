@@ -52,7 +52,7 @@ const withPWA = require('next-pwa')({
         // ── 4. App pages (HTML) — NetworkFirst ───────────────────────────────
         // Kiosk and Commercial pages must work offline; serve stale if network unavailable.
         {
-            urlPattern: /^https?:\/\/.*\/(kiosk|commercial|leads\/new)(\/.*)?$/i,
+            urlPattern: /^https?:\/\/.*\/(kiosk|dashboard|leads\/new)(\/.*)?$/i,
             handler: 'NetworkFirst',
             options: {
                 cacheName: 'wasla-app-pages',
@@ -110,6 +110,7 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
     reactStrictMode: true,
     output: 'standalone',
+    transpilePackages: ['lucide-react', 'qrcode.react'],
     experimental: {
         serverComponentsExternalPackages: ['better-sqlite3']
     }

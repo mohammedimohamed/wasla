@@ -24,13 +24,27 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const sessionToken = request.cookies.get('wasla_session')?.value;
 
-    const authRoutes = ['/admin', '/commercial', '/dashboard', '/api/sync', '/api/leads', '/api/export', '/api/backup', '/leads'];
+    const authRoutes = ['/admin', '/dashboard', '/api/sync', '/api/leads', '/api/profile', '/api/export', '/api/backup', '/leads'];
     const isProtected = authRoutes.some(route => pathname.startsWith(route));
 
     // Exclude Kiosk lead submission from auth middleware
     if (pathname === '/api/leads' && request.method === 'POST') {
         const source = request.headers.get('x-source');
         if (source === 'kiosk') return NextResponse.next();
+    }
+
+    // 🛡️ Pre-Auth Landing Logic (Handling / and /commercial)
+    if (pathname === '/' || pathname === '/commercial') {
+        if (sessionToken) {
+            try {
+                const { payload } = await jwtVerify(sessionToken, SECRET) as { payload: SessionPayload };
+                // If logged in, go to appropriate dashboard (PIN gate will handle sub-auth)
+                if (payload.role === 'ADMINISTRATOR') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            } catch (_) {}
+        }
+        // If not logged in and accessing /commercial, send to login
+        if (pathname === '/commercial') return NextResponse.redirect(new URL('/login', request.url));
     }
 
     if (isProtected) {
@@ -76,8 +90,7 @@ export async function middleware(request: NextRequest) {
             // Protected portals require the 'hasPin' identity claim to be true
             const needsPinCheck =
                 pathname.startsWith('/dashboard') ||
-                pathname.startsWith('/admin/dashboard') ||
-                pathname.startsWith('/commercial');
+                pathname.startsWith('/admin/dashboard');
 
             if (needsPinCheck && !hasPin) {
                 console.log(`DEBUG: [Middleware] REDIRECTING to PIN portal because: { hasToken: true, hasPin: false }`);
@@ -117,8 +130,8 @@ export async function middleware(request: NextRequest) {
  */
 export const config = {
     matcher: [
+        '/',
         '/admin/:path*',
-        '/commercial/:path*',
         '/dashboard/:path*',
         '/leads/:path*',
         '/api/:path*'

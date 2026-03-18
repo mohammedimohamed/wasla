@@ -22,7 +22,7 @@ export default function LoginPage() {
 
     // ────────────────────────────────────────────────────────
     // Check existing session on mount. If already authenticated
-    // and PIN is set, redirect straight to /commercial.
+    // and PIN is set, redirect straight to /dashboard.
     // ────────────────────────────────────────────────────────
     useEffect(() => {
         const checkSession = async () => {
@@ -44,8 +44,8 @@ export default function LoginPage() {
                 if (res.ok) {
                     const data = await res.json();
                     if (data.user?.sessionHasPin) {
-                        // Already fully authenticated — go to portal
-                        window.location.href = '/commercial';
+                        // Already fully authenticated — go to home base
+                        window.location.href = '/dashboard';
                         return;
                     } else if (data.user?.needsPin) {
                         setAuthStep('PIN_SETUP');
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 const valid = await validateOfflinePin(cachedUserId, pin);
                 if (valid) {
                     toast.success('Mode hors ligne vérifié !');
-                    window.location.href = '/commercial';
+                    window.location.href = '/dashboard';
                 } else {
                     toast.error('PIN incorrect ou session hors ligne expirée.');
                     setPin('');
@@ -143,7 +143,7 @@ export default function LoginPage() {
                 }
                 toast.success('Accès accordé !');
                 // Hard redirect so middleware sees the new cookie with hasPin=true
-                window.location.href = '/commercial';
+                window.location.href = '/dashboard';
             } else {
                 toast.error(authStep === 'PIN_VERIFY' ? 'PIN incorrect.' : 'Erreur lors de la création du PIN.');
                 setPin('');

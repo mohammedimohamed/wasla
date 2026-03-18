@@ -35,11 +35,14 @@ db.pragma('foreign_keys = ON');  // Enforce data integrity for enterprise grade
  * Uses INSERT OR IGNORE to prevent crashes on subsequent server loads.
  */
 export function initDb() {
-    const migrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql'];
+    // Migrations that are safe to run in a single transaction (CREATE TABLE / INSERT OR IGNORE)
+    const txMigrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql'];
+    // Migrations that contain ALTER TABLE — MUST run outside a transaction, one statement at a time
+    const alterMigrations = ['006_vcard.sql'];
 
-    // Wrap in a transaction for atomicity
+    // ── Phase 1: Transactional schema migrations ──────────────────────────────
     const migrationTx = db.transaction(() => {
-        migrations.forEach(file => {
+        txMigrations.forEach(file => {
             const migrationPath = path.join(process.cwd(), 'migrations', file);
             if (fs.existsSync(migrationPath)) {
                 const migration = fs.readFileSync(migrationPath, 'utf8');
@@ -54,6 +57,24 @@ export function initDb() {
     } catch (error) {
         console.error('[DB Error] Initialization failed:', error);
     }
+
+    // ── Phase 2: ALTER TABLE migrations — idempotent, one statement at a time ─
+    alterMigrations.forEach(file => {
+        const migrationPath = path.join(process.cwd(), 'migrations', file);
+        if (!fs.existsSync(migrationPath)) return;
+        const sql = fs.readFileSync(migrationPath, 'utf8');
+        // Split on semicolons and run each statement independently
+        sql.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => {
+            try {
+                db.exec(stmt + ';');
+            } catch (e: any) {
+                // Ignore "duplicate column name" — column already exists from a previous run
+                if (!e.message?.includes('duplicate column name')) {
+                    console.error(`[DB Migration] Failed: ${stmt}`, e.message);
+                }
+            }
+        });
+    });
 
     // 🔄 Safe Rewards Engine Migration (ALTER TABLE is not transactional in SQLite)
     // Only run if the rewards table exists (migrations may have partially failed)
@@ -815,6 +836,13 @@ export const userDb = {
     findById: (id: string) => db.prepare("SELECT * FROM users WHERE id = ?").get(id) as any,
     findByEmail: (email: string) => db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any,
 
+    /** 🌐 VCARD: Fetch ONLY public-safe fields — never exposes role, password, pin */
+    findPublicProfile: (id: string) => db.prepare(`
+        SELECT name, email, phone_number, job_title, company_name, linkedin_url
+        FROM users
+        WHERE id = ? AND active = 1
+    `).get(id) as { name: string; email: string; phone_number: string | null; job_title: string | null; company_name: string | null; linkedin_url: string | null } | undefined,
+
     // 🛡️ Initial Password Verification (Bcrypt Hashed)
     verifyPassword: (email: string, passwordInput: string) => {
         const user = db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(email) as any;
@@ -887,7 +915,7 @@ export const userDb = {
         auditTrail.logAction(adminId, 'CREATE', 'USER', payload.id, `Admin created user: ${payload.email} (${payload.role})`);
     },
 
-    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number }, adminId: string) => {
+    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null }, adminId: string) => {
         const now = new Date().toISOString();
         const sets: string[] = ['updated_at = ?'];
         const params: any[] = [now];
@@ -897,6 +925,10 @@ export const userDb = {
         if (fields.role !== undefined) { sets.push('role = ?'); params.push(fields.role); }
         if (fields.team_id !== undefined) { sets.push('team_id = ?'); params.push(fields.team_id); }
         if (fields.active !== undefined) { sets.push('active = ?'); params.push(fields.active); }
+        if (fields.phone_number !== undefined) { sets.push('phone_number = ?'); params.push(fields.phone_number); }
+        if (fields.job_title !== undefined) { sets.push('job_title = ?'); params.push(fields.job_title); }
+        if (fields.company_name !== undefined) { sets.push('company_name = ?'); params.push(fields.company_name); }
+        if (fields.linkedin_url !== undefined) { sets.push('linkedin_url = ?'); params.push(fields.linkedin_url); }
 
         params.push(id);
         db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...params);

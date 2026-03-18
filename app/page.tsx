@@ -47,7 +47,7 @@ export default function Home() {
                     </Link>
 
                     <Link
-                        href="/commercial"
+                        href="/dashboard"
                         className="group flex items-center gap-6 p-8 bg-white border-2 border-slate-100 rounded-[32px] hover:border-primary hover:shadow-2xl hover:shadow-primary/10 transition-all active:scale-95"
                     >
                         <div className="w-16 h-16 bg-slate-50 group-hover:bg-blue-50 rounded-2xl flex items-center justify-center transition-colors">

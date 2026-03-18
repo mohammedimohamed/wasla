@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { settingsDb } from "@/lib/db";
 import { LanguageProvider } from "@/src/context/LanguageContext";
-import { SyncManager } from "@/components/SyncManager";
+import { SyncManager } from "@/src/components/SyncManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
