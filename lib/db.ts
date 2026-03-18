@@ -12,7 +12,9 @@ import { v4 as uuidv4 } from 'uuid';
 const globalForDb = global as unknown as { db: Database.Database };
 
 // Use configurable path from environment variables for enterprise readiness
-const DB_PATH = dynamicConfig.dbPath;
+const DB_PATH = process.env.NODE_ENV === 'production' 
+    ? '/app/data/batimatec2026.db' 
+    : dynamicConfig.dbPath;
 
 // Ensure data directory exists
 const dbDir = path.dirname(DB_PATH);

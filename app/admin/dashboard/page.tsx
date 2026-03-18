@@ -388,29 +388,28 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
-                    {/* 💾 DATABASE BACKUP CARD */}
+                    {/* 💾 DATABASE MAINTENANCE CARD */}
                     <button
-                        onClick={handleBackup}
-                        disabled={isBackingUp}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group disabled:opacity-70 relative overflow-hidden"
+                        onClick={() => router.push("/admin/maintenance")}
+                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-emerald-400 hover:shadow-xl transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
                     >
                         {/* Subtle cron command hint shown on hover */}
                         <div className="absolute inset-0 bg-slate-900 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4 rounded-[32px]">
                             <div className="text-center">
                                 <Server className="w-5 h-5 mx-auto mb-2 text-emerald-400" />
                                 <p className="text-[9px] font-mono text-emerald-400 break-all leading-relaxed">
-                                    curl -H &quot;X-Backup-Key: YOUR_KEY&quot; \ <br />
-                                    /api/backup -o backup.sqlite
+                                    Manage local SQLite<br />
+                                    Download / Upload
                                 </p>
                             </div>
                         </div>
-                        <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            {isBackingUp ? <Loader2 className="w-6 h-6 animate-spin" /> : <HardDrive className="w-6 h-6" />}
+                        <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
+                            <HardDrive className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Sauvegarde DB</p>
+                        <div className="relative z-10 group-hover:opacity-0 transition-opacity">
+                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Maintenance DB</p>
                             <p className="text-[10px] text-slate-400 font-medium mt-1">
-                                {isBackingUp ? 'Sauvegarde en cours...' : 'Télécharger .sqlite'}
+                                Sauvegarde & Restauration
                             </p>
                         </div>
                     </button>
