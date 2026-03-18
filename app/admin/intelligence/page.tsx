@@ -52,7 +52,7 @@ interface IntelligenceLead {
     status?: string;
 }
 
-export const getDisplayName = (meta: any, fallbackStr: string = 'Anonymous') => {
+const getDisplayName = (meta: any, fallbackStr: string = 'Anonymous') => {
     if (!meta) return fallbackStr;
     const nameKeys = ['name', 'fullName', 'full_name', 'firstName', 'first_name', 'Nom', 'Prénom', 'nom', 'prenom'];
     for (const key of nameKeys) {
