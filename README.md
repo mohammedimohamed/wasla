@@ -74,8 +74,8 @@ Use this `curl` command on any external machine (like your personal laptop or a 
 
 ```bash
 # This downloads the sqlite database and saves it with a daily timestamp
-curl -X GET "https://your-domain.render.com/api/backup" \
+curl -X GET "https://your-domain.com/api/backup" \
      -H "x-api-key: your_secure_password_here" \
      --output "wasla_backup_$(date +%Y-%m-%d).db"
 ```
-*Note: Make sure to replace `https://your-domain.render.com` with your actual production URL.*
+*Note: Make sure to replace `https://your-domain.com` with your actual production URL.*
