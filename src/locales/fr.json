@@ -114,5 +114,9 @@
         "verifyAndPromote": "Vérifier & Promouvoir",
         "cleanRoomDesc": "Profils Premium Vérifiés et Multi-Identités",
         "rawLeads": "Prospects Bruts"
+    },
+    "offline": {
+        "savedLocally": "Enregistré localement. La synchronisation se fera automatiquement.",
+        "workingOffline": "Mode hors ligne — les captures sont sauvegardées en sécurité sur cet appareil."
     }
 }

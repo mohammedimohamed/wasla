@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { leadsDb, formConfigDb } from '@/lib/db';
+import { leadsDb, formConfigDb, db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getSession } from '@/lib/auth';
 
@@ -24,11 +24,25 @@ export async function GET() {
 /**
  * 📥 LEADS API (CREATE)
  * Strictly attributes leads based on the current Session.
+ * Supports idempotency via client_uuid to prevent duplicates from offline sync retries.
  */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { source, deviceId, ...customFields } = body;
+        const { source, deviceId, client_uuid, ...customFields } = body;
+
+        // ── IDEMPOTENCY CHECK ─────────────────────────────────────────────────
+        // If this client_uuid already committed (e.g. background task + SyncManager both fired),
+        // return the existing record id instead of inserting a duplicate.
+        if (client_uuid) {
+            const existing = db.prepare(
+                `SELECT id FROM leads WHERE json_extract(metadata, '$.client_uuid') = ? LIMIT 1`
+            ).get(client_uuid) as { id: string } | undefined;
+
+            if (existing) {
+                return NextResponse.json({ success: true, id: existing.id }, { status: 200 });
+            }
+        }
 
         const session = await getSession();
 
@@ -36,7 +50,8 @@ export async function POST(request: Request) {
         const creatorId = session?.userId || 'SYSTEM_KIOSK';
         const teamId = session?.teamId || null;
 
-        const metadata = customFields || {};
+        // Embed client_uuid into metadata for future idempotency lookups
+        const metadata = { ...customFields, ...(client_uuid ? { client_uuid } : {}) };
 
         // Grab active form version
         const config = formConfigDb.get();
@@ -49,7 +64,7 @@ export async function POST(request: Request) {
             source || 'unknown',
             creatorId,
             deviceId || 'localhost',
-            teamId, // Force server-side team attribution
+            teamId,
             formVersion
         );
 

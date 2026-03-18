@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Loader2, Save, AlertCircle } from 'lucide-react';
+import { Loader2, Save, AlertCircle, WifiOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from '@/src/context/LanguageContext';
 import { useFormConfig, FormField, FormConfig } from '@/src/hooks/useFormConfig';
+import { saveLeadOffline, markLeadSynced, markLeadFailed } from '@/lib/offlineQueue';
 
 type FormValues = Record<string, any>;
 
@@ -14,6 +15,10 @@ interface LeadFormProps {
     onSubmitSuccess?: () => void;
     leadId?: string;
     defaultValues?: Record<string, any>;
+    /** Agent's session userId — stamped into offline metadata for attribution */
+    agentId?: string;
+    /** Optional free-text location context ("Stand B3", "Hall 5") */
+    locationContext?: string;
 }
 
 function FieldWidget({ field, register, control, errors }: {
@@ -121,48 +126,98 @@ function FieldWidget({ field, register, control, errors }: {
     );
 }
 
-export const LeadForm: React.FC<LeadFormProps> = ({ source, onSubmitSuccess, leadId, defaultValues }) => {
+export const LeadForm: React.FC<LeadFormProps> = ({
+    source,
+    onSubmitSuccess,
+    leadId,
+    defaultValues,
+    agentId,
+    locationContext,
+}) => {
     const { t } = useTranslation();
     const { config, isLoading } = useFormConfig();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [savedOffline, setSavedOffline] = useState(false);
 
-    const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
-        defaultValues
+    const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+        defaultValues,
     });
 
     const onFormSubmit = async (data: FormValues) => {
-        try {
-            const url = leadId ? `/api/leads/${leadId}` : '/api/leads';
-            const method = leadId ? 'PUT' : 'POST';
-            const bodyObj = leadId
-                ? data
-                : {
-                    // ✅ FIX: Spread form fields directly at the top level.
-                    // The API destructures { source, deviceId, ...customFields } from this body,
-                    // so customFields will be the flat form data — no double-nesting.
-                    ...data,
-                    source,
-                    deviceId: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
-                };
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyObj),
-            });
-
-            if (response.status === 409) {
-                const err = await response.json();
-                toast.error(err.message || t('intelligence.duplicateContact'));
-                return;
+        // ── EDIT PATH (leadId present) — stays online-only (admin panel only) ──
+        if (leadId) {
+            setIsSubmitting(true);
+            try {
+                const res = await fetch(`/api/leads/${leadId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                if (res.status === 409) {
+                    const err = await res.json();
+                    toast.error(err.message || t('intelligence.duplicateContact'));
+                    return;
+                }
+                if (!res.ok) throw new Error();
+                toast.success(t('common.success'));
+                onSubmitSuccess?.();
+            } catch {
+                toast.error(t('common.error'));
+            } finally {
+                setIsSubmitting(false);
             }
-
-            if (!response.ok) throw new Error(t('common.error'));
-            toast.success(t('common.success'));
-            if (!leadId) reset(); // don't wipe out edit form on save
-            onSubmitSuccess?.();
-        } catch (error) {
-            toast.error(t('common.error'));
+            return;
         }
+
+        // ── CREATE PATH — Offline-first for ALL sources (kiosk + commercial agent) ──
+        setIsSubmitting(true);
+        setSavedOffline(false);
+
+        const bodyObj = {
+            ...data,
+            source,
+            deviceId: typeof window !== 'undefined' ? (window.navigator.userAgent.slice(0, 100)) : 'unknown',
+            // Agent attribution context (both embedded in metadata for offline records)
+            ...(agentId ? { agent_id: agentId } : {}),
+            ...(locationContext ? { location_context: locationContext } : {}),
+        };
+
+        // STEP 1: Save to IndexedDB immediately — this is the source of truth
+        const localRecord = await saveLeadOffline(bodyObj, source === 'kiosk' ? 'kiosk' : 'commercial');
+
+        // STEP 2: Callback immediately — don't block the agent
+        toast.success(t('offline.savedLocally'));
+        reset();
+        setSavedOffline(true);
+        onSubmitSuccess?.();
+        setIsSubmitting(false);
+
+        // STEP 3: Background POSTto the real API
+        (async () => {
+            if (!navigator.onLine) return; // SyncManager handles this on restoration
+
+            try {
+                const res = await fetch('/api/leads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...bodyObj, client_uuid: localRecord.client_uuid }),
+                });
+
+                if (res.status === 409) {
+                    // Duplicate — server already has it; mark local as synced
+                    await markLeadSynced(localRecord.client_uuid);
+                    return;
+                }
+
+                if (res.ok) {
+                    await markLeadSynced(localRecord.client_uuid);
+                } else {
+                    await markLeadFailed(localRecord.client_uuid, `HTTP ${res.status}`);
+                }
+            } catch {
+                // SyncManager will retry via the 'online' event or 60-s poll
+            }
+        })();
     };
 
     if (isLoading) {
@@ -179,7 +234,15 @@ export const LeadForm: React.FC<LeadFormProps> = ({ source, onSubmitSuccess, lea
 
     return (
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-10">
-            {/* Render all sections from all pages — Commercial form is single-scroll */}
+            {/* Offline status banner */}
+            {typeof window !== 'undefined' && !navigator.onLine && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-sm font-bold">
+                    <WifiOff className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>{t('offline.workingOffline')}</span>
+                </div>
+            )}
+
+            {/* Render all sections from all pages — agent form is single-scroll */}
             {config.pages.flatMap(page => page.sections).map((section, sIdx) => (
                 <div key={section.id || sIdx} className="space-y-5">
                     <div className="border-b border-slate-100 pb-3">
@@ -206,7 +269,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ source, onSubmitSuccess, lea
                 className="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70"
             >
                 {isSubmitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> {t('common.saving')}</>
                 ) : (
                     <><Save className="w-4 h-4" /> {t('common.save')}</>
                 )}

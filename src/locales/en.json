@@ -123,5 +123,9 @@
         "verifyAndPromote": "Verify & Promote",
         "cleanRoomDesc": "Verified and Multi-Identity Premium Profiles",
         "rawLeads": "Raw Leads"
+    },
+    "offline": {
+        "savedLocally": "Saved locally. Syncing will occur automatically.",
+        "workingOffline": "Working offline — captures are safely stored on this device."
     }
 }

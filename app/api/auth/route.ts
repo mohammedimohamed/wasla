@@ -84,28 +84,18 @@ export async function PUT(request: Request) {
         const { pin, action } = await request.json();
 
         if (action === 'SETUP') {
-            // 1. Persist hashed PIN to DB
             userDb.setQuickPin(session.userId, pin);
-
-            // 🚨 2. CRITICAL: Refresh the JWT session with hasPin=true
-            // This breaks the PIN setup loop by updating the client-side claim.
-            await createSession({
-                ...session,
-                hasPin: true
-            });
-
-            return NextResponse.json({ success: true, message: 'PIN set successfully' });
+            await createSession({ ...session, hasPin: true });
+            const user = userDb.findById(session.userId);
+            return NextResponse.json({ success: true, message: 'PIN set successfully', user });
         }
 
         if (action === 'VERIFY') {
             const isValid = userDb.verifyQuickPin(session.userId, pin);
             if (isValid) {
-                // Refresh session with hasPin=true to "unlock" the terminal
-                await createSession({
-                    ...session,
-                    hasPin: true
-                });
-                return NextResponse.json({ success: true, message: 'PIN Verified' });
+                await createSession({ ...session, hasPin: true });
+                const user = userDb.findById(session.userId);
+                return NextResponse.json({ success: true, message: 'PIN Verified', user });
             }
             return NextResponse.json({ success: false, error: 'Invalid PIN' }, { status: 401 });
         }

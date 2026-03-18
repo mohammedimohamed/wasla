@@ -8,15 +8,27 @@ import { LeadForm } from "@/src/components/LeadForm";
 export default function NewLeadPage() {
     const router = useRouter();
     const [userRole, setUserRole] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // 🛡️ RBAC: Detect user profile for post-submission routing
+    // 🛡️ RBAC: Detect user profile for post-submission routing and attribution
     useEffect(() => {
         const checkAuth = async () => {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                const { getCachedSession } = await import('@/lib/offlineAuthCache');
+                const cached = await getCachedSession();
+                if (cached) {
+                    setUserRole(cached.role);
+                    setUserId(cached.userId);
+                }
+                return;
+            }
+
             try {
                 const res = await fetch('/api/auth');
                 if (res.ok) {
                     const data = await res.json();
                     setUserRole(data.user?.role || null);
+                    setUserId(data.user?.id || null);
                 }
             } catch (err) {
                 console.error("Auth check failed:", err);
@@ -60,7 +72,12 @@ export default function NewLeadPage() {
                 <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                     
-                    <LeadForm source="commercial" onSubmitSuccess={handleSuccess} />
+                    <LeadForm
+                        source="commercial"
+                        agentId={userId || undefined}
+                        locationContext={typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('location') || undefined) : undefined}
+                        onSubmitSuccess={handleSuccess}
+                    />
                 </div>
             </div>
         </div>

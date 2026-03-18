@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, KeyRound, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, KeyRound, ShieldCheck, ArrowLeft, WifiOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getCachedSession, validateOfflinePin, cacheAuthSession } from '@/lib/offlineAuthCache';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -16,12 +17,28 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [pin, setPin] = useState('');
 
+    const [cachedUserId, setCachedUserId] = useState<string | null>(null);
+    const [cachedUserName, setCachedUserName] = useState<string | null>(null);
+
     // ────────────────────────────────────────────────────────
     // Check existing session on mount. If already authenticated
     // and PIN is set, redirect straight to /commercial.
     // ────────────────────────────────────────────────────────
     useEffect(() => {
         const checkSession = async () => {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                const cached = await getCachedSession();
+                if (cached) {
+                    setCachedUserId(cached.userId);
+                    setCachedUserName(cached.name);
+                    setAuthStep('PIN_VERIFY');
+                } else {
+                    toast.error('Aucune session hors-ligne disponible.');
+                }
+                setIsChecking(false);
+                return;
+            }
+
             try {
                 const res = await fetch('/api/auth');
                 if (res.ok) {
@@ -47,6 +64,11 @@ export default function LoginPage() {
     // ────────────────────────────────────────────────────────
     const handlePasswordLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!navigator.onLine) {
+            toast.error('Connexion internet requise pour la première connexion.');
+            return;
+        }
+
         if (!email.trim() || !password.trim()) {
             toast.error('Veuillez remplir tous les champs.');
             return;
@@ -82,6 +104,24 @@ export default function LoginPage() {
             return;
         }
         setIsLoading(true);
+
+        if (!navigator.onLine) {
+            if (authStep === 'PIN_VERIFY' && cachedUserId) {
+                const valid = await validateOfflinePin(cachedUserId, pin);
+                if (valid) {
+                    toast.success('Mode hors ligne vérifié !');
+                    window.location.href = '/commercial';
+                } else {
+                    toast.error('PIN incorrect ou session hors ligne expirée.');
+                    setPin('');
+                }
+            } else {
+                toast.error('Impossible de configurer un PIN hors ligne.');
+            }
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const action = authStep === 'PIN_SETUP' ? 'SETUP' : 'VERIFY';
             const res = await fetch('/api/auth', {
@@ -89,7 +129,18 @@ export default function LoginPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pin, action }),
             });
+            const data = await res.json();
+
             if (res.ok) {
+                if (data.user) {
+                    await cacheAuthSession(
+                        data.user.id,
+                        data.user.name,
+                        data.user.role,
+                        data.user.team_id,
+                        pin
+                    );
+                }
                 toast.success('Accès accordé !');
                 // Hard redirect so middleware sees the new cookie with hasPin=true
                 window.location.href = '/commercial';
@@ -105,7 +156,9 @@ export default function LoginPage() {
     };
 
     const handleBackToPassword = async () => {
-        await fetch('/api/auth', { method: 'DELETE' });
+        if (navigator.onLine) {
+            await fetch('/api/auth', { method: 'DELETE' });
+        }
         setAuthStep('PASSWORD');
         setPin('');
         setEmail('');
@@ -122,9 +175,16 @@ export default function LoginPage() {
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
 
             <div className="w-full max-w-sm space-y-8 text-center relative z-10">
+                {/* Offline banner */}
+                {typeof window !== 'undefined' && !navigator.onLine && (
+                    <div className="flex items-center justify-center gap-2 bg-amber-500/20 text-amber-500 text-xs font-bold py-2 px-4 rounded-full border border-amber-500/50 uppercase tracking-widest">
+                        <WifiOff className="w-3.5 h-3.5" />
+                        Mode Hors Ligne Activé
+                    </div>
+                )}
 
                 {/* Icon */}
-                <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-primary/30">
+                <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-primary/30 mt-4">
                     {isSetupStep
                         ? <ShieldCheck className="w-10 h-10 text-primary" />
                         : <Lock className="w-10 h-10 text-primary" />
@@ -136,18 +196,17 @@ export default function LoginPage() {
                     <h1 className="text-3xl font-black tracking-tight">
                         {authStep === 'PASSWORD' && 'Connexion Agent'}
                         {authStep === 'PIN_SETUP' && 'Créer votre PIN'}
-                        {authStep === 'PIN_VERIFY' && 'Entrer votre PIN'}
+                        {authStep === 'PIN_VERIFY' && (cachedUserName ? `Bonjour, ${cachedUserName}` : 'Entrer votre PIN')}
                     </h1>
                     <p className="text-slate-400 font-semibold uppercase tracking-widest text-xs">
                         {authStep === 'PASSWORD' && 'Portail Agent Commercial'}
                         {authStep === 'PIN_SETUP' && 'Premier accès — sécurisez votre session'}
-                        {authStep === 'PIN_VERIFY' && 'Authentification de session'}
+                        {authStep === 'PIN_VERIFY' && 'Authentification de session rapide'}
                     </p>
                 </div>
 
                 {/* ── FORM ── */}
                 <div className="space-y-6 pt-4 text-left">
-
                     {authStep === 'PASSWORD' ? (
                         <form onSubmit={handlePasswordLogin} className="space-y-4">
                             <div className="space-y-2">

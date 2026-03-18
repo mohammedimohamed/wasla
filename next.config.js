@@ -50,14 +50,14 @@ const withPWA = require('next-pwa')({
         },
 
         // ── 4. App pages (HTML) — NetworkFirst ───────────────────────────────
-        // Kiosk page must work offline; serve stale if network unavailable.
+        // Kiosk and Commercial pages must work offline; serve stale if network unavailable.
         {
-            urlPattern: /^https?:\/\/.*\/kiosk(\/.*)?$/i,
+            urlPattern: /^https?:\/\/.*\/(kiosk|commercial|leads\/new)(\/.*)?$/i,
             handler: 'NetworkFirst',
             options: {
-                cacheName: 'wasla-kiosk-pages',
+                cacheName: 'wasla-app-pages',
                 expiration: {
-                    maxEntries: 10,
+                    maxEntries: 20,
                     maxAgeSeconds: 7 * 24 * 60 * 60,
                 },
                 networkTimeoutSeconds: 3,

@@ -203,6 +203,8 @@ export default function CommercialPage() {
                         <div className="max-w-2xl mx-auto bg-white p-8 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100 mb-10 transition-all hover:shadow-primary/5">
                             <LeadForm
                                 source="commercial"
+                                agentId={user?.id}
+                                locationContext={typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('location') || undefined) : undefined}
                                 onSubmitSuccess={() => {
                                     toast.success(t('kiosk.successMsg'));
                                     fetchDashboardData();
