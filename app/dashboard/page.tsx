@@ -72,7 +72,27 @@ export default function AgentDashboardPage() {
         }
     }, []);
 
+    const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null, primary_color: string }>({
+        event_name: 'Wasla Lead Collector',
+        logo_url: null,
+        primary_color: '#6366f1'
+    });
+
     useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const res = await fetch('/api/settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    setBranding({
+                        event_name: data.settings.event_name,
+                        logo_url: data.settings.logo_url,
+                        primary_color: data.settings.primary_color
+                    });
+                }
+            } catch (_) {}
+        };
+        loadSettings();
         const handleOnline = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
         window.addEventListener("online", handleOnline);
@@ -87,6 +107,7 @@ export default function AgentDashboardPage() {
             setAgentName(data.user.name);
             localStorage.setItem("sales_agent_id", data.user.id);
             localStorage.setItem("sales_name", data.user.name);
+            localStorage.setItem("sales_tenant_id", data.user.tenantId || "00000000-0000-0000-0000-000000000000");
 
             // Load stats from sync queue / leads API
             try {
@@ -175,12 +196,16 @@ export default function AgentDashboardPage() {
                 {/* ── HEADER ── */}
                 <header className="bg-white border-b px-5 py-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                        <div
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-md"
-                            style={{ background: `linear-gradient(135deg, hsl(${hue},70%,45%), hsl(${(hue + 60) % 360},75%,55%))` }}
-                        >
-                            {initials}
-                        </div>
+                        {branding.logo_url ? (
+                            <img src={branding.logo_url} className="w-10 h-10 rounded-xl object-contain bg-white shadow-sm border border-slate-100" />
+                        ) : (
+                            <div
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md"
+                                style={{ background: `linear-gradient(135deg, hsl(${hue},70%,45%), hsl(${(hue + 60) % 360},75%,55%))` }}
+                            >
+                                {initials}
+                            </div>
+                        )}
                         <div>
                             <p className="font-black text-slate-900 leading-tight tracking-tight">{agentName}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
@@ -188,8 +213,8 @@ export default function AgentDashboardPage() {
                                     ? <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     : <WifiOff className="w-3 h-3 text-amber-500" />
                                 }
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                    {isOnline ? 'En ligne' : 'Hors ligne'}
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                    {isOnline ? 'En ligne' : 'Hors ligne'} — {branding.event_name}
                                 </span>
                             </div>
                         </div>
@@ -220,7 +245,7 @@ export default function AgentDashboardPage() {
                     <button
                         onClick={() => router.push("/leads/new")}
                         className="w-full py-6 rounded-2xl font-black text-lg text-white shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-                        style={{ background: `linear-gradient(to right, hsl(${hue}, 70%, 50%), hsl(${(hue + 60) % 360}, 75%, 55%))` }}
+                        style={{ backgroundColor: branding.primary_color, boxShadow: `0 20px 25px -5px ${branding.primary_color}40` }}
                     >
                         <Plus className="w-6 h-6" />
                         Nouveau Lead

@@ -22,8 +22,26 @@ export default function AdminLoginPage() {
     const [pin, setPin] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
+    const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null }>({
+        event_name: 'Wasla Admin',
+        logo_url: null
+    });
+
     // Initial check for session
     useEffect(() => {
+        const fetchBranding = async () => {
+            try {
+                const res = await fetch('/api/settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    setBranding({
+                        event_name: data.settings.event_name,
+                        logo_url: data.settings.logo_url
+                    });
+                }
+            } catch (_) {}
+        };
+        fetchBranding();
         const checkAuth = async () => {
             try {
                 const res = await fetch('/api/auth');
@@ -106,24 +124,36 @@ export default function AdminLoginPage() {
 
         setIsLoading(true);
         try {
-            const action = authStep === 'PIN_SETUP' ? 'SETUP' : 'VERIFY';
-            const response = await fetch('/api/auth', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin, action }),
-            });
+            let res;
+            if (authStep === 'PIN_SETUP') {
+                // 🛡️ Bypassing session-dependency for initial setup
+                res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, newPin: pin }),
+                });
+            } else {
+                // Regular session resumption or verification
+                res = await fetch('/api/auth', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin, action: 'VERIFY' }),
+                });
+            }
 
-            if (response.ok) {
+            if (res.ok) {
                 setIsAuthenticated(true);
                 setIsUnlocked(true); // 🚨 ACCESS GRANTED
                 toast.success(t('common.success'));
+                setPin('');
 
                 // 🔄 BREAK REDIRECT RACE CONDITION
                 setTimeout(() => {
                     window.location.href = "/admin/dashboard";
                 }, 500);
             } else {
-                toast.error(t('auth.incorrect'));
+                const data = await res.json();
+                toast.error(authStep === 'PIN_SETUP' ? 'Erreur lors de la création du PIN.' : t('auth.incorrect'));
                 setPin('');
             }
         } catch (error) {
@@ -151,11 +181,11 @@ export default function AdminLoginPage() {
                 </button>
 
                 <div className="text-center">
-                    <div className="w-20 h-20 bg-slate-900 rounded-[32px] flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-slate-200">
-                        {authStep === 'PASSWORD' ? <ShieldAlert className="w-10 h-10 text-primary" /> : <ShieldCheck className="w-10 h-10 text-primary" />}
+                    <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-2xl border-2 border-slate-100 overflow-hidden p-2">
+                        {branding.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" /> : <div className="font-black text-2xl text-slate-800">{branding.event_name.charAt(0)}</div>}
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{t('auth.adminTitle')}</h1>
-                    <p className="text-gray-500 mt-2 font-medium">Authentification sécurisée requise</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{branding.event_name}</h1>
+                    <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-widest">Admin Control Panel</p>
                 </div>
 
                 <div className="w-full space-y-5 bg-white p-10 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100">

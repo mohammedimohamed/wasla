@@ -48,11 +48,26 @@ export default function AdminDashboardPage() {
         recentLeads: [] as any[]
     });
 
+    const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null }>({
+        event_name: 'Wasla Admin',
+        logo_url: null
+    });
+
     // 🛡️ RBAC Session & Stats Sync
     useEffect(() => {
         const loadDashboard = async () => {
             try {
-                // 1. Verify Session & Unlocked State
+                // 1. Fetch Branding
+                const brandRes = await fetch('/api/settings');
+                if (brandRes.ok) {
+                    const brandData = await brandRes.json();
+                    setBranding({
+                        event_name: brandData.settings.event_name,
+                        logo_url: brandData.settings.logo_url
+                    });
+                }
+
+                // 2. Verify Session & Unlocked State
                 const authRes = await fetch('/api/auth');
                 if (!authRes.ok) {
                     router.push("/admin/login");
@@ -64,7 +79,7 @@ export default function AdminDashboardPage() {
                     return;
                 }
 
-                // 2. Fetch Real-time Database Stats
+                // 3. Fetch Real-time Database Stats
                 const statsRes = await fetch('/api/dashboard/stats');
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
@@ -137,11 +152,14 @@ export default function AdminDashboardPage() {
         <div className="flex-1 flex flex-col bg-slate-50">
             <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.push("/leads/new")} className="p-2 -ml-2 bg-primary/10 hover:bg-primary/20 rounded-lg text-primary transition-colors flex items-center gap-2">
+                    <button onClick={() => router.push("/leads/new")} className="p-2 -ml-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors flex items-center gap-2">
                         <Plus className="w-5 h-5 font-black" />
                         <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Add Lead</span>
                     </button>
-                    <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight ml-2">{t('auth.adminTitle')}</h1>
+                    <div className="flex items-center gap-2 ml-4">
+                        {branding.logo_url && <img src={branding.logo_url} alt={branding.event_name} className="w-8 h-8 object-contain" />}
+                        <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">{branding.event_name}</h1>
+                    </div>
                 </div>
                 <button
                     onClick={handleLogout}

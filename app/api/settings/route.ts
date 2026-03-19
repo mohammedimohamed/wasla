@@ -1,6 +1,7 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { settingsDb } from '@/lib/db';
+import { settingsDb, tenantsDb } from '@/lib/db';
 import * as z from 'zod';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,6 +64,13 @@ export async function PUT(request: Request) {
         };
 
         settingsDb.update(finalData as any, auth.session!.userId);
+        
+        // 🏢 SaaS Bridge: Also update the 'Default Tenant' in the tenants table
+        // This ensures the App Title and Logo match the Branding settings
+        tenantsDb.update('00000000-0000-0000-0000-000000000000', {
+            name: finalData.event_name,
+            logo_url: finalData.logo_url
+        });
 
         const updatedSettings = settingsDb.get();
         return NextResponse.json({ success: true, settings: updatedSettings });

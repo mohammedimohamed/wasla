@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { Loader2, Save, AlertCircle, WifiOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -136,12 +137,26 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 }) => {
     const { t } = useTranslation();
     const { config, isLoading } = useFormConfig();
+    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savedOffline, setSavedOffline] = useState(false);
 
-    const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+    const { register, handleSubmit, control, reset, formState: { errors, isDirty } } = useForm<FormValues>({
         defaultValues,
     });
+
+    // 🛡️ Data Loss Prevention: Warning when offline with unsaved changes
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (!navigator.onLine && isDirty) {
+                e.preventDefault();
+                e.returnValue = ''; // Standard for modern browsers
+                return '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
 
     const onFormSubmit = async (data: FormValues) => {
         // ── EDIT PATH (leadId present) — stays online-only (admin panel only) ──
@@ -176,6 +191,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         const bodyObj = {
             ...data,
             source,
+            created_at: new Date().toISOString(), // 🕒 Set timestamp immediately for offline accuracy
             deviceId: typeof window !== 'undefined' ? (window.navigator.userAgent.slice(0, 100)) : 'unknown',
             // Agent attribution context (both embedded in metadata for offline records)
             ...(agentId ? { agent_id: agentId } : {}),
@@ -185,12 +201,21 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         // STEP 1: Save to IndexedDB immediately — this is the source of truth
         const localRecord = await saveLeadOffline(bodyObj, source === 'kiosk' ? 'kiosk' : 'commercial');
 
-        // STEP 2: Callback immediately — don't block the agent
-        toast.success(t('offline.savedLocally'));
-        reset();
+        // STEP 2: Show success and lock navigation UI
+        toast.success(t('offline.savedLocally'), {
+            icon: '📡',
+            duration: 4000
+        });
+        
+        reset(); // Clear form
         setSavedOffline(true);
         onSubmitSuccess?.();
         setIsSubmitting(false);
+
+        // Transition away without reloading the page
+        if (source === 'commercial') {
+            router.push('/dashboard');
+        }
 
         // STEP 3: Background POSTto the real API
         (async () => {
@@ -233,7 +258,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     }
 
     return (
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-10">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(onFormSubmit)(e); }} className="space-y-10">
             {/* Offline status banner */}
             {typeof window !== 'undefined' && !navigator.onLine && (
                 <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-sm font-bold">
@@ -249,7 +274,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
                         <h4 className="font-black text-slate-800 text-sm uppercase tracking-widest">{section.title}</h4>
                         {section.description && <p className="text-xs text-slate-400 mt-0.5">{section.description}</p>}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {section.fields.map(field => (
                             <FieldWidget
                                 key={field.name}

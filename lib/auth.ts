@@ -1,4 +1,6 @@
-import { SignJWT, jwtVerify } from 'jose';
+export const runtime = 'nodejs';
+import { SignJWT } from 'jose/jwt/sign';
+import { jwtVerify } from 'jose/jwt/verify';
 import { cookies } from 'next/headers';
 import { dynamicConfig } from '@/src/config/dynamic';
 
@@ -15,6 +17,7 @@ export type UserRole = 'SALES_AGENT' | 'TEAM_LEADER' | 'ADMINISTRATOR';
 export interface SessionPayload {
     userId: string;
     role: UserRole;
+    tenantId: string; // 🏢 SaaS isolation: The active tenant for this user
     teamId?: string | null;
     hasPin?: boolean; // 🚨 CRITICAL: Prevents unauthorized bypassing of terminal lock
 }
@@ -32,9 +35,9 @@ export async function createSession(user: SessionPayload) {
 
     cookies().set('wasla_session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // 🔓 DISABLED for local network / IP testing (phone, tablet)
         expires,
-        maxAge: 86400, // 🚨 NUCLEAR FIX: Explicit 24h duration for persistence
+        maxAge: 86400, // 24h
         path: '/',
         sameSite: 'lax'
     });

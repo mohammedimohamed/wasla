@@ -94,7 +94,20 @@ const withPWA = require('next-pwa')({
             },
         },
 
-        // ── 7. Icons & manifest — CacheFirst ─────────────────────────────────
+        // ── 7. Branding assets (logos, images) — CacheFirst —————————————————
+        {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+                cacheName: 'wasla-branding-assets',
+                expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                },
+                cacheableResponse: { statuses: [0, 200] },
+            },
+        },
+        // ── 8. Icons & manifest — CacheFirst ─────────────────────────────────
         {
             urlPattern: /\/icons\/.+\.png$/i,
             handler: 'CacheFirst',

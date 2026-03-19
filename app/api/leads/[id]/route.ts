@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import db, { settingsDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { encryptMetadata, decryptMetadata } from '@/src/lib/crypto';
 
 export async function GET(
     request: Request,
@@ -35,9 +37,9 @@ export async function GET(
         // 🛡️ ARCHITECTURAL FIX: Parse metadata and flatten for frontend
         const rawMeta = JSON.parse(lead.metadata || '{}');
         // Backward-compat: unwrap old double-nested {metadata: {...}} leads
-        const meta = (rawMeta.metadata && typeof rawMeta.metadata === 'object' && !Array.isArray(rawMeta.metadata))
+        const meta = decryptMetadata((rawMeta.metadata && typeof rawMeta.metadata === 'object' && !Array.isArray(rawMeta.metadata))
             ? rawMeta.metadata
-            : rawMeta;
+            : rawMeta);
 
         // Fetch Lineage Story (Phase 16)
         const lineageRows = db.prepare(`
@@ -50,7 +52,7 @@ export async function GET(
 
         const lineage = lineageRows.map(row => {
             const rowMetaRaw = JSON.parse(row.metadata || '{}');
-            const rowMeta = (rowMetaRaw.metadata && typeof rowMetaRaw.metadata === 'object' && !Array.isArray(rowMetaRaw.metadata)) ? rowMetaRaw.metadata : rowMetaRaw;
+            const rowMeta = decryptMetadata((rowMetaRaw.metadata && typeof rowMetaRaw.metadata === 'object' && !Array.isArray(rowMetaRaw.metadata)) ? rowMetaRaw.metadata : rowMetaRaw);
             return {
                 id: row.id,
                 status: row.status,
@@ -108,8 +110,8 @@ export async function PUT(
 
         // Bundle updates into metadata
         // We merge with existing metadata to preserve fields not sent in this specific PUT
-        const existingMeta = JSON.parse(existing.metadata || '{}');
-        const updatedMeta = { ...existingMeta, ...customFields };
+        const existingMeta = decryptMetadata(JSON.parse(existing.metadata || '{}'));
+        const updatedMeta = encryptMetadata({ ...existingMeta, ...customFields }, settingsDb.isEncryptionEnabled());
 
         const query = `
             UPDATE leads SET

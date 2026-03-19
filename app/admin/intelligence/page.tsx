@@ -22,7 +22,8 @@ import {
     Check,
     X,
     ArrowRight,
-    HelpCircle
+    HelpCircle,
+    AlertCircle
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
@@ -504,6 +505,7 @@ export default function IntelligencePage() {
     const [viewLineageId, setViewLineageId] = useState<string | null>(null);
     const [isReverting, setIsReverting] = useState<string | null>(null);
     const [showHelp, setShowHelp] = useState(false);
+    const [isRecalculating, setIsRecalculating] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -606,6 +608,22 @@ export default function IntelligencePage() {
         }
     };
 
+    const handleRecalculate = async () => {
+        if (!confirm("Relancer le calcul des scores pour tous les leads ? Cela mettra à jour les valeurs selon les poids actuels.")) return;
+        setIsRecalculating(true);
+        try {
+            const res = await fetch('/api/admin/recalculate-scores', { method: 'POST' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            toast.success(data.message);
+            fetchData();
+        } catch (err) {
+            toast.error("Erreur lors de la recalcule");
+        } finally {
+            setIsRecalculating(false);
+        }
+    };
+
     const parseMeta = (metaStr: string) => {
         try {
             return JSON.parse(metaStr);
@@ -636,6 +654,18 @@ export default function IntelligencePage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleRecalculate}
+                        disabled={isRecalculating || loading}
+                        className="flex items-center gap-3 bg-white border-2 border-slate-200 hover:border-slate-900 transition-all px-6 py-2.5 rounded-2xl group shadow-sm disabled:opacity-50"
+                    >
+                        {isRecalculating ? (
+                            <Loader2 className="w-4 h-4 text-slate-900 animate-spin" />
+                        ) : (
+                            <RotateCcw className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
+                        )}
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Recalculate Weights</span>
+                    </button>
                     <button
                         onClick={() => setShowHelp(true)}
                         className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all border border-emerald-100"
@@ -805,6 +835,9 @@ export default function IntelligencePage() {
                                                                     <span className={`text-[11px] font-black px-4 py-1.5 rounded-full shadow-md ${lead.quality_score < 30 ? 'bg-rose-100 text-rose-700' : 'bg-orange-100 text-orange-700'}`}>
                                                                         Score: {lead.quality_score}%
                                                                     </span>
+                                                                    <div className="mt-2 flex items-center gap-1 text-[8px] font-black text-rose-400 uppercase tracking-tighter opacity-70">
+                                                                        <AlertCircle className="w-2.5 h-2.5" /> LAW DEVIATION
+                                                                    </div>
                                                                 </div>
                                                             </div>
 

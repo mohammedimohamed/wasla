@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { leadsDb } from '@/lib/db';
@@ -14,10 +15,10 @@ export async function GET() {
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     try {
-        const suggestedMerges = leadsDb.getSuggestedMerges();
-        const garbageReport = leadsDb.getAgentQualityRanking();
-        const flaggedLeads = leadsDb.getFlaggedLeads();
-        const cleanLeads = leadsDb.getCleanLeads();
+        const suggestedMerges = leadsDb.getSuggestedMerges(auth.session.tenantId);
+        const garbageReport = leadsDb.getAgentQualityRanking(auth.session.tenantId);
+        const flaggedLeads = leadsDb.getFlaggedLeads(auth.session.tenantId);
+        const cleanLeads = leadsDb.getCleanLeads(auth.session.tenantId);
 
         return NextResponse.json({
             success: true,

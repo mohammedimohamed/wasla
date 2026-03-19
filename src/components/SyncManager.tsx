@@ -56,13 +56,20 @@ export function SyncManager() {
         let successCount = 0;
         let failCount = 0;
 
+        const agentId = localStorage.getItem('sales_agent_id') || 'SYSTEM';
+        const tenantId = localStorage.getItem('sales_tenant_id') || '00000000-0000-0000-0000-000000000000';
+
         // Process records sequentially, one at a time, to avoid race conditions
         for (const lead of pending) {
             try {
                 const res = await fetch('/api/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ leads: [lead] }),
+                    body: JSON.stringify({ 
+                        leads: [lead],
+                        agentId,
+                        tenantId
+                    }),
                 });
 
                 if (res.ok) {

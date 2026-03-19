@@ -20,11 +20,32 @@ export default function LoginPage() {
     const [cachedUserId, setCachedUserId] = useState<string | null>(null);
     const [cachedUserName, setCachedUserName] = useState<string | null>(null);
 
+    const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null, primary_color: string }>({
+        event_name: 'Wasla Lead Collector',
+        logo_url: null,
+        primary_color: '#6366f1' // Indigo-500 default
+    });
+
+    const fetchBranding = async () => {
+        try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+                const data = await res.json();
+                setBranding({
+                    event_name: data.settings.event_name,
+                    logo_url: data.settings.logo_url,
+                    primary_color: data.settings.primary_color
+                });
+            }
+        } catch (_) {}
+    };
+
     // ────────────────────────────────────────────────────────
     // Check existing session on mount. If already authenticated
     // and PIN is set, redirect straight to /dashboard.
     // ────────────────────────────────────────────────────────
     useEffect(() => {
+        fetchBranding();
         const checkSession = async () => {
             if (typeof navigator !== 'undefined' && !navigator.onLine) {
                 const cached = await getCachedSession();
@@ -123,12 +144,23 @@ export default function LoginPage() {
         }
 
         try {
-            const action = authStep === 'PIN_SETUP' ? 'SETUP' : 'VERIFY';
-            const res = await fetch('/api/auth', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin, action }),
-            });
+            let res;
+            if (authStep === 'PIN_SETUP') {
+                // 🛡️ Bypassing session-dependency for initial setup
+                res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, newPin: pin }),
+                });
+            } else {
+                // Regular session resumption or verification
+                res = await fetch('/api/auth', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin, action: 'VERIFY', userId: cachedUserId }),
+                });
+            }
+            
             const data = await res.json();
 
             if (res.ok) {
@@ -172,7 +204,7 @@ export default function LoginPage() {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-white overflow-hidden relative min-h-screen">
             {/* Accent bar */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
+            <div className="absolute top-0 left-0 w-full h-1" style={{ background: `linear-gradient(to right, ${branding.primary_color}80, ${branding.primary_color}, ${branding.primary_color}80)` }} />
 
             <div className="w-full max-w-sm space-y-8 text-center relative z-10">
                 {/* Offline banner */}
@@ -183,18 +215,26 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                {/* Icon */}
-                <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mx-auto shadow-2xl border border-primary/30 mt-4">
-                    {isSetupStep
-                        ? <ShieldCheck className="w-10 h-10 text-primary" />
-                        : <Lock className="w-10 h-10 text-primary" />
-                    }
+                {/* Icon/Logo */}
+                <div 
+                    className="w-20 h-20 bg-white shadow-2xl rounded-3xl flex items-center justify-center mx-auto overflow-hidden border-2" 
+                    style={{ borderColor: branding.primary_color + '40' }}
+                >
+                    {branding.logo_url ? (
+                        <img src={branding.logo_url} alt={branding.event_name} className="w-full h-full object-contain p-2" />
+                    ) : (
+                        <div 
+                            className="w-full h-full flex items-center justify-center font-black text-2xl" 
+                            style={{ color: branding.primary_color }}
+                        >
+                            {branding.event_name.charAt(0)}
+                        </div>
+                    )}
                 </div>
 
-                {/* Title */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-black tracking-tight">
-                        {authStep === 'PASSWORD' && 'Connexion Agent'}
+                        {authStep === 'PASSWORD' && branding.event_name}
                         {authStep === 'PIN_SETUP' && 'Créer votre PIN'}
                         {authStep === 'PIN_VERIFY' && (cachedUserName ? `Bonjour, ${cachedUserName}` : 'Entrer votre PIN')}
                     </h1>
@@ -219,7 +259,8 @@ export default function LoginPage() {
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="agent@wasla.dz"
                                         autoComplete="email"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all font-medium"
+                                        style={{ borderColor: email ? branding.primary_color + '40' : undefined }}
                                         required
                                     />
                                 </div>
@@ -234,15 +275,20 @@ export default function LoginPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
                                         autoComplete="current-password"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all font-medium"
+                                        style={{ borderColor: password ? branding.primary_color + '40' : undefined }}
                                         required
                                     />
                                 </div>
                             </div>
-                            <button
+                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl bg-primary hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-60 mt-4"
+                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl disabled:opacity-60 mt-4"
+                                style={{ 
+                                    backgroundColor: branding.primary_color,
+                                    boxShadow: `0 20px 25px -5px ${branding.primary_color}33`
+                                }}
                             >
                                 {isLoading ? 'Connexion...' : 'Se Connecter'}
                             </button>
@@ -261,7 +307,7 @@ export default function LoginPage() {
                                 <label className="text-xs font-bold uppercase text-slate-500 ml-1 block mb-2">
                                     Code PIN — 4 chiffres
                                 </label>
-                                <input
+                                 <input
                                     type="password"
                                     value={pin}
                                     onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -270,24 +316,33 @@ export default function LoginPage() {
                                     pattern="\d{4}"
                                     maxLength={4}
                                     autoFocus
-                                    className="w-full text-center text-5xl font-black py-5 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none focus:border-primary transition-all tracking-[0.8em]"
+                                    className="w-full text-center text-5xl font-black py-5 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all tracking-[0.8em]"
+                                    style={{ borderColor: pin ? branding.primary_color : undefined }}
                                     required
                                 />
                                 {/* Dot indicators */}
                                 <div className="flex justify-center gap-3 mt-4">
                                     {[0, 1, 2, 3].map(i => (
-                                        <div
+                                         <div
                                             key={i}
-                                            className={`w-3 h-3 rounded-full transition-all duration-200 ${pin.length > i ? 'bg-primary shadow-[0_0_10px_rgba(99,102,241,0.8)]' : 'bg-slate-700'}`}
+                                            className={`w-3 h-3 rounded-full transition-all duration-200`}
+                                            style={{ 
+                                                backgroundColor: pin.length > i ? branding.primary_color : '#334155',
+                                                boxShadow: pin.length > i ? `0 0 10px ${branding.primary_color}` : 'none'
+                                            }}
                                         />
                                     ))}
                                 </div>
                             </div>
 
-                            <button
+                             <button
                                 type="submit"
                                 disabled={isLoading || pin.length !== 4}
-                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl bg-primary hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-40"
+                                className="w-full py-5 text-base font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl disabled:opacity-40"
+                                style={{ 
+                                    backgroundColor: branding.primary_color,
+                                    boxShadow: `0 20px 25px -5px ${branding.primary_color}33`
+                                }}
                             >
                                 {isLoading ? 'Vérification...' : (authStep === 'PIN_SETUP' ? 'Créer mon PIN' : 'Valider mon PIN')}
                             </button>

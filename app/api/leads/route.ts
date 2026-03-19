@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { leadsDb, formConfigDb, db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -65,7 +66,8 @@ export async function POST(request: Request) {
             creatorId,
             deviceId || 'localhost',
             teamId,
-            formVersion
+            formVersion,
+            session?.tenantId
         );
 
         // ⚡ ASYNCHRONOUS INTELLIGENCE LAYER

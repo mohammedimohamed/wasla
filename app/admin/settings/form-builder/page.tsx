@@ -115,6 +115,13 @@ function FieldEditor({
                         ))}
                     </select>
                 </div>
+                
+                {/* Weight/Score */}
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Poids (Score)</label>
+                    <input type="number" min="0" max="100" value={field.weight || 0} onChange={e => set('weight', Number(e.target.value))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary transition-all text-emerald-600 font-bold" />
+                </div>
             </div>
 
             {/* Toggles row */}
@@ -122,6 +129,7 @@ function FieldEditor({
                 {([ 
                     { key: 'required', icon: Star, label: 'Requis' },
                     { key: 'showInTable', icon: Eye, label: 'Colonne tableau' },
+                    { key: 'isSensitive', icon: AlertCircle, label: '🔒 Champ Sensible' },
                 ] as const).map(({ key, icon: Icon, label }) => (
                     <button
                         key={key}
@@ -141,6 +149,13 @@ function FieldEditor({
                     <option value={2}>Pleine largeur</option>
                 </select>
             </div>
+
+            {field.isSensitive && (
+                <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest mt-2 border border-amber-200">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    Le chiffrement empêche la recherche sur ce champ.
+                </div>
+            )}
 
             {/* Options editor — only for select/multiselect/chip-group */}
             {hasOptions && (

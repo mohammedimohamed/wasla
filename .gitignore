@@ -54,3 +54,7 @@ mohammedimohamed_85_gmail_com.pub
 # --- TypeScript ---
 *.tsbuildinfo
 next-env.d.ts
+
+
+
+*.log

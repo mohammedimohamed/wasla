@@ -30,6 +30,8 @@ interface Lead {
     sync_status: string;
     created_by_name?: string;
     form_version?: number;
+    score?: number;
+    quality_score?: number;
     metadata: string; // Raw JSON from DB — we parse it per-row
     [key: string]: any; // Dynamic metadata fields
 }
@@ -310,6 +312,7 @@ export default function LeadsListPage() {
                                             </th>
                                         ))}
                                         {/* Trailing columns */}
+                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Score</th>
                                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date</th>
                                         <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Auteur</th>
                                         <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync</th>
@@ -393,6 +396,14 @@ export default function LeadsListPage() {
                                                         </td>
                                                     );
                                                 })}
+
+                                                {/* Score badge */}
+                                                <td className="px-6 py-5 whitespace-nowrap">
+                                                    <span className="inline-flex flex-col gap-0.5">
+                                                        <span className="font-black text-slate-800">{lead.score || 0} pts</span>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-widest ${lead.quality_score && lead.quality_score < 50 ? 'text-red-500' : 'text-emerald-500'}`}>Anti-Fraude: {lead.quality_score || 100}%</span>
+                                                    </span>
+                                                </td>
 
                                                 {/* Date */}
                                                 <td className="px-6 py-5 text-slate-400 text-xs whitespace-nowrap">

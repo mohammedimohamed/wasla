@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db, { formConfigDb } from '@/lib/db';
+import { decryptMetadata } from '@/src/lib/crypto';
 
 /**
  * 📥 SECURE EXPORT ENDPOINT
@@ -52,9 +54,9 @@ export async function GET(request: Request) {
                 const parsed = typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : (row.metadata || {});
                 // If double-nested (old bug), unwrap it
                 if (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata)) {
-                    return parsed.metadata;
+                    return decryptMetadata(parsed.metadata);
                 }
-                return parsed;
+                return decryptMetadata(parsed);
             } catch (_) {
                 return {};
             }
@@ -147,6 +149,8 @@ export async function GET(request: Request) {
             { key: 'form_version', label: 'Version Form' },
             { key: 'source', label: 'Source' },
             { key: 'sync_status', label: 'Statut Sync' },
+            { key: 'score', label: 'Score' },
+            { key: 'quality_score', label: 'Anti-Fraude' },
             { key: 'created_at', label: 'Date de Saisie' },
             { key: 'created_by_name', label: 'Auteur' },
             { key: 'contact_points', label: 'Contact_Points' },

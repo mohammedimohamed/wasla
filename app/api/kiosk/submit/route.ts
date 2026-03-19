@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { leadsDb, rewardsDb, auditTrail, formConfigDb, db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -115,8 +116,8 @@ export async function POST(request: Request) {
     };
 
     db.prepare(`
-            INSERT INTO leads (id, source, metadata, sync_status, created_by, reward_id, reward_status, device_id, form_version, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO leads (id, source, metadata, sync_status, created_by, reward_id, reward_status, device_id, form_version, tenant_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
       newLead.id,
       newLead.source,
@@ -127,6 +128,7 @@ export async function POST(request: Request) {
       newLead.reward_status,
       newLead.device_id,
       formVersion,
+      body.tenant_id || '00000000-0000-0000-0000-000000000000',
       new Date().toISOString(),
       new Date().toISOString()
     );

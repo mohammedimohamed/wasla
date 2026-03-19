@@ -1,6 +1,7 @@
+export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify } from 'jose/jwt/verify';
 import { dynamicConfig } from '@/src/config/dynamic';
 
 const SECRET_STR = dynamicConfig.jwtSecret || 'wasla-fallback-secret-2026';
@@ -26,6 +27,9 @@ export async function middleware(request: NextRequest) {
 
     const authRoutes = ['/admin', '/dashboard', '/api/sync', '/api/leads', '/api/profile', '/api/export', '/api/backup', '/leads'];
     const isProtected = authRoutes.some(route => pathname.startsWith(route));
+
+    // 🏗️ Step 0: Absolute bypass for auth endpoints Regardless of protection status
+    if (pathname === '/api/auth') return NextResponse.next();
 
     // Exclude Kiosk lead submission from auth middleware
     if (pathname === '/api/leads' && request.method === 'POST') {

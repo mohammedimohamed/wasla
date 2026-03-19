@@ -1,12 +1,14 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { db, auditTrail, leadsDb, formConfigDb } from '@/lib/db';
+import { db, auditTrail, leadsDb, formConfigDb, settingsDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { encryptMetadata } from '@/src/lib/crypto';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { leads } = body;
+        const { leads, agentId, tenantId } = body;
 
         if (!Array.isArray(leads) || leads.length === 0) {
             return NextResponse.json({ success: true, synced_ids: [], failed_ids: [] });
@@ -16,6 +18,10 @@ export async function POST(request: Request) {
         const syncedIds: string[] = [];
         const failedIds: string[] = [];
 
+        // 🛡️ Context Resolver: Prioritize payload, then session, then system defaults
+        const finalAgentId = agentId || session?.userId || 'system';
+        const finalTenantId = tenantId || session?.tenantId || '00000000-0000-0000-0000-000000000000';
+
         // Grab form version once — batch is assumed homogenous
         let formVersion = 1;
         try {
@@ -24,13 +30,6 @@ export async function POST(request: Request) {
         } catch (_) { }
 
         for (const item of leads) {
-            /**
-             * item shape (from IndexedDB OfflineLead):
-             *   client_uuid: string  ← idempotency key
-             *   type: 'kiosk' | 'commercial'
-             *   payload: any
-             *   timestamp: number
-             */
             const { client_uuid, type, payload } = item;
 
             // Guard: skip malformed entries
@@ -41,8 +40,6 @@ export async function POST(request: Request) {
 
             try {
                 // ── IDEMPOTENCY CHECK ─────────────────────────────────────
-                // If the client_uuid was already committed (e.g. flickering connection),
-                // just acknowledge it so the client removes it from the local queue.
                 const existing = db.prepare(
                     `SELECT id FROM leads WHERE json_extract(metadata, '$.client_uuid') = ? LIMIT 1`
                 ).get(client_uuid) as { id: string } | undefined;
@@ -60,17 +57,16 @@ export async function POST(request: Request) {
                     ? String(payload.device_id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50) || 'offline'
                     : 'offline';
 
-                const createdBy = type === 'commercial'
-                    ? (session?.userId || payload.created_by || null)
-                    : null;
+                // Use the agent context from the sync request if available
+                const createdBy = source === 'commercial' ? (agentId || payload.agent_id || finalAgentId) : 'system';
 
                 // Embed client_uuid inside metadata so idempotency check works
-                const enrichedPayload = { ...payload, client_uuid };
+                const enrichedPayload = encryptMetadata({ ...payload, client_uuid }, settingsDb.isEncryptionEnabled());
                 const metadataStr = JSON.stringify(enrichedPayload);
 
                 db.prepare(`
-                    INSERT INTO leads (id, source, metadata, sync_status, created_by, device_id, form_version, created_at, updated_at)
-                    VALUES (?, ?, ?, 'synced', ?, ?, ?, ?, ?)
+                    INSERT INTO leads (id, source, metadata, sync_status, created_by, device_id, form_version, created_at, updated_at, tenant_id)
+                    VALUES (?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?)
                 `).run(
                     definitiveId,
                     source,
@@ -79,7 +75,8 @@ export async function POST(request: Request) {
                     cleanDevice,
                     formVersion,
                     new Date(item.timestamp || Date.now()).toISOString(),
-                    new Date().toISOString()
+                    new Date().toISOString(),
+                    finalTenantId
                 );
 
                 // Fire async intelligence analysis — non-blocking
@@ -96,7 +93,7 @@ export async function POST(request: Request) {
 
         if (syncedIds.length > 0) {
             auditTrail.logAction(
-                'system', 'SYNC', 'LEADS(BATCH)', 'batch',
+                finalAgentId, 'SYNC', 'LEADS(BATCH)', 'batch',
                 `Background sync committed ${syncedIds.length} offline leads. Failed: ${failedIds.length}.`
             );
         }

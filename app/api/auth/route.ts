@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { userDb, auditTrail } from '@/lib/db';
 import { createSession, getSession } from '@/lib/auth';
@@ -20,6 +22,7 @@ export async function GET() {
                 id: user.id,
                 name: user.name,
                 role: user.role,
+                tenantId: user.tenant_id,
                 isPinSet: !!user.quick_pin,
                 needsPin: !user.quick_pin,             // true = first time, go to PIN_SETUP
                 sessionHasPin: !!session.hasPin         // true = fully unlocked
@@ -36,23 +39,40 @@ export async function GET() {
  */
 export async function POST(request: Request) {
     try {
-        const { email, password } = await request.json();
+        const { email, password, newPin } = await request.json();
 
         // 🛡️ Enterprise Auth Layer: Verification against Bcrypt Hashed Storage
         const user = userDb.verifyPassword(email, password);
 
         if (user) {
-            // Establish an encrypted JWT session
-            // 🚨 hasPin is FALSE initially if the user just used a password
-            await createSession({
-                userId: user.id,
-                role: user.role,
-                teamId: user.team_id,
-                hasPin: false
-            });
+            // 🛡️ First-Run / Initial PIN Setup Logic
+            // Allows defining the PIN during initial password login if none exists
+            if (newPin) {
+                if (user.quick_pin) {
+                    return NextResponse.json({ success: false, error: 'PIN already configured' }, { status: 403 });
+                }
+                userDb.setQuickPin(user.id, newPin);
+                // After setup, we establish a fully unlocked session (hasPin: true)
+                await createSession({
+                    userId: user.id,
+                    role: user.role,
+                    tenantId: user.tenant_id,
+                    teamId: user.team_id,
+                    hasPin: true
+                });
+            } else {
+                // Regular password login (establishes locked session)
+                await createSession({
+                    userId: user.id,
+                    role: user.role,
+                    tenantId: user.tenant_id,
+                    teamId: user.team_id,
+                    hasPin: false
+                });
+            }
 
             // 📑 Audit Trail
-            auditTrail.logAction(user.id, 'LOGIN', 'USER', user.id, `User ${user.email} performed initial login.`);
+            auditTrail.logAction(user.id, 'LOGIN', 'USER', user.id, newPin ? `User defined initial PIN and logged in.` : `User logged in via password.`);
 
             return NextResponse.json({
                 success: true,
@@ -60,7 +80,8 @@ export async function POST(request: Request) {
                     id: user.id,
                     name: user.name,
                     role: user.role,
-                    needsPin: !user.quick_pin
+                    tenantId: user.tenant_id,
+                    needsPin: !user.quick_pin && !newPin
                 }
             });
         }
@@ -78,12 +99,19 @@ export async function POST(request: Request) {
  */
 export async function PUT(request: Request) {
     try {
+        const { pin, action, userId: bodyUserId } = await request.json();
         const session = await getSession();
-        if (!session) return NextResponse.json({ error: 'Session Required' }, { status: 401 });
 
-        const { pin, action } = await request.json();
+        // 🔓 Action Gate: Handle Session-less Resumption for 'VERIFY'
+        // If we have a userId in the body, we can verify without a session (login flow)
+        const targetUserId = session?.userId || bodyUserId;
+
+        if (!targetUserId) {
+            return NextResponse.json({ error: 'Session or User identity Required' }, { status: 401 });
+        }
 
         if (action === 'SETUP') {
+            if (!session) return NextResponse.json({ error: 'Session Required for SETUP' }, { status: 401 });
             userDb.setQuickPin(session.userId, pin);
             await createSession({ ...session, hasPin: true });
             const user = userDb.findById(session.userId);
@@ -91,10 +119,17 @@ export async function PUT(request: Request) {
         }
 
         if (action === 'VERIFY') {
-            const isValid = userDb.verifyQuickPin(session.userId, pin);
+            const isValid = userDb.verifyQuickPin(targetUserId, pin);
             if (isValid) {
-                await createSession({ ...session, hasPin: true });
-                const user = userDb.findById(session.userId);
+                const user = userDb.findById(targetUserId);
+                // Create a FRESH, fully authorized session
+                await createSession({
+                    userId: user.id,
+                    role: user.role,
+                    tenantId: user.tenant_id,
+                    teamId: user.team_id,
+                    hasPin: true
+                });
                 return NextResponse.json({ success: true, message: 'PIN Verified', user });
             }
             return NextResponse.json({ success: false, error: 'Invalid PIN' }, { status: 401 });
@@ -102,6 +137,7 @@ export async function PUT(request: Request) {
 
         return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
     } catch (error) {
+        console.error('Auth API PUT error:', error);
         return NextResponse.json({ success: false, error: 'Internal Error' }, { status: 500 });
     }
 }

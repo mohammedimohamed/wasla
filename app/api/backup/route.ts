@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -32,65 +33,47 @@ export async function GET(request: Request) {
         const apiKey = request.headers.get('x-api-key');
         const expectedApiKey = process.env.BACKUP_API_KEY;
         
-        // Strict verification: ensure the env variable is actually set in production!
-        const isValidCronKey = apiKey && expectedApiKey && apiKey === expectedApiKey;
+        let validCron = false;
+        if (apiKey && expectedApiKey && apiKey === expectedApiKey) {
+            validCron = true;
+        }
 
-        if (!isValidCronKey) {
-            // Fall back to JWT session auth (for UI-triggered backups)
+        if (!validCron) {
             const session = await getSession();
             if (!session || session.role !== 'ADMINISTRATOR') {
-                return NextResponse.json(
-                    { error: 'Unauthorized. Provide a valid x-api-key header or use an ADMINISTRATOR session.' },
-                    { status: 401 }
-                );
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
             }
         }
 
-        // ── 2. BACKUP: Use SQLite online hot-backup API ───────────────────────
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_');
-        const backupFilename = `wasla_backup_${timestamp}.sqlite`;
-        const backupPath = path.join(os.tmpdir(), backupFilename);
+        // ── 2. FETCH DATA: Get all leads exactly as stored ────────────────────
+        // System backups must export raw data (preserving any encryption hashes)
+        const leads = db.prepare('SELECT * FROM leads').all() as any[];
 
-        await db.backup(backupPath);
-        const fileSize = fs.statSync(backupPath).size;
-
-        // ── 3. STREAM: Safe Streaming Implementation ──────────────────────────
-        // Using a Web ReadableStream to prevent memory crashes on heavy DB files.
-        const nodeStream = fs.createReadStream(backupPath);
-        const webStream = new ReadableStream({
-            start(controller) {
-                nodeStream.on('data', (chunk: any) => {
-                    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-                    controller.enqueue(new Uint8Array(buffer));
-                });
-                nodeStream.on('end', () => {
-                    controller.close();
-                    fs.unlink(backupPath, () => {}); // Async cleanup
-                });
-                nodeStream.on('error', (err) => {
-                    controller.error(err);
-                    fs.unlink(backupPath, () => {});
-                });
-            },
-            cancel() {
-                nodeStream.destroy();
-                fs.unlink(backupPath, () => {});
-            }
+        // Clean up stringified metadata to object structure for the JSON export
+        const cleanLeads = leads.map(l => {
+            try { return { ...l, metadata: JSON.parse(l.metadata || '{}') }; }
+            catch { return l; }
         });
 
-        // ── 4. LOG: Audit trail ───────────────────────────────────────────────
-        const authMethod = isValidCronKey ? 'api-key' : 'jwt-session';
-        console.log(`[Backup] ✅ Successful backup streaming triggered via ${authMethod}. Size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+        const exportData = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            total_leads: cleanLeads.length,
+            leads: cleanLeads
+        };
 
-        return new Response(webStream as unknown as BodyInit, {
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const timestampStr = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_');
+        const backupFilename = `wasla_vault_backup_${timestampStr}.json`;
+
+        console.log(`[Backup] ✅ Successful JSON backup generated. Contains ${cleanLeads.length} leads.`);
+
+        return new Response(jsonString, {
             status: 200,
             headers: {
-                'Content-Type': 'application/octet-stream',
+                'Content-Type': 'application/json',
                 'Content-Disposition': `attachment; filename="${backupFilename}"`,
-                'Content-Length': String(fileSize),
                 'Cache-Control': 'no-store, no-cache',
-                'X-Backup-Size-KB': String((fileSize / 1024).toFixed(1)),
-                'X-Backup-Auth': authMethod,
             },
         });
     } catch (error) {

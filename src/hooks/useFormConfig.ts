@@ -28,6 +28,8 @@ export interface FormField {
     showInTable?: boolean;
     tableWidth?: number;
     icon?: string;
+    weight?: number;
+    isSensitive?: boolean;
 }
 
 export interface FormSection {
