@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { getPublicUploadDir, deleteFile as deleteStorageFile } from '@/lib/storage';
 
 /**
  * 📺 GET /api/admin/mediashow
@@ -46,15 +47,12 @@ export async function POST(request: Request) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Ensure directory exists
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'mediashow');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
+        // Ensure directory exists via storage utility
+        const mediashowDir = getPublicUploadDir('mediashow');
 
         const ext = path.extname(file.name).toLowerCase();
         const fileName = `${uuidv4()}${ext}`;
-        const filePath = path.join(uploadDir, fileName);
+        const filePath = path.join(mediashowDir, fileName);
         const fileUrl = `/uploads/mediashow/${fileName}`;
 
         fs.writeFileSync(filePath, buffer);
@@ -114,12 +112,9 @@ export async function DELETE(request: Request) {
         // Delete from DB
         mediashowDb.delete(id);
 
-        // Delete from Disk
+        // Delete from Disk using storage utility
         if (url) {
-            const filePath = path.join(process.cwd(), 'public', url);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
+            deleteStorageFile(url);
         }
 
         return NextResponse.json({ success: true });

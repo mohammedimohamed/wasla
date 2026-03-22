@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
-import { MoveRight, MoveLeft, Loader2, CheckCircle2, AlertCircle, Monitor } from "lucide-react";
+import { MoveRight, MoveLeft, Loader2, CheckCircle2, AlertCircle, Monitor, Maximize2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { saveLeadOffline, markLeadSynced, markLeadFailed } from "@/lib/offlineQueue";
 import { useFormConfig, FormPage, FormField } from "@/src/hooks/useFormConfig";
@@ -135,6 +135,8 @@ export default function KioskPage() {
     const [currentPage, setCurrentPage] = useState(0);
     const [isSignageMode, setIsSignageMode] = useState(false);
     const [mediashowAssets, setMediashowAssets] = useState<any[]>([]);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
 
     const { config, isLoading: schemaLoading } = useFormConfig();
     const form = useForm<FormValues>();
@@ -148,6 +150,12 @@ export default function KioskPage() {
             setCurrentPage(0);
         }
     }, [isSignageMode, reset]);
+
+    useEffect(() => {
+        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -166,7 +174,6 @@ export default function KioskPage() {
                             setMediashowAssets(assetsData.assets);
 
                             // 🚀 PRE-FETCH ASSETS FOR OFFLINE READINESS
-                            // We do this silently to populate Service Worker Cache
                             if (navigator.onLine) {
                                 assetsData.assets.forEach((asset: any) => {
                                     const link = document.createElement('link');
@@ -190,8 +197,20 @@ export default function KioskPage() {
         setIsSignageMode(false);
     };
 
+    const enterFullscreen = () => {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        }
+    };
+
+    const handleStartKiosk = () => {
+        setHasStarted(true);
+        enterFullscreen();
+    };
+
     const handleMarketingMode = () => {
         setIsSignageMode(true);
+        enterFullscreen();
     };
 
     const onSubmit = async (data: FormValues) => {
@@ -293,8 +312,72 @@ export default function KioskPage() {
     const activePage: FormPage = config.pages[currentPage];
     const isLastPage = currentPage === totalPages - 1;
 
+    // ── 🚀 KIOSK SPLASH SCREEN (IMMERSIVE START) ─────────────────────────────
+    if (!hasStarted) {
+        return (
+            <div 
+                className="fixed inset-0 z-[10000] flex flex-col items-center justify-center text-center p-10 animate-fade-in"
+                style={{ backgroundColor: primaryColor }}
+            >
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_white_0%,transparent_70%)]" />
+                
+                {settings.logo_url && (
+                    <img src={settings.logo_url} alt="Logo" className="w-48 h-48 object-contain mb-12 drop-shadow-2xl animate-bounce-slow" />
+                )}
+                
+                <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight drop-shadow-lg">
+                    {settings.event_name}
+                </h1>
+                
+                <p className="text-white/80 text-xl font-medium mb-16 max-w-xl mx-auto uppercase tracking-[0.2em]">
+                    {settings.kiosk_welcome_text}
+                </p>
+
+                <button
+                    onClick={handleStartKiosk}
+                    className="group relative px-16 py-8 bg-white text-slate-900 rounded-[40px] text-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-6"
+                    style={{ color: primaryColor }}
+                >
+                    <Monitor className="w-8 h-8" />
+                    Lancer le Kiosk
+                    <div className="absolute -inset-2 bg-white/20 rounded-[50px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+
+                <p className="absolute bottom-10 text-white/40 text-xs font-black uppercase tracking-widest">
+                    Version 1.4 — Ready for Offline Capture
+                </p>
+                
+                <style jsx global>{`
+                    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+                    .animate-fade-in { animation: fade-in 1s ease-out; }
+                    .animate-bounce-slow { animation: bounce-slow 4s ease-in-out infinite; }
+                    body { overflow: hidden !important; background: black; }
+                    /* Kill Scrollbars in Fullscreen */
+                    :fullscreen body { overflow: hidden !important; }
+                    ::-webkit-scrollbar { display: none !important; }
+                `}</style>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl overflow-hidden">
+        <div className={`min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl transition-all duration-500 ${isSignageMode ? 'opacity-0' : 'opacity-100'}`}
+             style={isFullscreen ? { maxHeight: '100vh', overflow: 'hidden' } : {}}
+        >
+            
+            {/* 🔄 RESTORE FULLSCREEN FAB (If staff exits FS) */}
+            {!isFullscreen && (
+                <button
+                    onClick={enterFullscreen}
+                    className="fixed top-6 right-6 z-[1000] w-12 h-12 bg-slate-900/10 hover:bg-slate-900 text-slate-400 hover:text-white rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-sm"
+                    title="Restaurer l'immersion"
+                >
+                    <Maximize2 className="w-5 h-5" />
+                </button>
+            )}
+
+            {/* 📺 MEDIASHOW OVERLAY ENGINE (UNCHANGED BUT INTEGRATED) */}
 
             {/* 📺 MEDIASHOW OVERLAY ENGINE */}
             {!!settings.mediashow_enabled && (
@@ -456,15 +539,16 @@ export default function KioskPage() {
                         )}
                     </form>
 
-                    {/* 🔘 MARKETING MODE TRIGGER (Subtle Footer) */}
+                    {/* 🔘 MARKETING MODE TRIGGER (FAB) */}
                     {!!settings.mediashow_enabled && (
-                        <div className="absolute bottom-6 right-6">
+                        <div className="fixed bottom-8 right-8 z-50">
                             <button
                                 type="button"
                                 onClick={handleMarketingMode}
-                                className="w-12 h-12 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all group"
+                                title="Lancer le Mediashow"
+                                className="w-16 h-16 bg-slate-900 border-4 border-white text-white rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all group"
                             >
-                                <Monitor className="w-5 h-5 group-hover:text-rose-400" />
+                                <Monitor className="w-6 h-6 group-hover:text-blue-400" />
                             </button>
                         </div>
                     )}

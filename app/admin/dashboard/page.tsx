@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
+import MediashowOverlay from "../../kiosk/MediashowOverlay";
 
 /**
  * 📊 ENTERPRISE DYNAMIC DASHBOARD
@@ -47,6 +48,9 @@ export default function AdminDashboardPage() {
         syncedLeads: 0,
         recentLeads: [] as any[]
     });
+
+    const [isSignageMode, setIsSignageMode] = useState(false);
+    const [mediashowAssets, setMediashowAssets] = useState<any[]>([]);
 
     const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null }>({
         event_name: 'Wasla Admin',
@@ -90,6 +94,12 @@ export default function AdminDashboardPage() {
                 } else {
                     const errData = await statsRes.json().catch(() => ({}));
                     console.error('[Dashboard] Stats fetch failed:', statsRes.status, errData);
+                }
+                // 4. Fetch Mediashow Assets if enabled
+                const assetsRes = await fetch('/api/mediashow');
+                if (assetsRes.ok) {
+                    const assetsData = await assetsRes.json();
+                    setMediashowAssets(assetsData.assets || []);
                 }
             } catch (e) {
                 toast.error(t('common.error'));
@@ -149,7 +159,26 @@ export default function AdminDashboardPage() {
     const { totalLeads, kioskLeads, commercialLeads, rewardsGiven, leadsToday, syncedLeads, recentLeads } = stats;
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50">
+        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+            {/* 📺 MEDIASHOW OVERLAY ENGINE */}
+            <MediashowOverlay
+                assets={mediashowAssets}
+                isVisible={isSignageMode}
+                onDismiss={() => setIsSignageMode(false)}
+            />
+
+            {/* 🔘 SLIDESHOW LAUNCHER FAB */}
+            {mediashowAssets.length > 0 && (
+                <div className="fixed bottom-8 right-8 z-50">
+                    <button
+                        onClick={() => setIsSignageMode(true)}
+                        title="Démarrer le Mediashow"
+                        className="w-16 h-16 bg-slate-900 border-4 border-white text-white rounded-full flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-all group"
+                    >
+                        <Monitor className="w-7 h-7 group-hover:text-blue-400" />
+                    </button>
+                </div>
+            )}
             <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
                     <button onClick={() => router.push("/leads/new")} className="p-2 -ml-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors flex items-center gap-2">

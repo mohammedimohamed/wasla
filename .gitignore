@@ -58,3 +58,7 @@ next-env.d.ts
 
 
 *.log
+
+# --- User Uploads & Dynamic Assets ---
+# Mediashow images, videos and tenant branding assets
+public/uploads/
