@@ -20,7 +20,8 @@ import {
     QrCode,
     LayoutTemplate,
     Brain,
-    ShieldCheck
+    ShieldCheck,
+    LayoutGrid
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
@@ -55,6 +56,13 @@ export default function AdminDashboardPage() {
     const [branding, setBranding] = useState<{ event_name: string, logo_url: string | null }>({
         event_name: 'Wasla Admin',
         logo_url: null
+    });
+
+    const [moduleStatus, setModuleStatus] = useState<Record<string, boolean>>({
+        vault: true,
+        rewards: true,
+        mediashow: true,
+        intelligence: true
     });
 
     // 🛡️ RBAC Session & Stats Sync
@@ -100,6 +108,17 @@ export default function AdminDashboardPage() {
                 if (assetsRes.ok) {
                     const assetsData = await assetsRes.json();
                     setMediashowAssets(assetsData.assets || []);
+                }
+
+                // 5. Fetch Module Registry Status
+                const modulesRes = await fetch('/api/admin/modules');
+                if (modulesRes.ok) {
+                    const modulesData = await modulesRes.json();
+                    const statusMap: Record<string, boolean> = {};
+                    modulesData.forEach((m: any) => {
+                        statusMap[m.id] = m.is_enabled === 1;
+                    });
+                    setModuleStatus(statusMap);
                 }
             } catch (e) {
                 toast.error(t('common.error'));
@@ -161,14 +180,16 @@ export default function AdminDashboardPage() {
     return (
         <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
             {/* 📺 MEDIASHOW OVERLAY ENGINE */}
-            <MediashowOverlay
-                assets={mediashowAssets}
-                isVisible={isSignageMode}
-                onDismiss={() => setIsSignageMode(false)}
-            />
+            {moduleStatus.mediashow && (
+                <MediashowOverlay
+                    assets={mediashowAssets}
+                    isVisible={isSignageMode}
+                    onDismiss={() => setIsSignageMode(false)}
+                />
+            )}
 
             {/* 🔘 SLIDESHOW LAUNCHER FAB */}
-            {mediashowAssets.length > 0 && (
+            {moduleStatus.mediashow && mediashowAssets.length > 0 && (
                 <div className="fixed bottom-8 right-8 z-50">
                     <button
                         onClick={() => setIsSignageMode(true)}
@@ -344,6 +365,19 @@ export default function AdminDashboardPage() {
                     </button>
 
                     <button
+                        onClick={() => router.push("/admin/modules")}
+                        className="p-6 bg-slate-900 text-white rounded-[32px] border border-slate-800 hover:bg-slate-800 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                    >
+                        <div className="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <LayoutGrid className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="font-black uppercase tracking-tight text-xs">Module Manager</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les fonctionnalités</p>
+                        </div>
+                    </button>
+
+                    <button
                         onClick={() => router.push("/admin/users")}
                         className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
                     >
@@ -369,18 +403,35 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
-                    <button
-                        onClick={() => router.push("/admin/rewards")}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
-                    >
-                        <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Gift className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Catalogue Récompenses</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les quotas & cadeaux</p>
-                        </div>
-                    </button>
+                    {moduleStatus.vault && (
+                        <button
+                            onClick={() => router.push("/admin/vault")}
+                            className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <ShieldCheck className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Vault (Security)</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1">Chiffrement & Sauvegardes</p>
+                            </div>
+                        </button>
+                    )}
+
+                    {moduleStatus.rewards && (
+                        <button
+                            onClick={() => router.push("/admin/rewards")}
+                            className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Gift className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Catalogue Récompenses</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les quotas & cadeaux</p>
+                            </div>
+                        </button>
+                    )}
 
                     <button
                         onClick={() => router.push("/admin/golden-records")}
@@ -422,18 +473,20 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
-                    <button
-                        onClick={() => router.push("/admin/settings/mediashow")}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
-                    >
-                        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Monitor className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Mediashow</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">Écran de Veille & Publicité</p>
-                        </div>
-                    </button>
+                    {moduleStatus.mediashow && (
+                        <button
+                            onClick={() => router.push("/admin/settings/mediashow")}
+                            className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Monitor className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Mediashow</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1">Écran de Veille & Publicité</p>
+                            </div>
+                        </button>
+                    )}
 
                     {/* 💾 DATABASE MAINTENANCE CARD */}
                     <button
@@ -461,18 +514,20 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
-                    <button
-                        onClick={() => router.push("/admin/intelligence")}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-indigo-400 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
-                    >
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Brain className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Intelligence Leads</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">Dédoublonnage & Anti-Fraude</p>
-                        </div>
-                    </button>
+                    {moduleStatus.intelligence && (
+                        <button
+                            onClick={() => router.push("/admin/intelligence")}
+                            className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-indigo-400 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Brain className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Intelligence Leads</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1">Dédoublonnage & Anti-Fraude</p>
+                            </div>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

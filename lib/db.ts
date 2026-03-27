@@ -294,6 +294,29 @@ export function initDb() {
 
         // Phase 15.8: Vault — Encryption toggle column
         try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN encryption_enabled INTEGER DEFAULT 1`); } catch (_) { }
+
+        // Phase 16: Module Registry
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS module_registry (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                is_enabled INTEGER DEFAULT 0,
+                description TEXT
+            )`);
+            
+            // Seed initial modules
+            const seedModules = [
+                ['vault', 'Vault & Security', 1, 'AES-256-GCM Encryption & JSON Backups'],
+                ['rewards', 'Rewards Engine', 1, 'Gift attribution and anti-fraud logic'],
+                ['mediashow', 'MediaShow Kiosk', 1, 'Dynamic slideshow and asset proxy'],
+                ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics']
+            ];
+            
+            const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
+            for (const m of seedModules) {
+                insertModule.run(...m);
+            }
+        } catch (_) { }
     }
 }
 
@@ -1367,6 +1390,36 @@ export const formConfigDb = {
         return newVersion;
     },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🧩 MODULE REGISTRY (Modular Architecture)
+// ─────────────────────────────────────────────────────────────────────────────
+const moduleCache: Record<string, boolean> = {};
+
+export const moduleDb = {
+    list: () => {
+        return db.prepare("SELECT * FROM module_registry").all() as any[];
+    },
+    updateStatus: (id: string, isEnabled: boolean) => {
+        db.prepare("UPDATE module_registry SET is_enabled = ? WHERE id = ?").run(isEnabled ? 1 : 0, id);
+        moduleCache[id] = isEnabled; // Update cache
+    },
+    isEnabled: (moduleId: string): boolean => {
+        // Simple cache lookup
+        if (moduleCache[moduleId] !== undefined) return moduleCache[moduleId];
+        
+        try {
+            const row = db.prepare("SELECT is_enabled FROM module_registry WHERE id = ?").get(moduleId) as any;
+            const enabled = row ? row.is_enabled === 1 : false;
+            moduleCache[moduleId] = enabled;
+            return enabled;
+        } catch {
+            return false;
+        }
+    }
+};
+
+export const isModuleEnabled = moduleDb.isEnabled;
 
 // Initialize database
 initDb();
