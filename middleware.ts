@@ -7,8 +7,6 @@ import { dynamicConfig } from '@/src/config/dynamic';
 const SECRET_STR = dynamicConfig.jwtSecret || 'wasla-fallback-secret-2026';
 const SECRET = new TextEncoder().encode(SECRET_STR);
 
-import { isModuleEnabled } from '@/lib/db';
-
 /**
  * 🔐 Session Payload Definition for Middleware Verification
  */
@@ -26,32 +24,6 @@ interface SessionPayload {
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const sessionToken = request.cookies.get('wasla_session')?.value;
-
-    // 🧩 MODULAR REFACTOR: Map route groups to Module Registry IDs
-    const moduleRoutes: Record<string, string> = {
-        '/admin/vault': 'vault',
-        '/api/admin/vault': 'vault',
-        '/admin/rewards': 'rewards',
-        '/api/admin/rewards': 'rewards',
-        '/admin/settings/mediashow': 'mediashow',
-        '/api/mediashow': 'mediashow',
-        '/admin/intelligence': 'intelligence',
-        '/api/admin/intelligence': 'intelligence',
-        '/api/admin/recalculate-scores': 'intelligence',
-        '/api/admin/golden-records': 'intelligence',
-    };
-
-    for (const [route, moduleId] of Object.entries(moduleRoutes)) {
-        if (pathname.startsWith(route)) {
-            if (!isModuleEnabled(moduleId)) {
-                console.log(`DEBUG: [Middleware] BLOCKING route ${pathname} because module ${moduleId} is DISABLED.`);
-                if (pathname.startsWith('/api')) {
-                    return NextResponse.json({ error: 'Module Disabled', moduleId }, { status: 403 });
-                }
-                return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-            }
-        }
-    }
 
     const authRoutes = ['/admin', '/dashboard', '/api/sync', '/api/leads', '/api/profile', '/api/export', '/api/backup', '/leads'];
     const isProtected = authRoutes.some(route => pathname.startsWith(route));
@@ -145,7 +117,13 @@ export async function middleware(request: NextRequest) {
             }
 
             console.log(`DEBUG: [Middleware] ACCESS GRANTED to ${pathname}`);
-            return NextResponse.next();
+            const requestHeaders = new Headers(request.headers);
+            requestHeaders.set('x-pathname', pathname);
+            return NextResponse.next({
+                request: {
+                    headers: requestHeaders,
+                }
+            });
         } catch (error) {
             console.error(`DEBUG: [Middleware] JWT FAILURE:`, error instanceof Error ? error.message : error);
             const response = NextResponse.redirect(new URL('/', request.url));

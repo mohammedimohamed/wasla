@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { leadsDb } from '@/lib/db';
+import { leadsDb, isModuleEnabled } from '@/lib/db';
 
 async function requireAdmin() {
+    if (!isModuleEnabled('intelligence')) return { error: 'Module Disabled', status: 403 as const };
     const session = await getSession();
     if (!session) return { error: 'Auth Required', status: 401 as const };
     if (session.role !== 'ADMINISTRATOR') return { error: 'Forbidden', status: 403 as const };
@@ -51,7 +52,11 @@ export async function POST(request: Request) {
 
         if (action === 'RELEASE_REWARD') {
             if (!id) return NextResponse.json({ error: 'Lead ID required' }, { status: 400 });
-            leadsDb.approveReward(id, auth.session!.userId);
+            if (!isModuleEnabled('rewards')) {
+                return NextResponse.json({ error: 'Rewards module is disabled' }, { status: 403 });
+            }
+            const { rewardsDb } = await import('@/src/modules/rewards/lib/rewards-db');
+            rewardsDb.approveReward(id, auth.session!.userId);
             return NextResponse.json({ success: true, message: 'Reward released successfully' });
         }
 

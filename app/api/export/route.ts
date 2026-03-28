@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db, { formConfigDb } from '@/lib/db';
-import { decryptMetadata } from '@/src/lib/crypto';
+import * as securityGate from '@/src/lib/security-gate';
 
 /**
  * 📥 SECURE EXPORT ENDPOINT
@@ -49,14 +49,14 @@ export async function GET(request: Request) {
          * Resolve the flat metadata object from a lead row.
          * Handles both old broken leads (double-nested: {metadata:{...}}) and new flat leads.
          */
-        const resolveMeta = (row: any): Record<string, any> => {
+        const resolveMeta = async (row: any): Promise<Record<string, any>> => {
             try {
                 const parsed = typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : (row.metadata || {});
                 // If double-nested (old bug), unwrap it
-                if (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata)) {
-                    return decryptMetadata(parsed.metadata);
-                }
-                return decryptMetadata(parsed);
+                const metaToDecrypt = (parsed.metadata && typeof parsed.metadata === 'object' && !Array.isArray(parsed.metadata))
+                    ? parsed.metadata
+                    : parsed;
+                return await securityGate.decryptMetadata(metaToDecrypt);
             } catch (_) {
                 return {};
             }
@@ -72,8 +72,8 @@ export async function GET(request: Request) {
 
         // Parse metadata for all rows and collect all unique metadata keys
         const allUsedMetaKeys = new Set<string>();
-        const processedRows = rows.map(row => {
-            const meta = resolveMeta(row);
+        const processedRows = await Promise.all(rows.map(async row => {
+            const meta = await resolveMeta(row);
 
             Object.keys(meta).forEach(key => {
                 // Filter out technical keys that shouldn't be in business export
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
 
             const { metadata: _raw, ...rootFields } = row;
             return { ...rootFields, _meta: meta, intelligence_story: story, contact_points: contactPoints };
-        });
+        }));
 
         // ── 5a. JSON FORMAT ───────────────────────────────────────────────────
         if (format === 'json') {

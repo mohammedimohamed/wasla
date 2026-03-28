@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { rewardsDb, auditTrail } from '@/lib/db';
+import { auditTrail, isModuleEnabled } from '@/lib/db';
+import { rewardsDb } from '@/src/modules/rewards/lib/rewards-db';
 import { v4 as uuidv4 } from 'uuid';
 import * as z from 'zod';
 
@@ -9,6 +10,7 @@ import * as z from 'zod';
 // 🛡️ RBAC GUARD — Only ADMINISTRATOR can manage rewards
 // ─────────────────────────────────────────────────────────────────────────────
 async function requireAdmin() {
+    if (!isModuleEnabled('rewards')) return { error: 'Module Disabled', status: 403 as const };
     const session = await getSession();
     if (!session) return { error: 'Authentication required', status: 401 as const };
     if (session.role !== 'ADMINISTRATOR') return { error: 'Administrator access required', status: 403 as const };

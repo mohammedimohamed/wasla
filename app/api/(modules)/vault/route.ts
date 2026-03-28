@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { db, settingsDb, leadsDb, auditTrail } from '@/lib/db';
-import { forceEncryptMetadata, decryptMetadata, isActuallyEncrypted } from '@/src/lib/crypto';
+import { db, settingsDb, leadsDb, auditTrail, isModuleEnabled } from '@/lib/db';
+import { forceEncryptMetadata, decryptMetadata, isActuallyEncrypted } from '@/src/modules/vault/lib/crypto';
 
 async function requireAdmin() {
+    if (!isModuleEnabled('vault')) return { error: 'Module Disabled', status: 403 as const };
     const session = await getSession();
     if (!session) return { error: 'Auth Required', status: 401 as const };
     if (session.role !== 'ADMINISTRATOR') return { error: 'Forbidden', status: 403 as const };

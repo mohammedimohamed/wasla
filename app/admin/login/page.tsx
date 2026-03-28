@@ -126,12 +126,21 @@ export default function AdminLoginPage() {
         try {
             let res;
             if (authStep === 'PIN_SETUP') {
-                // 🛡️ Bypassing session-dependency for initial setup
-                res = await fetch('/api/auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, newPin: pin }),
-                });
+                if (email && password) {
+                    // 🛡️ Bypassing session-dependency for initial setup with credentials
+                    res = await fetch('/api/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, newPin: pin }),
+                    });
+                } else {
+                    // 🔗 Session-based setup for already authenticated users
+                    res = await fetch('/api/auth', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pin, action: 'SETUP' }),
+                    });
+                }
             } else {
                 // Regular session resumption or verification
                 res = await fetch('/api/auth', {

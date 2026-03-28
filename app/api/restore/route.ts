@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { db, leadsDb, auditTrail } from '@/lib/db';
-import { tryDecrypt } from '@/src/lib/crypto';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -23,6 +22,8 @@ async function requireAdmin() {
  *   our current ENCRYPTION_KEY can decrypt it. If it cannot, the restore is
  *   blocked to prevent turning encrypted junk into "restored" data.
  */
+import * as securityGate from '@/src/lib/security-gate';
+
 export async function POST(request: Request) {
     const auth = await requireAdmin();
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -45,12 +46,12 @@ export async function POST(request: Request) {
             // Try to parse to see if it's valid JSON
             JSON.parse(dataStr);
         } catch {
-            return NextResponse.json({ error: 'Le fichier fourni n\'est pas un fichier JSON valide ou est corrompu.' }, { status: 400 });
+            return NextResponse.json({ error: 'Fichier JSON invalide.' }, { status: 400 });
         }
 
         let restoredCount = 0;
         try {
-            restoredCount = leadsDb.restore(dataStr, 'json');
+            restoredCount = await leadsDb.restore(dataStr, 'json');
         } catch (err: any) {
             if (err.message && err.message.includes('Clé de chiffrement invalide')) {
                 return NextResponse.json({ success: false, error: err.message }, { status: 422 });

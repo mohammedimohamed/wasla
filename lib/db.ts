@@ -3,7 +3,7 @@ import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import { dynamicConfig } from '@/src/config/dynamic';
 import { v4 as uuidv4 } from 'uuid';
-import { encryptMetadata, decryptMetadata } from '@/src/lib/crypto';
+import * as securityGate from '@/src/lib/security-gate';
 
 /**
  * 🛠️ Enterprise Singleton Pattern for SQLite
@@ -152,172 +152,218 @@ export function initDb() {
         });
     });
 
-    // 🔄 Safe Rewards Engine Migration (ALTER TABLE is not transactional in SQLite)
-    // Only run if the rewards table exists (migrations may have partially failed)
-    const rewardsTableExists = db.prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name='rewards'`
-    ).get();
+    // Phase 8.4: Managed QR Locations table
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS kiosk_locations (
+            name TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            created_by TEXT
+        )`);
+    } catch (_) { }
 
-    if (rewardsTableExists) {
-        const rewardsColumns = (db.pragma('table_info(rewards)') as { name: string }[]).map(c => c.name);
-        const rewardsMigrations: [string, string][] = [
-            ['total_quantity', 'ALTER TABLE rewards ADD COLUMN total_quantity INTEGER DEFAULT -1'],
-            ['claimed_count', 'ALTER TABLE rewards ADD COLUMN claimed_count INTEGER DEFAULT 0'],
-            ['is_active', 'ALTER TABLE rewards ADD COLUMN is_active INTEGER DEFAULT 1'],
-            ['rule_match', 'ALTER TABLE rewards ADD COLUMN rule_match TEXT'],
-            ['reward_code', 'ALTER TABLE rewards ADD COLUMN reward_code TEXT'],
-        ];
-        for (const [col, stmt] of rewardsMigrations) {
-            if (!rewardsColumns.includes(col)) {
-                try { db.exec(stmt); } catch (e) { /* Column may have been added by another process */ }
-            }
-        }
-        // Indexes (idempotent, deferred here because they depend on columns added above)
-        try { db.exec(`CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active)`); } catch (_) { }
-        try { db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status)`); } catch (_) { }
+    // Phase 12.5: Form Versioning Migration
+    try { db.exec(`ALTER TABLE form_configs ADD COLUMN version INTEGER DEFAULT 1`); } catch (_) { }
+    try { db.exec(`ALTER TABLE leads ADD COLUMN form_version INTEGER DEFAULT 1`); } catch (_) { }
 
-        // Phase 8.4: Managed QR Locations table
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS kiosk_locations (
-                name TEXT PRIMARY KEY,
-                created_at TEXT NOT NULL,
-                created_by TEXT
-            )`);
-        } catch (_) { }
+    // Phase 13: Mediashow Migration
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS mediashow_assets (
+            id TEXT PRIMARY KEY,
+            type TEXT NOT NULL,         -- 'image' | 'video'
+            url TEXT NOT NULL,
+            order_index INTEGER DEFAULT 0,
+            duration INTEGER DEFAULT 10, -- seconds (relevant for images)
+            created_at TEXT NOT NULL
+        )`);
+    } catch (_) { }
 
-        // Phase 12.5: Form Versioning Migration
-        try { db.exec(`ALTER TABLE form_configs ADD COLUMN version INTEGER DEFAULT 1`); } catch (_) { }
-        try { db.exec(`ALTER TABLE leads ADD COLUMN form_version INTEGER DEFAULT 1`); } catch (_) { }
-
-        // Phase 13: Mediashow Migration
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS mediashow_assets (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,         -- 'image' | 'video'
-                url TEXT NOT NULL,
-                order_index INTEGER DEFAULT 0,
-                duration INTEGER DEFAULT 10, -- seconds (relevant for images)
-                created_at TEXT NOT NULL
-            )`);
-        } catch (_) { }
-
-        const settingsColumns = (db.pragma('table_info(tenant_settings)') as { name: string }[]).map(c => c.name);
-        if (!settingsColumns.includes('mediashow_enabled')) {
-            try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN mediashow_enabled INTEGER DEFAULT 0`); } catch (_) { }
-        }
-        if (!settingsColumns.includes('idle_timeout')) {
-            try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN idle_timeout INTEGER DEFAULT 60`); } catch (_) { }
-        }
-
-        // Phase 15 (v2): Asynchronous Lead Intelligence & Quality Control
-        try {
-            const leadsCols = (db.pragma('table_info(leads)') as { name: string }[]).map(c => c.name);
-            if (!leadsCols.includes('quality_score')) {
-                db.exec(`ALTER TABLE leads ADD COLUMN quality_score INTEGER DEFAULT 100`);
-                db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_quality_score ON leads(quality_score)`);
-            }
-            if (!leadsCols.includes('status')) {
-                db.exec(`ALTER TABLE leads ADD COLUMN status TEXT DEFAULT 'active'`);
-                db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`);
-            }
-            if (!leadsCols.includes('score')) {
-                db.exec(`ALTER TABLE leads ADD COLUMN score INTEGER DEFAULT 0`);
-            }
-        } catch (_) { }
-
-        // Phase 15 (v3): Git-Style Identity Resolution & Versioning
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS leads_history (
-                id TEXT PRIMARY KEY,
-                lead_id TEXT NOT NULL,
-                version INTEGER NOT NULL,
-                metadata TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                updated_by TEXT,
-                change_type TEXT, -- 'COMMIT' | 'MERGE_COMMIT'
-                FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
-            )`);
-            db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_history_lead_id ON leads_history(lead_id)`);
-        } catch (_) { }
-
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS lead_lineage (
-                id TEXT PRIMARY KEY,
-                parent_id TEXT NOT NULL,
-                child_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY(parent_id) REFERENCES leads(id) ON DELETE CASCADE,
-                FOREIGN KEY(child_id) REFERENCES leads(id) ON DELETE CASCADE
-            )`);
-            db.exec(`CREATE INDEX IF NOT EXISTS idx_lineage_child ON lead_lineage(child_id)`);
-        } catch (_) { }
-
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS lead_intelligence_logs (
-                id TEXT PRIMARY KEY,
-                lead_id TEXT NOT NULL,
-                type TEXT NOT NULL,
-                message TEXT NOT NULL,
-                severity TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
-            )`);
-            db.exec(`CREATE INDEX IF NOT EXISTS idx_intel_lead_id ON lead_intelligence_logs(lead_id)`);
-        } catch (_) { }
-
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS leads_archive (
-                id TEXT PRIMARY KEY,
-                metadata TEXT NOT NULL,
-                source TEXT,
-                created_at TEXT,
-                updated_at TEXT,
-                synced_at TEXT,
-                created_by TEXT,
-                team_id TEXT,
-                reward_id TEXT,
-                reward_status TEXT,
-                device_id TEXT,
-                form_version INTEGER,
-                quality_score INTEGER,
-                archived_at TEXT NOT NULL,
-                reason TEXT
-            )`);
-        } catch (_) { }
-
-        try {
-            db.prepare(`
-                INSERT OR IGNORE INTO users (id, name, email, role, password, created_at, updated_at, active, tenant_id)
-                VALUES ('system', 'SYSTEM_ENGINE', 'system@wasla.dz', 'ADMINISTRATOR', 'LOCKED', ?, ?, 1, '00000000-0000-0000-0000-000000000000')
-            `).run(new Date().toISOString(), new Date().toISOString());
-        } catch (_) { }
-
-        // Phase 15.8: Vault — Encryption toggle column
-        try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN encryption_enabled INTEGER DEFAULT 1`); } catch (_) { }
-
-        // Phase 16: Module Registry
-        try {
-            db.exec(`CREATE TABLE IF NOT EXISTS module_registry (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                is_enabled INTEGER DEFAULT 0,
-                description TEXT
-            )`);
-            
-            // Seed initial modules
-            const seedModules = [
-                ['vault', 'Vault & Security', 1, 'AES-256-GCM Encryption & JSON Backups'],
-                ['rewards', 'Rewards Engine', 1, 'Gift attribution and anti-fraud logic'],
-                ['mediashow', 'MediaShow Kiosk', 1, 'Dynamic slideshow and asset proxy'],
-                ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics']
-            ];
-            
-            const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
-            for (const m of seedModules) {
-                insertModule.run(...m);
-            }
-        } catch (_) { }
+    const settingsColumns = (db.pragma('table_info(tenant_settings)') as { name: string }[]).map(c => c.name);
+    if (!settingsColumns.includes('mediashow_enabled')) {
+        try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN mediashow_enabled INTEGER DEFAULT 0`); } catch (_) { }
     }
+    if (!settingsColumns.includes('idle_timeout')) {
+        try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN idle_timeout INTEGER DEFAULT 60`); } catch (_) { }
+    }
+
+    // Phase 15 (v2): Asynchronous Lead Intelligence & Quality Control
+    try {
+        const leadsCols = (db.pragma('table_info(leads)') as { name: string }[]).map(c => c.name);
+        if (!leadsCols.includes('quality_score')) {
+            db.exec(`ALTER TABLE leads ADD COLUMN quality_score INTEGER DEFAULT 100`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_quality_score ON leads(quality_score)`);
+        }
+        if (!leadsCols.includes('status')) {
+            db.exec(`ALTER TABLE leads ADD COLUMN status TEXT DEFAULT 'active'`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`);
+        }
+        if (!leadsCols.includes('score')) {
+            db.exec(`ALTER TABLE leads ADD COLUMN score INTEGER DEFAULT 0`);
+        }
+    } catch (_) { }
+
+    // Phase 15 (v3): Git-Style Identity Resolution & Versioning
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS leads_history (
+            id TEXT PRIMARY KEY,
+            lead_id TEXT NOT NULL,
+            version INTEGER NOT NULL,
+            metadata TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            updated_by TEXT,
+            change_type TEXT, -- 'COMMIT' | 'MERGE_COMMIT'
+            FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_history_lead_id ON leads_history(lead_id)`);
+    } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS lead_lineage (
+            id TEXT PRIMARY KEY,
+            parent_id TEXT NOT NULL,
+            child_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(parent_id) REFERENCES leads(id) ON DELETE CASCADE,
+            FOREIGN KEY(child_id) REFERENCES leads(id) ON DELETE CASCADE
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_lineage_child ON lead_lineage(child_id)`);
+    } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS lead_intelligence_logs (
+            id TEXT PRIMARY KEY,
+            lead_id TEXT NOT NULL,
+            type TEXT NOT NULL,
+            message TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(lead_id) REFERENCES leads(id) ON DELETE CASCADE
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_intel_lead_id ON lead_intelligence_logs(lead_id)`);
+    } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS leads_archive (
+            id TEXT PRIMARY KEY,
+            metadata TEXT NOT NULL,
+            source TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            synced_at TEXT,
+            created_by TEXT,
+            team_id TEXT,
+            reward_id TEXT,
+            reward_status TEXT,
+            device_id TEXT,
+            form_version INTEGER,
+            quality_score INTEGER,
+            archived_at TEXT NOT NULL,
+            reason TEXT
+        )`);
+    } catch (_) { }
+
+    try {
+        db.prepare(`
+            INSERT OR IGNORE INTO users (id, name, email, role, password, created_at, updated_at, active, tenant_id)
+            VALUES ('system', 'SYSTEM_ENGINE', 'system@wasla.dz', 'ADMINISTRATOR', 'LOCKED', ?, ?, 1, '00000000-0000-0000-0000-000000000000')
+        `).run(new Date().toISOString(), new Date().toISOString());
+    } catch (_) { }
+
+    // Phase 15.8: Vault — Encryption toggle column
+    try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN encryption_enabled INTEGER DEFAULT 1`); } catch (_) { }
+
+    // 🏆 Rewards Engine Schema (Legacy Bridge)
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS rewards (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            reward_type TEXT NOT NULL,
+            value TEXT,
+            total_quantity INTEGER DEFAULT -1,
+            claimed_count INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            rule_match TEXT,
+            reward_code TEXT,
+            created_by TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )`);
+
+        const rewardsCols = (db.pragma('table_info(rewards)') as { name: string }[]).map(c => c.name);
+        
+        // Ensure total_quantity and claimed_count anyway
+        if (!rewardsCols.includes('total_quantity')) {
+            console.log('[DB Migration] Patching Rewards table: total_quantity');
+            try { db.exec(`ALTER TABLE rewards ADD COLUMN total_quantity INTEGER DEFAULT -1`); } catch (_) { }
+        }
+        if (!rewardsCols.includes('claimed_count')) {
+            console.log('[DB Migration] Patching Rewards table: claimed_count');
+            try { db.exec(`ALTER TABLE rewards ADD COLUMN claimed_count INTEGER DEFAULT 0`); } catch (_) { }
+        }
+
+        // Migrate rule_match from trigger_rule if necessary
+        if (!rewardsCols.includes('rule_match')) {
+            console.log('[DB Migration] Creating Rewards column: rule_match');
+            try { db.exec(`ALTER TABLE rewards ADD COLUMN rule_match TEXT`); } catch (_) { }
+            if (rewardsCols.includes('trigger_rule')) {
+                console.log('[DB Migration] Syncing rule_match from legacy trigger_rule');
+                try { db.exec(`UPDATE rewards SET rule_match = trigger_rule`); } catch (_) { }
+            }
+        }
+
+        // Migrate is_active from active if necessary
+        if (!rewardsCols.includes('is_active')) {
+            console.log('[DB Migration] Creating Rewards column: is_active');
+            try { db.exec(`ALTER TABLE rewards ADD COLUMN is_active INTEGER DEFAULT 1`); } catch (_) { }
+            if (rewardsCols.includes('active')) {
+                console.log('[DB Migration] Syncing is_active from legacy active');
+                try { db.exec(`UPDATE rewards SET is_active = active`); } catch (_) { }
+            }
+        }
+
+        if (!rewardsCols.includes('reward_code')) {
+            console.log('[DB Migration] Patching Rewards table: reward_code');
+            try { db.exec(`ALTER TABLE rewards ADD COLUMN reward_code TEXT`); } catch (_) { }
+        }
+
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_rewards_is_active ON rewards(is_active)`);
+
+        const leadsCols = (db.pragma('table_info(leads)') as { name: string }[]).map(c => c.name);
+        if (!leadsCols.includes('reward_id')) {
+            console.log('[DB Migration] Patching Leads table: reward_id');
+            try { db.exec(`ALTER TABLE leads ADD COLUMN reward_id TEXT`); } catch (_) { }
+        }
+        if (!leadsCols.includes('reward_status')) {
+            console.log('[DB Migration] Patching Leads table: reward_status');
+            try { db.exec(`ALTER TABLE leads ADD COLUMN reward_status TEXT DEFAULT 'none'`); } catch (_) { }
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_leads_reward_status ON leads(reward_status)`);
+        }
+    } catch (e: any) {
+        console.error('[DB] Rewards Bridge Migration Failure:', e.message);
+    }
+
+    // Phase 16: Module Registry
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS module_registry (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            is_enabled INTEGER DEFAULT 0,
+            description TEXT
+        )`);
+        
+        // Seed initial modules
+        const seedModules = [
+            ['vault', 'Vault & Security', 1, 'AES-256-GCM Encryption & JSON Backups'],
+            ['rewards', 'Rewards Engine', 1, 'Gift attribution and anti-fraud logic'],
+            ['mediashow', 'MediaShow Kiosk', 1, 'Dynamic slideshow and asset proxy'],
+            ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics']
+        ];
+        
+        const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
+        for (const m of seedModules) {
+            insertModule.run(...m);
+        }
+    } catch (_) { }
 }
 
 // Enterprise Audit Logging Utility
@@ -356,55 +402,53 @@ export const leadsDb = {
         return nextVersion;
     },
 
-    create: (id: string, metadata: any, source: string, creatorId: string, deviceId?: string, teamId?: string | null, formVersion: number = 1, tenantId?: string) => {
+    create: async (id: string, metadata: any, source: string, creatorId: string | null, deviceId?: string, teamId?: string | null, formVersion: number = 1, tenantId?: string, options?: { rewardId?: string | null, rewardStatus?: string | null, syncStatus?: 'pending' | 'synced' }) => {
         const timestamp = new Date().toISOString();
-        // ✅ Read encryption toggle from settingsDb DIRECTLY (same module — no circular require)
         const encEnabled = settingsDb.isEncryptionEnabled();
-        const securedMeta = encryptMetadata(metadata || {}, encEnabled);
+        const securedMeta = await securityGate.encryptMetadata(metadata || {}, encEnabled);
         const metadataStr = JSON.stringify(securedMeta);
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`[DB] Lead create — encryption=${encEnabled}, fields:`, Object.keys(metadata || {}));
-        }
-
-        // 🛡️ RBAC Attribution: Respect passed teamId/tenantId (from Session) or fallback to DB lookup
-        let finalTeamId = teamId;
-        let finalTenantId = tenantId;
         
-        if (finalTeamId === undefined || finalTenantId === undefined) {
+        let finalTeamId = teamId === undefined ? null : teamId;
+        let finalTenantId = tenantId || '00000000-0000-0000-0000-000000000000';
+        
+        if (creatorId && (teamId === undefined || tenantId === undefined)) {
             const user = db.prepare("SELECT team_id, tenant_id FROM users WHERE id = ?").get(creatorId) as { team_id: string, tenant_id: string } | undefined;
-            if (finalTeamId === undefined) finalTeamId = user?.team_id || null;
-            if (finalTenantId === undefined) finalTenantId = user?.tenant_id || '00000000-0000-0000-0000-000000000000';
+            if (teamId === undefined) finalTeamId = user?.team_id || null;
+            if (tenantId === undefined) finalTenantId = user?.tenant_id || '00000000-0000-0000-0000-000000000000';
         }
 
         const insertLead = db.prepare(`
-          INSERT INTO leads (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, tenant_id, sync_status, form_version)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+          INSERT INTO leads (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, tenant_id, sync_status, form_version, reward_id, reward_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         try {
             const transaction = db.transaction(() => {
-                insertLead.run(id, metadataStr, source, deviceId || 'localhost', timestamp, timestamp, creatorId, finalTeamId, finalTenantId, formVersion);
-                // Also update sync_queue payload if needed, but primary focus is the local table
-                const insertQueue = db.prepare(`
-                    INSERT INTO sync_queue (operation, entity_type, entity_id, payload, created_at, status)
-                    VALUES ('CREATE', 'lead', ?, ?, ?, 'pending')
-                `);
-                insertQueue.run(id, JSON.stringify({ metadata, source, device_id: deviceId, created_by: creatorId, team_id: finalTeamId, tenant_id: finalTenantId, form_version: formVersion }), timestamp);
+                insertLead.run(
+                    id, metadataStr, source, deviceId || 'localhost', 
+                    timestamp, timestamp, creatorId, finalTeamId, finalTenantId, 
+                    options?.syncStatus || 'pending', formVersion,
+                    options?.rewardId || null, options?.rewardStatus || null
+                );
+                
+                if ((options?.syncStatus || 'pending') === 'pending') {
+                    db.prepare(`
+                        INSERT INTO sync_queue (operation, entity_type, entity_id, payload, created_at, status)
+                        VALUES ('CREATE', 'lead', ?, ?, ?, 'pending')
+                    `).run(id, metadataStr, timestamp);
+                }
 
-                // 📂 Phase 15 v3: Initial Commit
-                leadsDb.commitHistory(id, metadata, creatorId, 'COMMIT');
-
-                auditTrail.logAction(creatorId, 'CREATE', 'LEAD', id, `Lead created from source: ${source}`, metadata);
+                leadsDb.commitHistory(id, metadata, creatorId || 'SYSTEM', 'COMMIT');
+                auditTrail.logAction(creatorId || 'SYSTEM', 'CREATE', 'LEAD', id, `Lead created from source: ${source}`, metadata);
             });
             transaction();
-            return { success: true, id };
         } catch (error) {
-            console.error('[DB Error] Failed to create lead:', error);
+            console.error('[DB] Create Error:', error);
             throw error;
         }
     },
 
-    getVisibleLeads: (userId: string) => {
+    getVisibleLeads: async (userId: string) => {
         const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
         if (!user) return [];
 
@@ -425,14 +469,17 @@ export const leadsDb = {
             query += " AND l.team_id = ?";
             params.push(user.team_id);
         }
-        // ADMINISTRATOR gets everything within the tenant
 
         query += " ORDER BY l.created_at DESC";
         const rows = db.prepare(query).all(params) as any[];
-        return rows.map(r => {
-            try { return { ...r, metadata: JSON.stringify(decryptMetadata(JSON.parse(r.metadata || '{}'))) }; }
+        
+        return Promise.all(rows.map(async r => {
+            try { 
+                const decryptedMeta = await securityGate.decryptMetadata(JSON.parse(r.metadata || '{}'));
+                return { ...r, metadata: JSON.stringify(decryptedMeta) }; 
+            }
             catch { return r; }
-        });
+        }));
     },
 
     markSynced: (id: string) => {
@@ -440,10 +487,6 @@ export const leadsDb = {
         return db.prepare("UPDATE leads SET sync_status = 'synced', synced_at = ?, updated_at = ? WHERE id = ?").run(now, now, id);
     },
 
-    /**
-     * 📊 Enterprise Dashboard Statistics
-     * Calculates real-time metrics based on RBAC ownership.
-     */
     getStats: (userId: string) => {
         const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
         if (!user) return { totalLeads: 0, leadsToday: 0, syncedLeads: 0, recentLeads: [] };
@@ -460,16 +503,12 @@ export const leadsDb = {
         }
 
         const totalLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${filter}`).get(params) as { count: number };
-
         const todayFilter = `${filter} AND date(created_at) = date('now')`;
         const leadsToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${todayFilter}`).get(params) as { count: number };
-
         const syncFilter = `${filter} AND sync_status = 'synced'`;
         const syncedLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${syncFilter}`).get(params) as { count: number };
-
         const kioskFilter = `${filter} AND source = 'kiosk'`;
         const kioskLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${kioskFilter}`).get(params) as { count: number };
-
         const commercialFilter = `${filter} AND source = 'commercial'`;
         const commercialLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${commercialFilter}`).get(params) as { count: number };
 
@@ -479,81 +518,41 @@ export const leadsDb = {
             LIMIT 5
         `).all(params);
 
-        // 🏆 Rewards Intelligence
-        let rewardsGiven = { count: 0 };
-        let rewardsGivenToday = { count: 0 };
-        let totalRewards = 0;
-        let rewardsDistributed = 0;
-        
-        try {
-            // Count unique active reward configurations
-            const rewardTypes = db.prepare("SELECT COUNT(*) as count FROM rewards WHERE is_active = 1").get() as { count: number };
-            totalRewards = rewardTypes?.count || 0;
-
-            // Sum of all items actually distributed
-            const distributed = db.prepare("SELECT SUM(claimed_count) as count FROM rewards WHERE is_active = 1").get() as { count: number };
-            rewardsDistributed = distributed?.count || 0;
-
-            const rewardsFilter = filter
-                ? `${filter} AND reward_status = 'sent'`
-                : " WHERE reward_status = 'sent'";
-            rewardsGiven = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsFilter}`).get(params) as { count: number };
-
-            const rewardsTodayFilter = filter
-                ? `${filter} AND reward_status = 'sent' AND date(updated_at) = date('now')`
-                : " WHERE reward_status = 'sent' AND date(updated_at) = date('now')";
-            rewardsGivenToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${rewardsTodayFilter}`).get(params) as { count: number };
-        } catch (rewardErr) {
-            console.error('[DB] Rewards stats query failed (non-critical):', rewardErr);
-        }
-
         return {
             totalLeads: totalLeads.count,
             leadsToday: leadsToday.count,
             syncedLeads: syncedLeads.count,
             kioskLeads: kioskLeads.count,
             commercialLeads: commercialLeads.count,
-            rewardsGiven: rewardsGiven.count, // Leads with reward_status = 'sent'
-            rewardsGivenToday: rewardsGivenToday.count,
-            totalRewards, // Count of active reward rows 
-            rewardsDistributed, // Sum of claimed_count
-            recentLeads
+            recentLeads,
+            rewardsGiven: 0,
+            rewardsGivenToday: 0,
+            totalRewards: 0,
+            rewardsDistributed: 0,
         };
     },
 
-    /**
-     * 🛡️ Identity Resolution: Check if Email+Phone pair exists (Internal use)
-     */
     checkDuplicate: (email?: string, phone?: string, excludeId?: string) => {
         if (!email || !phone) return false;
-
         let query = `
             SELECT id FROM leads 
             WHERE json_extract(metadata, '$.email') = ? 
               AND json_extract(metadata, '$.phone') = ?
         `;
         const params: any[] = [email, phone];
-
         if (excludeId) {
             query += " AND id != ?";
             params.push(excludeId);
         }
-
         const existing = db.prepare(query + " LIMIT 1").get(params);
         return !!existing;
     },
 
-    /**
-     * 🚫 Fraud Engine v2: Advanced Pattern Detection
-     */
     calculateQualityScore: (metadata: any) => {
         let score = 100;
         const reasons: string[] = [];
-
-        // 🛡️ Whitelist metadata fields from garbage detection
         const { client_uuid, created_at, ...cleanMetadata } = metadata;
 
-        // 1. Detect Garbage Literals
         const garbageLiterals = [
             { r: /12345/i, name: 'Sequence 12345' },
             { r: /abcde/i, name: 'Sequence ABCDE' },
@@ -563,15 +562,12 @@ export const leadsDb = {
             { r: /none/i, name: 'None/Blank Expression' }
         ];
 
-        // 2. Keyboard Mashing / Repeating Chars
-        const repeatPattern = /(.)\1{3,}/;           // Same char repeated 4+ times (e.g. aaaa)
-        const consonantMash = /[bcdfghjklmnpqrstvwxyz]{5,}/i; // 5 consonants in a row
+        const repeatPattern = /(.)\1{3,}/;
+        const consonantMash = /[bcdfghjklmnpqrstvwxyz]{5,}/i;
         const rowMash = /asdf|sdfg|dfgh|fghj|ghjk|hjkl|qwert|werty|ertyu|rtyui|tyuio|yuiop|zxcv|xcvb|cvbn|vbnm/i;
 
         for (const [key, value] of Object.entries(cleanMetadata)) {
-            // Ignore system/meta fields which might naturally trip the filters
             if (key === 'agent_id' || key.includes('timestamp') || key === 'location_context' || key === 'device_id') continue;
-
             const strVal = String(value).toLowerCase();
             
             garbageLiterals.forEach(p => {
@@ -595,14 +591,12 @@ export const leadsDb = {
             }
         }
 
-        // 3. Email Validation Patterns
         const email = String(metadata.email || '').toLowerCase();
         if (email.includes('test@') || email.endsWith('@example.com') || email.endsWith('@test.com')) {
             score -= 50;
-            reasons.push(`Invalid Email Domain/Namespace: [${email}]`);
+            reasons.push(`Invalid Email Domain: [${email}]`);
         }
 
-        // 4. Fake Phone Patterns
         const phone = String(metadata.phone || '');
         if (/^0+$/.test(phone)) {
             score -= 60;
@@ -615,26 +609,15 @@ export const leadsDb = {
             reasons.push(`Phone too short: ${phone.length} chars`);
         }
 
-        const finalScore = Math.max(0, score);
-        
-        if (finalScore < 100 || reasons.length > 0) {
-            console.log(`[Intelligence Deep Audit] Lead Analysis — Score: ${finalScore}%`);
-            reasons.forEach(r => console.log(`  Flagged: ${r}`));
-        }
-
-        return { score: finalScore, reasons };
+        return { score: Math.max(0, score), reasons };
     },
 
-    /**
-     * ⚡ Asynchronous Intelligence Engine: Analyzes a lead post-submission
-     */
     analyzeLead: async (leadId: string) => {
         const lead = db.prepare("SELECT * FROM leads WHERE id = ?").get(leadId) as any;
         if (!lead) return;
 
-        // 🛡️ Ensure AI Intelligence decrypts ALL fields before sending to Fraud Engine
         const metadataRaw = JSON.parse(lead.metadata);
-        const metadata = decryptMetadata(metadataRaw);
+        const metadata = await securityGate.decryptMetadata(metadataRaw);
         const { score: qualityScore, reasons } = leadsDb.calculateQualityScore(metadata);
         
         let leadScore = 0;
@@ -649,14 +632,11 @@ export const leadsDb = {
                     }
                 })));
             }
-        } catch (e) {
-            console.error('Error calculating lead score', e);
-        }
+        } catch (e) { }
         
         const logs: any[] = [];
         const timestamp = new Date().toISOString();
 
-        // Check for duplicates
         const existingDuplicate = db.prepare(`
             SELECT id FROM leads 
             WHERE id != ? AND 
@@ -666,32 +646,18 @@ export const leadsDb = {
         `).get(leadId, metadata.email, metadata.phone) as { id: string } | undefined;
 
         if (existingDuplicate) {
-            logs.push({
-                type: 'POTENTIAL_DUPLICATE',
-                message: `Same Email+Phone already registered (Lead ID: ${existingDuplicate.id})`,
-                severity: 'WARNING'
-            });
+            logs.push({ type: 'POTENTIAL_DUPLICATE', message: `Same Email+Phone already registered (Lead ID: ${existingDuplicate.id})`, severity: 'WARNING' });
         }
 
-        if (qualityScore < 100) {
-            reasons.forEach(reason => {
-                logs.push({
-                    type: 'FRAUD_DETECTION',
-                    message: reason,
-                    severity: qualityScore < 30 ? 'CRITICAL' : 'WARNING'
-                });
-            });
-        }
+        reasons.forEach(reason => {
+            logs.push({ type: 'FRAUD_DETECTION', message: reason, severity: qualityScore < 30 ? 'CRITICAL' : 'WARNING' });
+        });
 
-        // Apply findings
         const tx = db.transaction(() => {
             db.prepare("UPDATE leads SET quality_score = ?, score = ? WHERE id = ?").run(qualityScore, leadScore, leadId);
-
-            // If high fraud score, flag reward for QC
             if (qualityScore < 20 && lead.reward_status !== 'none') {
                 db.prepare("UPDATE leads SET reward_status = 'pending_qc' WHERE id = ?").run(leadId);
             }
-
             for (const log of logs) {
                 db.prepare(`
                     INSERT INTO lead_intelligence_logs (id, lead_id, type, message, severity, created_at)
@@ -702,10 +668,7 @@ export const leadsDb = {
         tx();
     },
 
-    /**
-     * 📋 Intelligence: Suggested Merges
-     */
-    getSuggestedMerges: (tenantId: string) => {
+    getSuggestedMerges: async (tenantId: string) => {
         const rows = db.prepare(`
             SELECT 
                 l1.id as id1, l1.metadata as meta1, l1.quality_score as score1,
@@ -724,31 +687,25 @@ export const leadsDb = {
               )
             LIMIT 50
         `).all(tenantId, tenantId) as any[];
-        return rows.map(r => ({
+
+        return Promise.all(rows.map(async r => ({
             ...r,
-            meta1: JSON.stringify(decryptMetadata(JSON.parse(r.meta1 || '{}'))),
-            meta2: JSON.stringify(decryptMetadata(JSON.parse(r.meta2 || '{}'))),
-            email: decryptMetadata({ email: r.email }).email,
-            phone: decryptMetadata({ phone: r.phone }).phone
-        }));
+            meta1: JSON.stringify(await securityGate.decryptMetadata(JSON.parse(r.meta1 || '{}'))),
+            meta2: JSON.stringify(await securityGate.decryptMetadata(JSON.parse(r.meta2 || '{}'))),
+            email: (await securityGate.decryptMetadata({ email: r.email })).email,
+            phone: (await securityGate.decryptMetadata({ phone: r.phone })).phone
+        })));
     },
 
-    /**
-     * 🧬 Consolidation v3: The "Merge Commit" Strategy
-     * No deletion. Secondary is archived, Primary is updated with selected metadata.
-     */
-    mergeLeads: (primaryId: string, secondaryId: string, resolvedChoices: any, adminId: string) => {
+    mergeLeads: async (primaryId: string, secondaryId: string, resolvedChoices: any, adminId: string) => {
         const primary = db.prepare("SELECT * FROM leads WHERE id = ?").get(primaryId) as any;
         const secondary = db.prepare("SELECT * FROM leads WHERE id = ?").get(secondaryId) as any;
         if (!primary || !secondary) throw new Error("Leads not found");
 
-        const m1 = decryptMetadata(JSON.parse(primary.metadata || '{}'));
-        const m2 = decryptMetadata(JSON.parse(secondary.metadata || '{}'));
-
-        // ── Phase 15.6: ACCUMULATIVE UNION LOGIC ──────────────────────────────
+        const m1 = await securityGate.decryptMetadata(JSON.parse(primary.metadata || '{}'));
+        const m2 = await securityGate.decryptMetadata(JSON.parse(secondary.metadata || '{}'));
         const mergedMetadata: any = { ...resolvedChoices };
 
-        // 1. Accumulate phone array (dedupe)
         const phones: string[] = [];
         const addPhone = (v: any) => {
             if (!v) return;
@@ -758,7 +715,6 @@ export const leadsDb = {
         addPhone(m1.phone); addPhone(m2.phone);
         mergedMetadata.phone = phones;
 
-        // 2. Accumulate email array (dedupe)
         const emails: string[] = [];
         const addEmail = (v: any) => {
             if (!v) return;
@@ -768,351 +724,81 @@ export const leadsDb = {
         addEmail(m1.email); addEmail(m2.email);
         mergedMetadata.email = emails;
 
-        // 3. Accumulate associated entities (company names)
-        const existingEntities: string[] = Array.isArray(m1.associated_entities) ? m1.associated_entities : [];
-        const secondaryCompany = m2.company || m2.companyName || m2.organisation;
-        if (secondaryCompany && !existingEntities.includes(secondaryCompany)) {
-            existingEntities.push(secondaryCompany);
-        }
-        mergedMetadata.associated_entities = existingEntities;
-
-        // 4. Concatenate free-text fields with Version separator
-        const textFields = ['comment', 'description', 'projectDescription', 'notes', 'note'];
-        for (const field of textFields) {
-            const v1 = m1[field]; const v2 = m2[field];
-            if (v1 && v2 && v1 !== v2) {
-                const company1 = m1.company || m1.companyName || 'Lead A';
-                const company2 = m2.company || m2.companyName || 'Lead B';
-                mergedMetadata[field] = `--- Version: ${company1} ---\n${v1}\n--- Version: ${company2} ---\n${v2}`;
-            }
-        }
+        const encEnabled = settingsDb.isEncryptionEnabled();
+        const encryptedMerged = await securityGate.encryptMetadata(mergedMetadata, encEnabled);
 
         const tx = db.transaction(() => {
             const timestamp = new Date().toISOString();
-            const dateStr = new Date().toLocaleDateString('en-GB');
-
-            // 1. Archive secondary lead
-            db.prepare("UPDATE leads SET status = 'archived', updated_at = ? WHERE id = ?")
-                .run(timestamp, secondaryId);
-
-            // 2. Update primary with accumulated merged data (re-encrypt)
-            const encEnabled = settingsDb.isEncryptionEnabled();
-            const encryptedMerged = encryptMetadata(mergedMetadata, encEnabled);
-            db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?")
-                .run(JSON.stringify(encryptedMerged), timestamp, primaryId);
-
-            // 3. Commit to version history
-            leadsDb.commitHistory(primaryId, mergedMetadata, adminId, 'MERGE_COMMIT');
-
-            // 4. Record lineage pointer
-            db.prepare(`INSERT INTO lead_lineage (id, parent_id, child_id, created_at) VALUES (?, ?, ?, ?)`)
-                .run(uuidv4(), secondaryId, primaryId, timestamp);
-
-            // 5. Phase 15.7: Generate Sales Intel Memo
-            const secondaryName = m2.name || m2.fullName || 'Unknown';
-            const secondaryOrg = m2.company || m2.companyName || '';
-            const intelNote = `💡 SALES INTEL: Contact also associated with ${secondaryOrg ? secondaryOrg + ' (' + secondaryName + ')' : secondaryName}. Linked on ${dateStr} via Identity Merge.`;
-            db.prepare(`INSERT INTO lead_intelligence_logs (id, lead_id, type, message, severity, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
-                .run(uuidv4(), primaryId, 'SALES_INTEL', intelNote, 'info', timestamp);
-
-            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(MERGE)', primaryId,
-                `Accumulative merge with ${secondaryId}. Phones: ${phones.join(', ')}. Entities: ${existingEntities.join(', ')}.`);
+            db.prepare("UPDATE leads SET status = 'archived', updated_at = ? WHERE id = ?").run(timestamp, secondaryId);
+            db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(encryptedMerged), timestamp, primaryId);
+            leadsDb.commitHistory(primaryId, mergedMetadata, adminId, 'COMMIT'); 
+            db.prepare(`INSERT INTO lead_lineage (id, parent_id, child_id, created_at) VALUES (?, ?, ?, ?)`).run(uuidv4(), secondaryId, primaryId, timestamp);
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(MERGE)', primaryId, `Accumulative merge with ${secondaryId}.`);
         });
         tx();
         return true;
     },
 
-    /**
-     * ⏪ Git Rollback: Restore parents and cleanup lineage
-     */
     revertMerge: (childId: string, adminId: string) => {
         const lineage = db.prepare("SELECT parent_id FROM lead_lineage WHERE child_id = ?").all(childId) as { parent_id: string }[];
         if (lineage.length === 0) throw new Error("No lineage found for this lead");
 
         const tx = db.transaction(() => {
             const timestamp = new Date().toISOString();
-
-            // Restore all parents
             for (const { parent_id } of lineage) {
-                db.prepare("UPDATE leads SET status = 'active', updated_at = ? WHERE id = ?")
-                    .run(timestamp, parent_id);
+                db.prepare("UPDATE leads SET status = 'active', updated_at = ? WHERE id = ?").run(timestamp, parent_id);
             }
-
-            // Restore primary metadata to previous version (before Merge Commit)
-            const history = db.prepare(`
-                SELECT metadata FROM leads_history 
-                WHERE lead_id = ? AND change_type != 'MERGE_COMMIT' 
-                ORDER BY version DESC LIMIT 1
-            `).get(childId) as { metadata: string } | undefined;
-
+            const history = db.prepare(`SELECT metadata FROM leads_history WHERE lead_id = ? AND change_type != 'MERGE_COMMIT' ORDER BY version DESC LIMIT 1`).get(childId) as { metadata: string } | undefined;
             if (history) {
-                db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?")
-                    .run(history.metadata, timestamp, childId);
+                db.prepare("UPDATE leads SET metadata = ?, updated_at = ? WHERE id = ?").run(history.metadata, timestamp, childId);
             }
-
-            // Cleanup lineage
             db.prepare("DELETE FROM lead_lineage WHERE child_id = ?").run(childId);
-
-            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(REVERT)', childId, 'Merge reverted. Parent leads restored.');
+            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(REVERT)', childId, 'Merge reverted.');
         });
         tx();
         return true;
     },
 
-    getLineage: (leadId: string) => {
-        const rows = db.prepare(`
-            SELECT l.id, l.metadata, l.status, lin.created_at
-            FROM lead_lineage lin
-            JOIN leads l ON lin.parent_id = l.id
-            WHERE lin.child_id = ?
-        `).all(leadId) as any[];
-        return rows.map(r => ({ ...r, metadata: JSON.stringify(decryptMetadata(JSON.parse(r.metadata || '{}'))) }));
+    getLineage: async (leadId: string) => {
+        const rows = db.prepare(`SELECT l.id, l.metadata, l.status, lin.created_at FROM lead_lineage lin JOIN leads l ON lin.parent_id = l.id WHERE lin.child_id = ?`).all(leadId) as any[];
+        return Promise.all(rows.map(async r => ({ 
+            ...r, 
+            metadata: JSON.stringify(await securityGate.decryptMetadata(JSON.parse(r.metadata || '{}'))) 
+        })));
     },
 
-    /**
-     * 📊 Agent Performance: Ranking by Quality Score
-     */
     getAgentQualityRanking: (tenantId: string) => {
-        return db.prepare(`
-            SELECT 
-                u.name as agent_name,
-                COUNT(l.id) as total_leads,
-                AVG(l.quality_score) as avg_score,
-                SUM(CASE WHEN l.quality_score < 50 THEN 1 ELSE 0 END) as low_quality_count
-            FROM leads l
-            JOIN users u ON l.created_by = u.id
-            WHERE l.tenant_id = ? AND (l.status = 'active' OR l.status IS NULL)
-            GROUP BY u.id
-            ORDER BY avg_score DESC
-        `).all(tenantId);
+        return db.prepare(`SELECT u.name as agent_name, COUNT(l.id) as total_leads, AVG(l.quality_score) as avg_score FROM leads l JOIN users u ON l.created_by = u.id WHERE l.tenant_id = ? GROUP BY u.id ORDER BY avg_score DESC`).all(tenantId);
     },
 
-    /**
-     * 🚩 Intelligence: Fetch Leads with suspected issues (logs)
-     */
-    getFlaggedLeads: (tenantId: string) => {
-        const rows = db.prepare(`
-            SELECT 
-                l.id, l.metadata, l.quality_score, l.reward_status, l.source,
-                GROUP_CONCAT(i.message, ' | ') as risk_messages
-            FROM leads l
-            JOIN lead_intelligence_logs i ON l.id = i.lead_id
-            WHERE l.tenant_id = ? AND (l.status = 'active' OR l.status IS NULL)
-            GROUP BY l.id
-            ORDER BY l.created_at DESC
-            LIMIT 100
-        `).all(tenantId) as any[];
-        return rows.map(r => ({ ...r, metadata: JSON.stringify(decryptMetadata(JSON.parse(r.metadata || '{}'))) }));
+    getFlaggedLeads: async (tenantId: string) => {
+        const rows = db.prepare(`SELECT l.id, l.metadata, l.quality_score, l.reward_status, l.source, GROUP_CONCAT(i.message, ' | ') as risk_messages FROM leads l JOIN lead_intelligence_logs i ON l.id = i.lead_id WHERE l.tenant_id = ? AND (l.status = 'active' OR l.status IS NULL) GROUP BY l.id ORDER BY l.created_at DESC LIMIT 100`).all(tenantId) as any[];
+        return Promise.all(rows.map(async r => ({ ...r, metadata: JSON.stringify(await securityGate.decryptMetadata(JSON.parse(r.metadata || '{}'))) })));
     },
 
-    /**
-     * ✅ Intelligence: Fetch Leads with NO suspected issues
-     */
-    getCleanLeads: (tenantId: string) => {
-        const rows = db.prepare(`
-            SELECT id, metadata, quality_score, reward_status, source, created_at
-            FROM leads 
-            WHERE tenant_id = ? AND (status = 'active' OR status IS NULL)
-              AND quality_score >= 80 
-              AND id NOT IN (SELECT lead_id FROM lead_intelligence_logs)
-            ORDER BY created_at DESC
-            LIMIT 50
-        `).all(tenantId) as any[];
-        return rows.map(r => ({ ...r, metadata: JSON.stringify(decryptMetadata(JSON.parse(r.metadata || '{}'))) }));
+    getCleanLeads: async (tenantId: string) => {
+        const rows = db.prepare(`SELECT id, metadata, quality_score, reward_status, source, created_at FROM leads WHERE tenant_id = ? AND (status = 'active' OR status IS NULL) AND quality_score >= 80 AND id NOT IN (SELECT lead_id FROM lead_intelligence_logs) ORDER BY created_at DESC LIMIT 50`).all(tenantId) as any[];
+        return Promise.all(rows.map(async r => ({ ...r, metadata: JSON.stringify(await securityGate.decryptMetadata(JSON.parse(r.metadata || '{}'))) })));
     },
 
-    /**
-     * ✅ Quality Control: Manually approve a reward that was blocked
-     */
-    approveReward: (leadId: string, adminId: string) => {
-        const tx = db.transaction(() => {
-            db.prepare("UPDATE leads SET reward_status = 'sent' WHERE id = ? AND reward_status = 'pending_qc'").run(leadId);
-            auditTrail.logAction(adminId, 'UPDATE', 'LEAD(QC_APPROVE)', leadId, 'Reward manually approved after quality check.');
-        });
-        tx();
-        return true;
-    },
-
-    /**
-     * 📥 Enterprise Restore: JSON Backup Injection & Re-Analysis
-     */
-    restore: (dataStr: string, type: 'json' | 'sqlite' = 'json') => {
-        if (type !== 'json') {
-            throw new Error("Seul le format JSON est supporté pour le moment via leadsDb.restore.");
-        }
-
-        let parsed: any;
-        try {
-            parsed = JSON.parse(dataStr);
-        } catch {
-            throw new Error('Fichier JSON invalide.');
-        }
-
+    restore: async (dataStr: string, type: 'json' | 'sqlite' = 'json') => {
+        if (type !== 'json') throw new Error("Only JSON format is supported.");
+        const parsed = JSON.parse(dataStr);
         const leads: any[] = parsed.leads || [];
 
-        // 🛡️ KEY GUARD: Sample leads for cipher formats and try to decrypt
-        // Lazy require to avoid circular dependency
-        const { isEncrypted, tryDecrypt, getSensitiveFields } = require('@/src/lib/crypto');
-        let mismatch = false;
-        const SENSITIVE = getSensitiveFields();
-
-        for (const lead of leads) {
-            let meta = lead.metadata;
-            if (typeof meta === 'string') {
-                try { meta = JSON.parse(meta); } catch { meta = {}; }
-            }
-
-            for (const field of SENSITIVE) {
-                const val = meta?.[field];
-                const strVal = Array.isArray(val) ? val[0] : val;
-                if (typeof strVal === 'string' && isEncrypted(strVal)) {
-                    if (tryDecrypt(strVal) === null) {
-                        mismatch = true;
-                        break;
-                    }
-                }
-            }
-            if (mismatch) break;
-        }
-
-        if (mismatch) {
-            throw new Error("Clé de chiffrement invalide pour cette sauvegarde.");
-        }
-
-        // 📥 BULK INSERT (TRANSACTION)
         const tx = db.transaction(() => {
-            db.prepare('DELETE FROM leads').run(); // Wipe existing locally to allow pure overwrite
-
-            const stmt = db.prepare(`
-                INSERT OR IGNORE INTO leads 
-                (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, tenant_id, sync_status, form_version, quality_score, score, reward_status, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-
+            db.prepare('DELETE FROM leads').run();
+            const stmt = db.prepare(`INSERT OR IGNORE INTO leads (id, metadata, source, device_id, created_at, updated_at, created_by, team_id, tenant_id, sync_status, form_version, quality_score, score, reward_status, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
             for (const lead of leads) {
                 const metadataStr = typeof lead.metadata === 'string' ? lead.metadata : JSON.stringify(lead.metadata || {});
-
-                stmt.run(
-                    lead.id, metadataStr, lead.source, lead.device_id,
-                    lead.created_at, lead.updated_at, lead.created_by,
-                    lead.team_id, lead.tenant_id, lead.sync_status ?? 'synced',
-                    lead.form_version ?? 1, lead.quality_score ?? null,
-                    lead.score ?? 0, lead.reward_status ?? 'none', lead.status ?? 'active'
-                );
+                stmt.run(lead.id, metadataStr, lead.source, lead.device_id, lead.created_at, lead.updated_at, lead.created_by, lead.team_id, lead.tenant_id, lead.sync_status ?? 'synced', lead.form_version ?? 1, lead.quality_score ?? null, lead.score ?? 0, lead.reward_status ?? 'none', lead.status ?? 'active');
             }
         });
-
-        tx(); // Execute synchronous transaction
-
-        // 🤖 Asynchronously trigger intelligence rebuild on all restored leads
+        tx();
         const ids = leads.map((l: any) => l.id);
-        Promise.all(ids.map((id: string) => leadsDb.analyzeLead(id)))
-            .catch(err => console.error('[Restore] Post-restore Analysis Error:', err));
-
+        Promise.all(ids.map((id: string) => leadsDb.analyzeLead(id))).catch(err => { });
         return leads.length;
     }
-}
-    ;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 🏆 REWARDS DATA ACCESS LAYER
-// ─────────────────────────────────────────────────────────────────────────────
-export const rewardsDb = {
-    /** List all rewards, optionally filtered to active only */
-    list: (onlyActive = false) => {
-        const filter = onlyActive ? 'WHERE is_active = 1' : '';
-        return db.prepare(`
-            SELECT r.*, u.name as created_by_name,
-                   CASE WHEN r.total_quantity = -1 THEN -1
-                        ELSE r.total_quantity - r.claimed_count
-                   END as remaining
-            FROM rewards r
-            LEFT JOIN users u ON r.created_by = u.id
-            ${filter}
-            ORDER BY r.created_at DESC
-        `).all() as any[];
-    },
-
-    getById: (id: string) => {
-        return db.prepare(`
-            SELECT r.*, u.name as created_by_name,
-                   CASE WHEN r.total_quantity = -1 THEN -1
-                        ELSE r.total_quantity - r.claimed_count
-                   END as remaining
-            FROM rewards r
-            LEFT JOIN users u ON r.created_by = u.id
-            WHERE r.id = ?
-        `).get(id) as any;
-    },
-
-    create: (payload: {
-        id: string;
-        name: string;
-        description?: string;
-        reward_type: string;
-        value?: string;
-        total_quantity: number;
-        rule_match?: string;
-        reward_code?: string;
-        created_by: string;
-    }) => {
-        const now = new Date().toISOString();
-        db.prepare(`
-            INSERT INTO rewards
-                (id, name, description, reward_type, value, total_quantity, claimed_count, is_active, rule_match, reward_code, created_by, created_at, updated_at)
-            VALUES
-                (?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?, ?, ?)
-        `).run(
-            payload.id,
-            payload.name,
-            payload.description || null,
-            payload.reward_type,
-            payload.value || null,
-            payload.total_quantity,
-            payload.rule_match || null,
-            payload.reward_code || null,
-            payload.created_by,
-            now, now
-        );
-    },
-
-    update: (id: string, fields: {
-        name?: string;
-        description?: string;
-        reward_type?: string;
-        value?: string;
-        total_quantity?: number;
-        is_active?: number;
-        rule_match?: string;
-        reward_code?: string;
-    }) => {
-        const now = new Date().toISOString();
-        const sets: string[] = ['updated_at = ?'];
-        const params: any[] = [now];
-
-        if (fields.name !== undefined) { sets.push('name = ?'); params.push(fields.name); }
-        if (fields.description !== undefined) { sets.push('description = ?'); params.push(fields.description); }
-        if (fields.reward_type !== undefined) { sets.push('reward_type = ?'); params.push(fields.reward_type); }
-        if (fields.value !== undefined) { sets.push('value = ?'); params.push(fields.value); }
-        if (fields.total_quantity !== undefined) { sets.push('total_quantity = ?'); params.push(fields.total_quantity); }
-        if (fields.is_active !== undefined) { sets.push('is_active = ?'); params.push(fields.is_active); }
-        if (fields.rule_match !== undefined) { sets.push('rule_match = ?'); params.push(fields.rule_match); }
-        if (fields.reward_code !== undefined) { sets.push('reward_code = ?'); params.push(fields.reward_code); }
-
-        params.push(id);
-        db.prepare(`UPDATE rewards SET ${sets.join(', ')} WHERE id = ?`).run(...params);
-    },
-
-    delete: (id: string) => {
-        // Soft delete: just deactivate — preserves FK integrity with leads
-        db.prepare(`UPDATE rewards SET is_active = 0, updated_at = ? WHERE id = ?`)
-            .run(new Date().toISOString(), id);
-    },
-
-    incrementClaimed: (id: string) => {
-        db.prepare(`UPDATE rewards SET claimed_count = claimed_count + 1, updated_at = ? WHERE id = ?`)
-            .run(new Date().toISOString(), id);
-    },
 };
 
 // Generic User/Auth helpers
@@ -1394,32 +1080,7 @@ export const formConfigDb = {
 // ─────────────────────────────────────────────────────────────────────────────
 // 🧩 MODULE REGISTRY (Modular Architecture)
 // ─────────────────────────────────────────────────────────────────────────────
-const moduleCache: Record<string, boolean> = {};
-
-export const moduleDb = {
-    list: () => {
-        return db.prepare("SELECT * FROM module_registry").all() as any[];
-    },
-    updateStatus: (id: string, isEnabled: boolean) => {
-        db.prepare("UPDATE module_registry SET is_enabled = ? WHERE id = ?").run(isEnabled ? 1 : 0, id);
-        moduleCache[id] = isEnabled; // Update cache
-    },
-    isEnabled: (moduleId: string): boolean => {
-        // Simple cache lookup
-        if (moduleCache[moduleId] !== undefined) return moduleCache[moduleId];
-        
-        try {
-            const row = db.prepare("SELECT is_enabled FROM module_registry WHERE id = ?").get(moduleId) as any;
-            const enabled = row ? row.is_enabled === 1 : false;
-            moduleCache[moduleId] = enabled;
-            return enabled;
-        } catch {
-            return false;
-        }
-    }
-};
-
-export const isModuleEnabled = moduleDb.isEnabled;
+export { moduleDb, isModuleEnabled } from './module-registry';
 
 // Initialize database
 initDb();

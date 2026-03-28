@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { leadsDb, rewardsDb, auditTrail, formConfigDb, db } from '@/lib/db';
+import { leadsDb, auditTrail, formConfigDb, db, isModuleEnabled } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -30,66 +30,75 @@ export async function POST(request: Request) {
     const id = uuidv4();
 
     // ─────────────────────────────────────────────────────────────────
-    // 🎁 1. INSTANT REWARD MATCHING ENGINE
+    // 🎁 1. INSTANT REWARD MATCHING ENGINE (Modular)
     // ─────────────────────────────────────────────────────────────────
     let wonReward: any = null;
 
-    // Wrap the assignment in an exclusive transaction to prevent race conditions on stock
-    const assignReward = db.transaction(() => {
-      // Fetch all ACTIVE rewards with remaining stock
-      const availableRewards = db.prepare(`
-                SELECT * FROM rewards 
-                WHERE is_active = 1 
-                    AND (total_quantity = -1 OR (total_quantity - claimed_count) > 0)
-            `).all() as any[];
+    if (isModuleEnabled('rewards')) {
+      try {
+        // 🧪 Dynamic Extraction: Only Load Rewards logic if module is ACTIVE
+        const { rewardsDb } = await import('@/src/modules/rewards/lib/rewards-db');
+        
+        // Wrap the assignment in an exclusive transaction to prevent race conditions on stock
+        const rewardTransaction = db.transaction(() => {
+          // Fetch all ACTIVE rewards with remaining stock
+          const availableRewards = db.prepare(`
+                    SELECT * FROM rewards 
+                    WHERE is_active = 1 
+                        AND (total_quantity = -1 OR (total_quantity - claimed_count) > 0)
+                `).all() as any[];
 
-      if (availableRewards.length > 0) {
-        // 1. Separate rewards into rule-based and universal (no rules)
-        const ruleBased: any[] = [];
-        const universal: any[] = [];
+          if (availableRewards.length > 0) {
+            // 1. Separate rewards into rule-based and universal (no rules)
+            const ruleBased: any[] = [];
+            const universal: any[] = [];
 
-        for (const reward of availableRewards) {
-          if (reward.rule_match) {
-            try {
-              ruleBased.push({ ...reward, ruleObj: JSON.parse(reward.rule_match) });
-            } catch (e) { /* ignore invalid rules */ console.error("Invalid rule JSON", reward.rule_match); }
-          } else {
-            universal.push(reward);
+            for (const reward of availableRewards) {
+              if (reward.rule_match) {
+                try {
+                  ruleBased.push({ ...reward, ruleObj: JSON.parse(reward.rule_match) });
+                } catch (e) { /* ignore invalid rules */ console.error("Invalid rule JSON", reward.rule_match); }
+              } else {
+                universal.push(reward);
+              }
+            }
+
+            // 2. Try to find a matching rule
+            let matchedRewards = ruleBased.filter(r => {
+              const { field, value } = r.ruleObj;
+              if (!field || !value) return false;
+
+              const metaValue = body[field];
+              if (Array.isArray(metaValue)) {
+                return metaValue.includes(value);
+              }
+              return String(metaValue) === String(value);
+            });
+
+            // 3. If no rules match, fallback to universal pool
+            let selectionPool = matchedRewards.length > 0 ? matchedRewards : universal;
+
+            // If even universal is empty, pick anything to avoid breaking (failsafe)
+            if (selectionPool.length === 0) selectionPool = availableRewards;
+
+            // Randomly pick one reward from the final valid pool
+            const randomIndex = Math.floor(Math.random() * selectionPool.length);
+            const selected = selectionPool[randomIndex];
+
+            // Increment its claimed_count to reserve it immediately 
+            rewardsDb.incrementClaimed(selected.id);
+
+            return selected;
           }
-        }
-
-        // 2. Try to find a matching rule
-        let matchedRewards = ruleBased.filter(r => {
-          const { field, value } = r.ruleObj;
-          if (!field || !value) return false;
-
-          const metaValue = body[field];
-          if (Array.isArray(metaValue)) {
-            return metaValue.includes(value);
-          }
-          return String(metaValue) === String(value);
+          return null;
         });
 
-        // 3. If no rules match, fallback to universal pool
-        let selectionPool = matchedRewards.length > 0 ? matchedRewards : universal;
-
-        // If even universal is empty, pick anything to avoid breaking (failsafe)
-        if (selectionPool.length === 0) selectionPool = availableRewards;
-
-        // Randomly pick one reward from the final valid pool
-        const randomIndex = Math.floor(Math.random() * selectionPool.length);
-        wonReward = selectionPool[randomIndex];
-
-        // Increment its claimed_count to reserve it immediately 
-        rewardsDb.incrementClaimed(wonReward.id);
-
-        return wonReward;
+        // Execute transaction
+        wonReward = rewardTransaction();
+      } catch (err) {
+        console.error('[Kiosk Submit] Rewards module enabled but failed to load or execute:', err);
       }
-      return null;
-    });
-
-    // Execute transaction
-    assignReward();
+    }
 
     // ─────────────────────────────────────────────────────────────────
     // 2. FAST LEAD PERSISTENCE

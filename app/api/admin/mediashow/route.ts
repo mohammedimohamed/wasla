@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { mediashowDb } from '@/lib/db';
+import { mediashowDb, isModuleEnabled } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
@@ -12,6 +12,7 @@ import { getPublicUploadDir, deleteFile as deleteStorageFile } from '@/lib/stora
  * List all assets
  */
 export async function GET() {
+    if (!isModuleEnabled('mediashow')) return new Response(null, { status: 403 });
     try {
         const session = await getSession();
         if (!session || session.role !== 'ADMINISTRATOR') {
@@ -30,6 +31,7 @@ export async function GET() {
  * Upload/Add new asset
  */
 export async function POST(request: Request) {
+    if (!isModuleEnabled('mediashow')) return new Response(null, { status: 403 });
     try {
         const session = await getSession();
         if (!session || session.role !== 'ADMINISTRATOR') {
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
  * Bulk update order
  */
 export async function PATCH(request: Request) {
+    if (!isModuleEnabled('mediashow')) return new Response(null, { status: 403 });
     try {
         const session = await getSession();
         if (!session || session.role !== 'ADMINISTRATOR') {
@@ -97,6 +100,7 @@ export async function PATCH(request: Request) {
  * Remove asset
  */
 export async function DELETE(request: Request) {
+    if (!isModuleEnabled('mediashow')) return new Response(null, { status: 403 });
     try {
         const session = await getSession();
         if (!session || session.role !== 'ADMINISTRATOR') {

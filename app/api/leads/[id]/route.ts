@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import db, { settingsDb } from '@/lib/db';
+import db, { settingsDb, isModuleEnabled } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { encryptMetadata, decryptMetadata } from '@/src/lib/crypto';
+import * as securityGate from '@/src/lib/security-gate';
 
 export async function GET(
     request: Request,
@@ -37,9 +37,11 @@ export async function GET(
         // 🛡️ ARCHITECTURAL FIX: Parse metadata and flatten for frontend
         const rawMeta = JSON.parse(lead.metadata || '{}');
         // Backward-compat: unwrap old double-nested {metadata: {...}} leads
-        const meta = decryptMetadata((rawMeta.metadata && typeof rawMeta.metadata === 'object' && !Array.isArray(rawMeta.metadata))
+        const metaToDecrypt = (rawMeta.metadata && typeof rawMeta.metadata === 'object' && !Array.isArray(rawMeta.metadata))
             ? rawMeta.metadata
-            : rawMeta);
+            : rawMeta;
+        
+        const meta = await securityGate.decryptMetadata(metaToDecrypt);
 
         // Fetch Lineage Story (Phase 16)
         const lineageRows = db.prepare(`
@@ -50,9 +52,10 @@ export async function GET(
             ORDER BY lin.created_at DESC
         `).all(params.id) as any[];
 
-        const lineage = lineageRows.map(row => {
+        const lineage = await Promise.all(lineageRows.map(async row => {
             const rowMetaRaw = JSON.parse(row.metadata || '{}');
-            const rowMeta = decryptMetadata((rowMetaRaw.metadata && typeof rowMetaRaw.metadata === 'object' && !Array.isArray(rowMetaRaw.metadata)) ? rowMetaRaw.metadata : rowMetaRaw);
+            const rowMetaToDecrypt = (rowMetaRaw.metadata && typeof rowMetaRaw.metadata === 'object' && !Array.isArray(rowMetaRaw.metadata)) ? rowMetaRaw.metadata : rowMetaRaw;
+            const rowMeta = await securityGate.decryptMetadata(rowMetaToDecrypt);
             return {
                 id: row.id,
                 status: row.status,
@@ -62,7 +65,7 @@ export async function GET(
                 phone: rowMeta.phone || '',
                 email: rowMeta.email || '',
             };
-        });
+        }));
 
         // Fetch Intelligence Logs (Phase 16)
         const logs = db.prepare(`
@@ -110,8 +113,8 @@ export async function PUT(
 
         // Bundle updates into metadata
         // We merge with existing metadata to preserve fields not sent in this specific PUT
-        const existingMeta = decryptMetadata(JSON.parse(existing.metadata || '{}'));
-        const updatedMeta = encryptMetadata({ ...existingMeta, ...customFields }, settingsDb.isEncryptionEnabled());
+        const existingMeta = await securityGate.decryptMetadata(JSON.parse(existing.metadata || '{}'));
+        const updatedMeta = await securityGate.encryptMetadata({ ...existingMeta, ...customFields }, settingsDb.isEncryptionEnabled());
 
         const query = `
             UPDATE leads SET

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { mediashowDb } from '@/lib/db';
+import { mediashowDb, isModuleEnabled } from '@/lib/db';
 
 /**
  * 📺 GET /api/mediashow
@@ -8,6 +8,7 @@ import { mediashowDb } from '@/lib/db';
  * No Authentication required.
  */
 export async function GET() {
+    if (!isModuleEnabled('mediashow')) return new Response(null, { status: 403 });
     try {
         const assets = mediashowDb.list();
         return NextResponse.json({ success: true, assets });

@@ -15,7 +15,7 @@ export async function GET() {
             return NextResponse.json({ error: 'Auth Required' }, { status: 401 });
         }
 
-        const leads = leadsDb.getVisibleLeads(session.userId);
+        const leads = await leadsDb.getVisibleLeads(session.userId);
         return NextResponse.json({ success: true, leads });
     } catch (error) {
         return NextResponse.json({ success: false, error: 'Internal Error' }, { status: 500 });
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         const formVersion = config ? config._version : 1;
 
         const id = uuidv4();
-        leadsDb.create(
+        await leadsDb.create(
             id,
             metadata,
             source || 'unknown',

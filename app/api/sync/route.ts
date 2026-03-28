@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { db, auditTrail, leadsDb, formConfigDb, settingsDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { encryptMetadata } from '@/src/lib/crypto';
+import * as securityGate from '@/src/lib/security-gate';
 
 export async function POST(request: Request) {
     try {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
                 const createdBy = source === 'commercial' ? (agentId || payload.agent_id || finalAgentId) : 'system';
 
                 // Embed client_uuid inside metadata so idempotency check works
-                const enrichedPayload = encryptMetadata({ ...payload, client_uuid }, settingsDb.isEncryptionEnabled());
+                const enrichedPayload = await securityGate.encryptMetadata({ ...payload, client_uuid }, settingsDb.isEncryptionEnabled());
                 const metadataStr = JSON.stringify(enrichedPayload);
 
                 db.prepare(`
