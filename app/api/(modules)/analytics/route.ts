@@ -1,22 +1,26 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { leadsDb } from '@/lib/db';
+import { isModuleEnabled } from '@/lib/db';
 
 /**
- * 🔒 DASHBOARD STATS API
- * Returns secure metrics based on the User's RBAC Profile.
+ * 🔒 ANALYTICS API (Module)
+ * Returns advanced metrics based on the User's RBAC Profile.
  */
 export async function GET() {
     try {
+        if (!isModuleEnabled('analytics')) {
+            return NextResponse.json({ error: 'Analytics module is disabled' }, { status: 403 });
+        }
+
         const session = await getSession();
 
-        // 🛡️ Security Check: Reject if no session or if session is locked
         if (!session || !session.hasPin) {
             return NextResponse.json({ error: 'Auth Required' }, { status: 401 });
         }
 
-        const stats = leadsDb.getStats(session.userId);
+        const { statsDb } = await import('@/src/modules/analytics/lib/stats-db');
+        const stats = await statsDb.getStats(session.userId);
 
         return NextResponse.json({
             success: true,
@@ -31,11 +35,12 @@ export async function GET() {
                 totalRewards: stats.totalRewards ?? 0,
                 rewardsDistributed: stats.rewardsDistributed ?? 0,
                 recentLeads: stats.recentLeads ?? [],
+                hourlyStats: stats.hourlyStats ?? [],
+                agentStats: stats.agentStats ?? [],
             }
         });
     } catch (error) {
-        console.error('[API Error] Dashboard stats failed:', error);
+        console.error('[Analytics Module Error]', error);
         return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
     }
 }
-

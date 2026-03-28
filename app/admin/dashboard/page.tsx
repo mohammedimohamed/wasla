@@ -62,7 +62,8 @@ export default function AdminDashboardPage() {
         vault: true,
         rewards: true,
         mediashow: true,
-        intelligence: true
+        intelligence: true,
+        analytics: true
     });
 
     // 🛡️ RBAC Session & Stats Sync
@@ -91,34 +92,36 @@ export default function AdminDashboardPage() {
                     return;
                 }
 
-                // 3. Fetch Real-time Database Stats
-                const statsRes = await fetch('/api/dashboard/stats');
-                if (statsRes.ok) {
-                    const statsData = await statsRes.json();
-                    setStats(state => ({
-                        ...state,
-                        ...statsData.data
-                    }));
-                } else {
-                    const errData = await statsRes.json().catch(() => ({}));
-                    console.error('[Dashboard] Stats fetch failed:', statsRes.status, errData);
-                }
-                // 4. Fetch Mediashow Assets if enabled
-                const assetsRes = await fetch('/api/mediashow');
-                if (assetsRes.ok) {
-                    const assetsData = await assetsRes.json();
-                    setMediashowAssets(assetsData.assets || []);
-                }
-
-                // 5. Fetch Module Registry Status
+                // 3. Fetch Module Registry Status first
+                let mappedModules: Record<string, boolean> = { analytics: false, mediashow: false, intelligence: false, rewards: false, vault: false };
                 const modulesRes = await fetch('/api/admin/modules');
                 if (modulesRes.ok) {
                     const modulesData = await modulesRes.json();
-                    const statusMap: Record<string, boolean> = {};
                     modulesData.forEach((m: any) => {
-                        statusMap[m.id] = m.is_enabled === 1;
+                        mappedModules[m.id] = m.is_enabled === 1;
                     });
-                    setModuleStatus(statusMap);
+                    setModuleStatus(mappedModules);
+                }
+
+                // 4. Fetch Real-time Database Stats (Only if Analytics module is active)
+                if (mappedModules.analytics) {
+                    const statsRes = await fetch('/api/analytics');
+                    if (statsRes.ok) {
+                        const statsData = await statsRes.json();
+                        setStats(state => ({
+                            ...state,
+                            ...statsData.data
+                        }));
+                    }
+                }
+
+                // 5. Fetch Mediashow Assets if enabled
+                if (mappedModules.mediashow) {
+                    const assetsRes = await fetch('/api/mediashow');
+                    if (assetsRes.ok) {
+                        const assetsData = await assetsRes.json();
+                        setMediashowAssets(assetsData.assets || []);
+                    }
                 }
             } catch (e) {
                 toast.error(t('common.error'));
@@ -220,81 +223,96 @@ export default function AdminDashboardPage() {
             </header>
 
             <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
-                {/* Real-time Business Intelligence Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
-                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                            <Users className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-black text-slate-900 leading-none">{totalLeads}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
-                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                            <Calendar className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-black text-slate-900 leading-none">{leadsToday}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Aujourd'hui</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
-                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                            <RefreshCw className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-black text-slate-900 leading-none">{syncedLeads}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Synchronisés</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
-                        <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center">
-                            <Gift className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <div className="flex items-end gap-2">
-                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.rewardsDistributed || 0}</p>
-                                <p className="text-sm font-bold text-slate-400 mb-0.5">/ {stats.totalRewards || 0} Campaigns</p>
-                            </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Distributed / Active Types</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Performance Mix Breakdown */}
-                <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-12 opacity-5">
-                        <TrendingUp className="w-48 h-48" />
-                    </div>
-                    <div className="relative z-10">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4" /> Répartition par source
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            {[
-                                { label: 'Kiosque Automatisé', value: kioskLeads, color: 'bg-blue-400', icon: Monitor },
-                                { label: 'Force de Vente', value: commercialLeads, color: 'bg-emerald-400', icon: Users }
-                            ].map((source, idx) => (
-                                <div key={idx} className="space-y-3">
-                                    <div className="flex justify-between items-end">
-                                        <span className="flex items-center gap-3 font-bold text-sm text-slate-300">
-                                            <source.icon className="w-5 h-5 text-slate-500" /> {source.label}
-                                        </span>
-                                        <span className="text-xl font-black">{source.value}</span>
-                                    </div>
-                                    <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full ${source.color} rounded-full transition-all duration-1000 ease-out`}
-                                            style={{ width: `${totalLeads > 0 ? (source.value / totalLeads) * 100 : 0}%` }}
-                                        />
-                                    </div>
+                {moduleStatus.analytics ? (
+                    <>
+                        {/* Real-time Business Intelligence Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                                    <Users className="w-5 h-5" />
                                 </div>
-                            ))}
+                                <div>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{totalLeads}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</p>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                    <Calendar className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{leadsToday}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Aujourd'hui</p>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                    <RefreshCw className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{syncedLeads}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Synchronisés</p>
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
+                                <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center">
+                                    <BarChart3 className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div className="flex items-end gap-2">
+                                        <button onClick={() => router.push("/admin/analytics")} className="text-sm font-bold text-primary hover:underline">
+                                            Avancé
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Analytics Avancés</p>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Performance Mix Breakdown */}
+                        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-12 opacity-5">
+                                <TrendingUp className="w-48 h-48" />
+                            </div>
+                            <div className="relative z-10">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4" /> Répartition par source
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    {[
+                                        { label: 'Kiosque Automatisé', value: kioskLeads, color: 'bg-blue-400', icon: Monitor },
+                                        { label: 'Force de Vente', value: commercialLeads, color: 'bg-emerald-400', icon: Users }
+                                    ].map((source, idx) => (
+                                        <div key={idx} className="space-y-3">
+                                            <div className="flex justify-between items-end">
+                                                <span className="flex items-center gap-3 font-bold text-sm text-slate-300">
+                                                    <source.icon className="w-5 h-5 text-slate-500" /> {source.label}
+                                                </span>
+                                                <span className="text-xl font-black">{source.value}</span>
+                                            </div>
+                                            <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full ${source.color} rounded-full transition-all duration-1000 ease-out`}
+                                                    style={{ width: `${totalLeads > 0 ? (source.value / totalLeads) * 100 : 0}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="bg-white rounded-[40px] border-4 border-dashed border-slate-200 p-12 text-center flex flex-col items-center justify-center shadow-sm">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-[24px] flex items-center justify-center mb-6">
+                            <TrendingUp className="w-8 h-8 opacity-50" />
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-800 mb-2">Mode Minimaliste Actif</h2>
+                        <p className="text-slate-500 max-w-md mx-auto text-sm font-medium">
+                            Traitements allégés ! Le module <strong className="text-indigo-500">Analytics</strong> est actuellement désactivé pour économiser les ressources. Allez dans le Module Manager pour l'activer.
+                        </p>
                     </div>
-                </div>
+                )}
 
                 {/* Recent Intelligence Table */}
                 <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">

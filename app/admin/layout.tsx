@@ -20,7 +20,8 @@ export default async function AdminLayout({
         '/admin/rewards': 'rewards',
         '/admin/vault': 'vault',
         '/admin/mediashow': 'mediashow',
-        '/admin/intelligence': 'intelligence'
+        '/admin/intelligence': 'intelligence',
+        '/admin/analytics': 'analytics'
     };
 
     // 🛡️ RE-ENFORCE MODULARITY

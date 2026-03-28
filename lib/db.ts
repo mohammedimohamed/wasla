@@ -356,7 +356,8 @@ export function initDb() {
             ['vault', 'Vault & Security', 1, 'AES-256-GCM Encryption & JSON Backups'],
             ['rewards', 'Rewards Engine', 1, 'Gift attribution and anti-fraud logic'],
             ['mediashow', 'MediaShow Kiosk', 1, 'Dynamic slideshow and asset proxy'],
-            ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics']
+            ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics'],
+            ['analytics', 'Analytics Dashboard', 1, 'Real-time performance and conversion metrics']
         ];
         
         const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
@@ -487,50 +488,6 @@ export const leadsDb = {
         return db.prepare("UPDATE leads SET sync_status = 'synced', synced_at = ?, updated_at = ? WHERE id = ?").run(now, now, id);
     },
 
-    getStats: (userId: string) => {
-        const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
-        if (!user) return { totalLeads: 0, leadsToday: 0, syncedLeads: 0, recentLeads: [] };
-
-        let filter = " WHERE tenant_id = ?";
-        const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
-
-        if (user.role === 'SALES_AGENT') {
-            filter += " AND created_by = ?";
-            params.push(userId);
-        } else if (user.role === 'TEAM_LEADER' && user.team_id) {
-            filter += " AND team_id = ?";
-            params.push(user.team_id);
-        }
-
-        const totalLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${filter}`).get(params) as { count: number };
-        const todayFilter = `${filter} AND date(created_at) = date('now')`;
-        const leadsToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${todayFilter}`).get(params) as { count: number };
-        const syncFilter = `${filter} AND sync_status = 'synced'`;
-        const syncedLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${syncFilter}`).get(params) as { count: number };
-        const kioskFilter = `${filter} AND source = 'kiosk'`;
-        const kioskLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${kioskFilter}`).get(params) as { count: number };
-        const commercialFilter = `${filter} AND source = 'commercial'`;
-        const commercialLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${commercialFilter}`).get(params) as { count: number };
-
-        const recentLeads = db.prepare(`
-            SELECT * FROM leads ${filter} 
-            ORDER BY created_at DESC 
-            LIMIT 5
-        `).all(params);
-
-        return {
-            totalLeads: totalLeads.count,
-            leadsToday: leadsToday.count,
-            syncedLeads: syncedLeads.count,
-            kioskLeads: kioskLeads.count,
-            commercialLeads: commercialLeads.count,
-            recentLeads,
-            rewardsGiven: 0,
-            rewardsGivenToday: 0,
-            totalRewards: 0,
-            rewardsDistributed: 0,
-        };
-    },
 
     checkDuplicate: (email?: string, phone?: string, excludeId?: string) => {
         if (!email || !phone) return false;
