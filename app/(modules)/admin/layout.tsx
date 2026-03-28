@@ -19,7 +19,7 @@ export default async function ModulesAdminLayout({
     const moduleRoutes: Record<string, string> = {
         '/admin/rewards': 'rewards',
         '/admin/vault': 'vault',
-        '/admin/settings/mediashow': 'mediashow',
+        '/admin/mediashow': 'mediashow',
         '/admin/intelligence': 'intelligence'
     };
 

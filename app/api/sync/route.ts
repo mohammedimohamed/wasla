@@ -4,6 +4,7 @@ import { db, auditTrail, leadsDb, formConfigDb, settingsDb } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import * as securityGate from '@/src/lib/security-gate';
+import { isModuleEnabled } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
@@ -80,9 +81,11 @@ export async function POST(request: Request) {
                 );
 
                 // Fire async intelligence analysis — non-blocking
-                leadsDb.analyzeLead(definitiveId).catch(err =>
-                    console.error('[Sync API] Analytics error:', err)
-                );
+                if (isModuleEnabled('intelligence')) {
+                    import('@/src/modules/intelligence/lib/scoring')
+                        .then(({ intelligenceLogic }) => intelligenceLogic.analyzeLead(definitiveId))
+                        .catch(err => console.error('[Sync API] Analytics error:', err));
+                }
 
                 syncedIds.push(client_uuid);
             } catch (itemError) {

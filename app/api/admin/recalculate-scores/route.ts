@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { db, leadsDb } from '@/lib/db';
+import { db, leadsDb, isModuleEnabled } from '@/lib/db';
 
 async function requireAdmin() {
     const session = await getSession();
@@ -20,9 +20,11 @@ export async function POST(request: Request) {
         
         console.log(`[Score Recalculation] Starting for ${leads.length} leads...`);
         
-        // We run them sequentially to avoid locking the DB too much, though analyzeLead has its own transaction
-        for (const lead of leads) {
-            await leadsDb.analyzeLead(lead.id);
+        if (isModuleEnabled('intelligence')) {
+            const { intelligenceLogic } = await import('@/src/modules/intelligence/lib/scoring');
+            for (const lead of leads) {
+                await intelligenceLogic.analyzeLead(lead.id);
+            }
         }
 
         return NextResponse.json({ 

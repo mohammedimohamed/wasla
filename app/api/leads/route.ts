@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { leadsDb, formConfigDb, db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { isModuleEnabled } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 /**
@@ -71,7 +72,11 @@ export async function POST(request: Request) {
         );
 
         // ⚡ ASYNCHRONOUS INTELLIGENCE LAYER
-        leadsDb.analyzeLead(id).catch(err => console.error('[Intel Error]', err));
+        if (isModuleEnabled('intelligence')) {
+            import('@/src/modules/intelligence/lib/scoring')
+                .then(({ intelligenceLogic }) => intelligenceLogic.analyzeLead(id))
+                .catch(err => console.error('[Intel Error]', err));
+        }
 
         return NextResponse.json({ success: true, id }, { status: 201 });
     } catch (error) {

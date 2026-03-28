@@ -82,7 +82,7 @@ const withPWA = require('next-pwa')({
 
         // ── 6. Mediashow media assets — CacheFirst (large files, rarely change)
         {
-            urlPattern: /^\/uploads\/mediashow\/.+\.(?:png|jpg|jpeg|svg|gif|mp4|webm|ogg)$/i,
+            urlPattern: /\/api\/mediashow\/uploads\/mediashow\/.+\.(?:png|jpg|jpeg|svg|gif|mp4|webm|ogg)$/i,
             handler: 'CacheFirst',
             options: {
                 cacheName: 'wasla-mediashow-assets',
@@ -126,6 +126,18 @@ const nextConfig = {
     transpilePackages: ['lucide-react', 'qrcode.react'],
     experimental: {
         serverComponentsExternalPackages: ['better-sqlite3']
+    },
+    async rewrites() {
+        return [
+            {
+                source: '/uploads/:path*',
+                destination: '/api/mediashow/uploads/:path*',
+            },
+            {
+                source: '/api/uploads/:path*',
+                destination: '/api/mediashow/uploads/:path*',
+            }
+        ];
     }
 };
 

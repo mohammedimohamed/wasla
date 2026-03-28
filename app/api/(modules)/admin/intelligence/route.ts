@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { leadsDb, isModuleEnabled } from '@/lib/db';
+import { isModuleEnabled } from '@/lib/db';
+import { intelligenceLogic } from '@/src/modules/intelligence/lib/scoring';
 
 async function requireAdmin() {
     if (!isModuleEnabled('intelligence')) return { error: 'Module Disabled', status: 403 as const };
@@ -16,10 +17,10 @@ export async function GET() {
     if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     try {
-        const suggestedMerges = leadsDb.getSuggestedMerges(auth.session.tenantId);
-        const garbageReport = leadsDb.getAgentQualityRanking(auth.session.tenantId);
-        const flaggedLeads = leadsDb.getFlaggedLeads(auth.session.tenantId);
-        const cleanLeads = leadsDb.getCleanLeads(auth.session.tenantId);
+        const suggestedMerges = await intelligenceLogic.getSuggestedMerges(auth.session.tenantId);
+        const garbageReport = intelligenceLogic.getAgentQualityRanking(auth.session.tenantId);
+        const flaggedLeads = await intelligenceLogic.getFlaggedLeads(auth.session.tenantId);
+        const cleanLeads = await intelligenceLogic.getCleanLeads(auth.session.tenantId);
 
         return NextResponse.json({
             success: true,
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
             if (!primaryId || !secondaryId || !mergedMetadata) {
                 return NextResponse.json({ error: 'IDs and mergedMetadata required' }, { status: 400 });
             }
-            leadsDb.mergeLeads(primaryId, secondaryId, mergedMetadata, auth.session!.userId);
+            await intelligenceLogic.mergeLeads(primaryId, secondaryId, mergedMetadata, auth.session!.userId);
             return NextResponse.json({ success: true, message: 'Leads merged successfully' });
         }
 
@@ -62,13 +63,13 @@ export async function POST(request: Request) {
 
         if (action === 'REVERT_MERGE') {
             if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-            leadsDb.revertMerge(id, auth.session!.userId);
+            await intelligenceLogic.revertMerge(id, auth.session!.userId);
             return NextResponse.json({ success: true, message: 'Merge reverted' });
         }
 
         if (action === 'GET_LINEAGE') {
             if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
-            const lineage = leadsDb.getLineage(id);
+            const lineage = await intelligenceLogic.getLineage(id);
             return NextResponse.json({ success: true, lineage });
         }
 

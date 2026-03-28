@@ -93,8 +93,11 @@ export async function POST(request: Request) {
         const migratedIds = migrate();
 
         // Fire asynchronous score recalculation for affected leads
-        Promise.all(migratedIds.map((id: string) => leadsDb.analyzeLead(id)))
-            .catch(err => console.error('[Vault Migration] Score recount failed:', err));
+        if (isModuleEnabled('intelligence')) {
+            import('@/src/modules/intelligence/lib/scoring')
+                .then(({ intelligenceLogic }) => Promise.all(migratedIds.map((id: string) => intelligenceLogic.analyzeLead(id))))
+                .catch(err => console.error('[Vault Migration] Score recount failed:', err));
+        }
 
         auditTrail.logAction(auth.session!.userId, 'UPDATE', 'VAULT(MIGRATE)', 'bulk',
             `Encrypted ${migrated} plaintext leads. Skipped: ${skipped}`);

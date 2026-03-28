@@ -433,19 +433,21 @@ export default function AdminDashboardPage() {
                         </button>
                     )}
 
-                    <button
-                        onClick={() => router.push("/admin/golden-records")}
-                        className="p-6 bg-amber-50 rounded-[32px] border border-amber-200 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-100 transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
-                    >
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-400 opacity-10 rounded-full blur-xl group-hover:opacity-30 group-hover:scale-150 transition-all duration-700" />
-                        <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl shadow-lg shadow-amber-200 flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
-                            <ShieldCheck className="w-6 h-6" />
-                        </div>
-                        <div className="relative z-10">
-                            <p className="font-black text-amber-900 uppercase tracking-tight text-xs">{t('intelligence.goldenRecordsMenu') || 'Golden Records'}</p>
-                            <p className="text-[10px] text-amber-700/80 font-medium mt-1">{t('intelligence.cleanRoomDesc') || 'Premium Verified Leads'}</p>
-                        </div>
-                    </button>
+                    {moduleStatus.intelligence && (
+                        <button
+                            onClick={() => router.push("/admin/golden-records")}
+                            className="p-6 bg-amber-50 rounded-[32px] border border-amber-200 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-100 transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
+                        >
+                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-amber-400 to-orange-400 opacity-10 rounded-full blur-xl group-hover:opacity-30 group-hover:scale-150 transition-all duration-700" />
+                            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl shadow-lg shadow-amber-200 flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
+                                <ShieldCheck className="w-6 h-6" />
+                            </div>
+                            <div className="relative z-10">
+                                <p className="font-black text-amber-900 uppercase tracking-tight text-xs">{t('intelligence.goldenRecordsMenu') || 'Golden Records'}</p>
+                                <p className="text-[10px] text-amber-700/80 font-medium mt-1">{t('intelligence.cleanRoomDesc') || 'Premium Verified Leads'}</p>
+                            </div>
+                        </button>
+                    )}
 
                     <button
                         onClick={() => router.push("/admin/settings")}
@@ -475,7 +477,7 @@ export default function AdminDashboardPage() {
 
                     {moduleStatus.mediashow && (
                         <button
-                            onClick={() => router.push("/admin/settings/mediashow")}
+                            onClick={() => router.push("/admin/mediashow")}
                             className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
                         >
                             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">

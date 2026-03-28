@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { mediashowDb, isModuleEnabled } from '@/lib/db';
+import { isModuleEnabled } from '@/lib/db';
+import { mediashowDb } from '@/src/modules/mediashow/lib/mediashow-db';
 
 /**
  * 📺 GET /api/mediashow

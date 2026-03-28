@@ -150,7 +150,11 @@ export async function POST(request: Request) {
     // ─────────────────────────────────────────────────────────────────
     // We trigger the analysis in the background. In a serverless env, we'd use a queue.
     // In this Node environment, we just start the promise.
-    leadsDb.analyzeLead(id).catch(err => console.error('[Intel Error]', err));
+    if (isModuleEnabled('intelligence')) {
+        import('@/src/modules/intelligence/lib/scoring')
+            .then(({ intelligenceLogic }) => intelligenceLogic.analyzeLead(id))
+            .catch(err => console.error('[Intel Error]', err));
+    }
 
     // ─────────────────────────────────────────────────────────────────
     // 4. RESPOND TO CLIENT (FAST)
