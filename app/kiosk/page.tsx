@@ -35,7 +35,7 @@ function FieldRenderer({
     const baseInput = `w-full bg-slate-50 border ${hasError ? 'border-red-400 focus:ring-red-50' : 'border-slate-200 focus:ring-slate-100'} px-5 py-4 min-h-[56px] rounded-[20px] text-base font-medium focus:border-slate-400 focus:ring-4 outline-none transition-all placeholder:text-slate-300 shadow-sm`;
 
     return (
-        <div className={isFull ? "col-span-1 md:col-span-2" : "col-span-1"}>
+        <div className={isFull ? "col-span-2" : "col-span-2 md:col-span-1"}>
             <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">
                 {field.label} {field.required && <span className="text-red-500">*</span>}
             </label>

@@ -33,7 +33,7 @@ function FieldWidget({ field, register, control, errors }: {
     const baseInput = `w-full bg-slate-50 border-2 ${hasError ? 'border-red-300' : 'border-slate-100'} px-4 py-3.5 rounded-2xl font-medium text-slate-900 outline-none focus:border-primary focus:bg-white transition-all placeholder:text-slate-300`;
 
     return (
-        <div className={`flex flex-col gap-1.5 ${field.colSpan === 2 ? 'col-span-2' : 'col-span-1'}`}>
+        <div className={`flex flex-col gap-1.5 ${field.colSpan === 2 ? 'col-span-2' : 'col-span-2 md:col-span-1'}`}>
             <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
