@@ -51,7 +51,7 @@ export default function ExportPage() {
         <div className="flex-1 flex flex-col pt-4 bg-slate-50">
             <header className="px-6 mb-8">
                 <div className="flex items-center gap-4 mb-2">
-                    <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+                    <button onClick={() => router.push('/admin/dashboard')} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <h1 className="text-2xl font-black text-slate-900 leading-tight">Export & Données</h1>

@@ -1,8 +1,18 @@
 const withPWA = require('next-pwa')({
     dest: 'public',
-    disable: process.env.NODE_ENV === 'development',
+    // 🛠️ Enable in dev too so we can test offline behaviour without a full build
+    // Set NEXT_PUBLIC_PWA_DISABLE=true in .env.local to silence it during pure UI work
+    disable: process.env.NEXT_PUBLIC_PWA_DISABLE === 'true',
     register: true,
     skipWaiting: true,
+
+    // ── Offline Fallback ──────────────────────────────────────────────────────
+    // When a page is not in the cache and the network is down, the SW serves /offline
+    // instead of the browser's built-in "No internet" (dinosaur) page.
+    fallbacks: {
+        document: '/offline',
+    },
+
     runtimeCaching: [
         // ── 1. App Shell: JS & CSS bundles — StaleWhileRevalidate ────────────
         // Serves instantly from cache, then updates in background.
@@ -12,7 +22,7 @@ const withPWA = require('next-pwa')({
             options: {
                 cacheName: 'wasla-static-assets',
                 expiration: {
-                    maxEntries: 200,
+                    maxEntries: 300,
                     maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
                 },
                 cacheableResponse: { statuses: [0, 200] },
@@ -50,14 +60,15 @@ const withPWA = require('next-pwa')({
         },
 
         // ── 4. App pages (HTML) — NetworkFirst ───────────────────────────────
-        // Kiosk and Commercial pages must work offline; serve stale if network unavailable.
+        // Expanded pattern: kiosk, dashboard, leads, admin dashboard, offline fallback.
+        // NetworkFirst: try network, fall back to cache within 3 s.
         {
-            urlPattern: /^https?:\/\/.*\/(kiosk|dashboard|leads\/new)(\/.*)?$/i,
+            urlPattern: /^https?:\/\/.*\/(kiosk|dashboard|leads|admin\/dashboard|admin\/login|login|sync|offline)(\/.*)?(\?.*)?$/i,
             handler: 'NetworkFirst',
             options: {
                 cacheName: 'wasla-app-pages',
                 expiration: {
-                    maxEntries: 20,
+                    maxEntries: 40,
                     maxAgeSeconds: 7 * 24 * 60 * 60,
                 },
                 networkTimeoutSeconds: 3,
@@ -107,6 +118,7 @@ const withPWA = require('next-pwa')({
                 cacheableResponse: { statuses: [0, 200] },
             },
         },
+
         // ── 8. Icons & manifest — CacheFirst ─────────────────────────────────
         {
             urlPattern: /\/icons\/.+\.png$/i,
@@ -114,6 +126,17 @@ const withPWA = require('next-pwa')({
             options: {
                 cacheName: 'wasla-icons',
                 expiration: { maxEntries: 20, maxAgeSeconds: 365 * 24 * 60 * 60 },
+                cacheableResponse: { statuses: [0, 200] },
+            },
+        },
+
+        // ── 9. Web fonts — CacheFirst ────────────────────────────────────────
+        {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+                cacheName: 'wasla-google-fonts',
+                expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
                 cacheableResponse: { statuses: [0, 200] },
             },
         },

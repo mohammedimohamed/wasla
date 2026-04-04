@@ -356,7 +356,7 @@ export default function FormBuilderPage() {
             {/* ── TOP BAR ──────────────────────────────────────────────────── */}
             <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
+                    <button onClick={() => router.push('/admin/dashboard')} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
                         <ArrowLeft className="w-5 h-5 text-slate-500" />
                     </button>
                     <div>

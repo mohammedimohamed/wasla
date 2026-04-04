@@ -21,7 +21,8 @@ export default async function AdminLayout({
         '/admin/vault': 'vault',
         '/admin/mediashow': 'mediashow',
         '/admin/intelligence': 'intelligence',
-        '/admin/analytics': 'analytics'
+        '/admin/analytics': 'analytics',
+        '/admin/sync': 'sync-cloud',
     };
 
     // 🛡️ RE-ENFORCE MODULARITY

@@ -21,11 +21,13 @@ import {
     LayoutTemplate,
     Brain,
     ShieldCheck,
-    LayoutGrid
+    LayoutGrid,
+    Cloud
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
 import MediashowOverlay from "../../kiosk/MediashowOverlay";
+import { CloudStatus } from "@/src/components/CloudStatus";
 
 /**
  * 📊 ENTERPRISE DYNAMIC DASHBOARD
@@ -205,7 +207,7 @@ export default function AdminDashboardPage() {
             )}
             <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.push("/leads/new")} className="p-2 -ml-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors flex items-center gap-2">
+                    <button onClick={() => router.push("/admin/leads/new")} className="p-2 -ml-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors flex items-center gap-2">
                         <Plus className="w-5 h-5 font-black" />
                         <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Add Lead</span>
                     </button>
@@ -214,12 +216,15 @@ export default function AdminDashboardPage() {
                         <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">{branding.event_name}</h1>
                     </div>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="text-[10px] font-black p-2 px-4 bg-slate-100 text-slate-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 rounded-full transition-all"
-                >
-                    {t('common.logout')}
-                </button>
+                <div className="flex items-center gap-3">
+                    <CloudStatus />
+                    <button
+                        onClick={handleLogout}
+                        className="text-[10px] font-black p-2 px-4 bg-slate-100 text-slate-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 rounded-full transition-all"
+                    >
+                        {t('common.logout')}
+                    </button>
+                </div>
             </header>
 
             <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
@@ -318,7 +323,7 @@ export default function AdminDashboardPage() {
                 <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
                     <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
                         <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Derniers Prospects Capturés</h3>
-                        <button onClick={() => router.push("/leads/list")} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
+                        <button onClick={() => router.push("/admin/leads/list")} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
                             Voir Tout
                         </button>
                     </div>
@@ -545,6 +550,20 @@ export default function AdminDashboardPage() {
                             <div>
                                 <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Intelligence Leads</p>
                                 <p className="text-[10px] text-slate-400 font-medium mt-1">Dédoublonnage & Anti-Fraude</p>
+                            </div>
+                        </button>
+                    )}
+                    {moduleStatus['sync-cloud'] !== false && (
+                        <button
+                            onClick={() => router.push("/admin/sync")}
+                            className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-[32px] border border-indigo-500 hover:from-indigo-500 hover:to-indigo-600 hover:shadow-xl hover:shadow-indigo-900/30 transition-all text-left flex flex-col gap-4 group"
+                        >
+                            <div className="w-12 h-12 bg-white/10 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Cloud className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-black uppercase tracking-tight text-xs">Sync Cloud</p>
+                                <p className="text-[10px] text-indigo-300 font-medium mt-1">Webhooks & File d'attente</p>
                             </div>
                         </button>
                     )}

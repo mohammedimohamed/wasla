@@ -146,7 +146,7 @@ function LineageStoryModal({ leadId, onClose }: { leadId: string; onClose: () =>
                 {/* Footer Controls */}
                 <div className="p-8 border-t border-slate-100 bg-white flex justify-between items-center">
                     <button 
-                        onClick={() => router.push(`/leads/${lead.id}`)}
+                        onClick={() => router.push(`/admin/leads/${lead.id}`)}
                         className="flex items-center gap-2 text-indigo-600 font-black uppercase tracking-widest text-[10px] hover:underline"
                     >
                          <ExternalLink className="w-4 h-4" /> Edit Full Profile

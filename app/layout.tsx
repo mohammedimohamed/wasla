@@ -5,6 +5,8 @@ import { Toaster } from "react-hot-toast";
 import { settingsDb } from "@/lib/db";
 import { LanguageProvider } from "@/src/context/LanguageContext";
 import { SyncManager } from "@/src/components/SyncManager";
+import { RefreshGuard } from "@/src/components/RefreshGuard";
+import { PWAManager } from "@/src/components/PWAManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,24 +21,34 @@ export async function generateMetadata(): Promise<Metadata> {
         manifest: "/manifest.json",
         appleWebApp: {
             capable: true,
-            statusBarStyle: "default",
+            statusBarStyle: "black-translucent",
             title: "WaslaCRM",
+            startupImage: "/icons/icon-512x512.png",
         },
         icons: {
             icon: [
                 { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
                 { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
             ],
-            apple: "/icons/icon-192x192.png",
+            apple: [
+                { url: "/icons/icon-192x192.png", sizes: "192x192" },
+                { url: "/icons/icon-512x512.png", sizes: "512x512" },
+            ],
         },
         other: {
             "mobile-web-app-capable": "yes",
+            "apple-mobile-web-app-capable": "yes",
+            "apple-mobile-web-app-status-bar-style": "black-translucent",
+            "msapplication-tap-highlight": "no",
         },
     };
 }
 
 export const viewport: Viewport = {
-    themeColor: "#ffffff",
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+        { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+    ],
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
@@ -59,6 +71,8 @@ export default function RootLayout({
         <html lang="fr" style={themeStyles}>
             <body className={inter.className}>
                 <LanguageProvider>
+                    <PWAManager />
+                    <RefreshGuard />
                     <SyncManager />
                     <main className="min-h-screen bg-slate-50 flex flex-col">
                         {children}

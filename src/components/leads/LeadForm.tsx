@@ -20,6 +20,7 @@ interface LeadFormProps {
     agentId?: string;
     /** Optional free-text location context ("Stand B3", "Hall 5") */
     locationContext?: string;
+    isAdmin?: boolean;
 }
 
 function FieldWidget({ field, register, control, errors }: {
@@ -134,6 +135,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     defaultValues,
     agentId,
     locationContext,
+    isAdmin = false,
 }) => {
     const { t } = useTranslation();
     const { config, isLoading } = useFormConfig();
@@ -214,7 +216,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
         // Transition away without reloading the page
         if (source === 'commercial') {
-            router.push('/dashboard');
+            router.push(isAdmin ? '/admin/dashboard' : '/dashboard');
         }
 
         // STEP 3: Background POSTto the real API

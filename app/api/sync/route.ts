@@ -99,6 +99,13 @@ export async function POST(request: Request) {
                 finalAgentId, 'SYNC', 'LEADS(BATCH)', 'batch',
                 `Background sync committed ${syncedIds.length} offline leads. Failed: ${failedIds.length}.`
             );
+
+            // 🚀 Fire sync-cloud engine — push to webhook (non-blocking)
+            if (isModuleEnabled('sync-cloud')) {
+                import('@/src/modules/sync-cloud/lib/sync-engine')
+                    .then(({ triggerSyncAsync }) => triggerSyncAsync({ triggeredBy: finalAgentId }))
+                    .catch(err => console.error('[Sync API] Sync-cloud trigger error:', err));
+            }
         }
 
         return NextResponse.json({

@@ -112,7 +112,7 @@ export function initDb() {
     console.log(`[DB] Enterprise Initialization — Storage: ${getDbPath()}`);
 
     // Migrations that are safe to run in a single transaction (CREATE TABLE / INSERT OR IGNORE)
-    const txMigrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql'];
+    const txMigrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql', '008_sync_cloud.sql'];
     // Migrations that contain ALTER TABLE — MUST run outside a transaction, one statement at a time
     const alterMigrations = ['006_vcard.sql', '007_multi_tenancy.sql'];
 
@@ -357,7 +357,8 @@ export function initDb() {
             ['rewards', 'Rewards Engine', 1, 'Gift attribution and anti-fraud logic'],
             ['mediashow', 'MediaShow Kiosk', 1, 'Dynamic slideshow and asset proxy'],
             ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics'],
-            ['analytics', 'Analytics Dashboard', 1, 'Real-time performance and conversion metrics']
+            ['analytics', 'Analytics Dashboard', 1, 'Real-time performance and conversion metrics'],
+            ['sync-cloud', 'Sync Cloud Intelligent', 1, 'Offline-first background sync with webhook delivery & exponential backoff'],
         ];
         
         const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
@@ -365,6 +366,18 @@ export function initDb() {
             insertModule.run(...m);
         }
     } catch (_) { }
+
+    // ── Phase 18: Sync Cloud — Enhance sync_queue + create config table ──────
+    // ALTER TABLE (idempotent — ignore 'duplicate column name' errors)
+    const sqCols = (() => { try { return (db.pragma('table_info(sync_queue)') as { name: string }[]).map(c => c.name); } catch { return []; } })();
+    if (!sqCols.includes('target_url')) {
+        try { db.exec(`ALTER TABLE sync_queue ADD COLUMN target_url TEXT`); } catch (_) { }
+    }
+    if (!sqCols.includes('error_log')) {
+        try { db.exec(`ALTER TABLE sync_queue ADD COLUMN error_log TEXT`); } catch (_) { }
+    }
+    // Additional index
+    try { db.exec(`CREATE INDEX IF NOT EXISTS idx_sync_queue_attempts ON sync_queue(attempts)`); } catch (_) { }
 }
 
 // Enterprise Audit Logging Utility

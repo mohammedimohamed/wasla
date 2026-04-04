@@ -1,16 +1,19 @@
 {
-    "name": "Wasla CRM Kiosk",
+    "name": "Wasla CRM — Lead Capture",
     "short_name": "WaslaCRM",
-    "description": "Enterprise Event Lead Capture — works offline and syncs automatically",
+    "description": "Enterprise event lead capture — offline-first, syncs automatically when back online.",
     "start_url": "/kiosk",
     "scope": "/",
     "display": "standalone",
-    "background_color": "#f8fafc",
+    "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+    "background_color": "#0f172a",
     "theme_color": "#1e293b",
     "orientation": "any",
     "lang": "fr",
+    "dir": "ltr",
     "categories": ["business", "productivity"],
     "prefer_related_applications": false,
+    "id": "/kiosk",
     "icons": [
         {
             "src": "/icons/icon-192x192.png",
@@ -39,18 +42,34 @@
     ],
     "shortcuts": [
         {
-            "name": "Ouvrir le Kiosk",
+            "name": "Kiosk — Capture Lead",
             "short_name": "Kiosk",
-            "description": "Capture de leads depuis le kiosk événementiel",
+            "description": "Formulaire de capture de leads depuis le kiosk",
             "url": "/kiosk",
             "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
         },
         {
-            "name": "Synchroniser",
+            "name": "Tableau de Bord Agent",
+            "short_name": "Dashboard",
+            "description": "Accéder au dashboard commercial",
+            "url": "/dashboard",
+            "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Nouveau Lead",
+            "short_name": "Nouveau",
+            "description": "Saisir un nouveau prospect",
+            "url": "/leads/new",
+            "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Synchronisation Cloud",
             "short_name": "Sync",
-            "description": "Forcer la synchronisation des données hors ligne",
+            "description": "Vérifier et forcer la synchronisation des données",
             "url": "/sync",
             "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
         }
-    ]
+    ],
+    "screenshots": [],
+    "related_applications": []
 }
