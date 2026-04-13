@@ -68,13 +68,13 @@ export default function RootLayout({
     } as React.CSSProperties;
 
     return (
-        <html lang="fr" style={themeStyles}>
-            <body className={inter.className}>
+        <html lang="fr" style={themeStyles} className="h-full">
+            <body className={`${inter.className} h-full`}>
                 <LanguageProvider>
                     <PWAManager />
                     <RefreshGuard />
                     <SyncManager />
-                    <main className="min-h-screen bg-slate-50 flex flex-col">
+                    <main className="h-full">
                         {children}
                     </main>
                     <Toaster position="bottom-center" />

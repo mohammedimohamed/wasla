@@ -1,6 +1,7 @@
 import { isModuleEnabled } from '@/lib/db';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { DesktopLayout } from '@/src/modules/desktop-ui/components/DesktopLayout';
 
 /**
  * 🛰️ ADMIN SERVER GUARD
@@ -36,5 +37,10 @@ export default async function AdminLayout({
         }
     }
 
-    return <>{children}</>;
+    // Skip layout for login
+    if (pathname.includes('/admin/login')) {
+        return <>{children}</>;
+    }
+
+    return <DesktopLayout>{children}</DesktopLayout>;
 }

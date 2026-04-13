@@ -5,10 +5,6 @@ import { useRouter } from "next/navigation";
 import {
     BarChart3,
     Gift,
-    Download,
-    Users,
-    ArrowLeft,
-    ChevronRight,
     TrendingUp,
     Monitor,
     Loader2,
@@ -22,12 +18,13 @@ import {
     Brain,
     ShieldCheck,
     LayoutGrid,
-    Cloud
+    Cloud,
+    Users
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
 import MediashowOverlay from "../../kiosk/MediashowOverlay";
-import { CloudStatus } from "@/src/components/CloudStatus";
+import { useSubBarEffect } from "@/src/modules/desktop-ui/hooks/useSubBarEffect";
 
 /**
  * 📊 ENTERPRISE DYNAMIC DASHBOARD
@@ -169,13 +166,25 @@ export default function AdminDashboardPage() {
     };
 
 
+    // ── Inject into DesktopLayout sub-bar ───────────────────────────────────
+    useSubBarEffect({
+        title: "Dashboard",
+        subtitle: branding.event_name,
+        actions: (
+            <button
+                onClick={() => router.push("/admin/leads/new")}
+                className="flex items-center gap-1.5 px-3 py-1 bg-[#714B67] hover:bg-[#5a3c52] text-white rounded text-xs font-bold uppercase tracking-wider transition-all"
+            >
+                <Plus className="w-3 h-3" />
+                Nouveau Lead
+            </button>
+        ),
+    });
+
     if (isLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center gap-4 text-slate-400">
-                    <Loader2 className="w-10 h-10 animate-spin" />
-                    <p className="font-bold uppercase tracking-widest text-[10px]">{t('common.loading')}</p>
-                </div>
+            <div className="flex items-center justify-center p-20 text-slate-400">
+                <Loader2 className="w-10 h-10 animate-spin" />
             </div>
         );
     }
@@ -183,7 +192,7 @@ export default function AdminDashboardPage() {
     const { totalLeads, kioskLeads, commercialLeads, rewardsGiven, leadsToday, syncedLeads, recentLeads } = stats;
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+        <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
             {/* 📺 MEDIASHOW OVERLAY ENGINE */}
             {moduleStatus.mediashow && (
                 <MediashowOverlay
@@ -205,29 +214,8 @@ export default function AdminDashboardPage() {
                     </button>
                 </div>
             )}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.push("/admin/leads/new")} className="p-2 -ml-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors flex items-center gap-2">
-                        <Plus className="w-5 h-5 font-black" />
-                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Add Lead</span>
-                    </button>
-                    <div className="flex items-center gap-2 ml-4">
-                        {branding.logo_url && <img src={branding.logo_url} alt={branding.event_name} className="w-8 h-8 object-contain" />}
-                        <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">{branding.event_name}</h1>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <CloudStatus />
-                    <button
-                        onClick={handleLogout}
-                        className="text-[10px] font-black p-2 px-4 bg-slate-100 text-slate-400 uppercase tracking-widest hover:bg-red-50 hover:text-red-500 rounded-full transition-all"
-                    >
-                        {t('common.logout')}
-                    </button>
-                </div>
-            </header>
 
-            <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
+            <div className="space-y-8">
                 {moduleStatus.analytics ? (
                     <>
                         {/* Real-time Business Intelligence Grid */}
@@ -567,8 +555,8 @@ export default function AdminDashboardPage() {
                             </div>
                         </button>
                     )}
-                </div>
-            </div>
+                </div>{/* end grid */}
+            </div>{/* end space-y-8 */}
         </div>
     );
 }

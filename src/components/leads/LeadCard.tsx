@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    ChevronLeft, Edit, Trash2, Building, MapPin, 
-    Layers, AlertTriangle, ShieldCheck, GitBranch, Link2, History, RotateCcw
+    Edit, Trash2, Building, MapPin, 
+    Layers, AlertTriangle, ShieldCheck, GitBranch, Link2, History, RotateCcw, ArrowLeft
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useFormConfig } from "@/src/hooks/useFormConfig";
 import { useTranslation } from "@/src/context/LanguageContext";
+import { useSubBarEffect } from "@/src/modules/desktop-ui/hooks/useSubBarEffect";
 
 export interface Lead {
     id: string;
@@ -90,38 +91,41 @@ export function LeadCard({ id, isAdmin }: LeadCardProps) {
     const multiCount = (Array.isArray(lead.phone) ? lead.phone.length : 0) + (Array.isArray(lead.email) ? lead.email.length : 0);
     const isGoldenRecord = multiCount > 2 || (Array.isArray(lead.associated_entities) && lead.associated_entities.length > 0);
 
+    // ── Inject into DesktopLayout sub-bar ─────────────────────────────────────
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useSubBarEffect({
+        title: lead.contact || "Détail Lead",
+        subtitle: lead.source,
+        actions: (
+            <>
+                <button
+                    onClick={() => router.push(isAdmin ? "/admin/leads/list" : "/leads/list")}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded text-xs font-bold uppercase tracking-wider transition-all"
+                >
+                    <ArrowLeft className="w-3 h-3" />
+                    Retour
+                </button>
+                <button
+                    onClick={() => router.push(isAdmin ? `/admin/leads/${id}/edit` : `/leads/${id}/edit`)}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#714B67] hover:bg-[#5a3c52] text-white rounded text-xs font-bold uppercase tracking-wider transition-all"
+                >
+                    <Edit className="w-3 h-3" />
+                    Modifier
+                </button>
+            </>
+        ),
+    });
+
     return (
-        <div className="flex-1 flex flex-col pt-4">
-            <header className="px-4 mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => router.push(isAdmin ? "/admin/leads/list" : "/leads/list")}
-                        className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-bold">Détail du lead</h1>
-                </div>
-                <div className="flex gap-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">
-                        <Trash2 className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => router.push(isAdmin ? `/admin/leads/${id}/edit` : `/leads/${id}/edit`)}
-                        className="p-2 hover:bg-gray-100 rounded-lg text-primary"
-                    >
-                        <Edit className="w-5 h-5" />
-                    </button>
-                </div>
-            </header>
+        <div className="p-4 pb-12">
 
             {isKioskUnqualified && (
-                <div className="mx-4 mb-6 bg-orange-50 border border-orange-200 p-4 rounded-2xl flex flex-col gap-3">
+                <div className="mb-6 bg-orange-50 border border-orange-200 p-4 rounded-2xl flex flex-col gap-3">
                     <div className="flex items-center gap-2 text-orange-700 font-bold">
                         <AlertTriangle className="w-5 h-5" />
                         Lead non qualifié
                     </div>
-                    <p className="text-sm text-orange-600">Ce prospect s'est auto-enregistré. Enrichissez sa fiche avec ses besoins détaillés.</p>
+                    <p className="text-sm text-orange-600">Ce prospect s&apos;est auto-enregistré. Enrichissez sa fiche avec ses besoins détaillés.</p>
                     <button
                         onClick={() => router.push(isAdmin ? `/admin/leads/${id}/edit` : `/leads/${id}/edit`)}
                         className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl active:scale-95 transition-all text-sm"
@@ -131,7 +135,7 @@ export function LeadCard({ id, isAdmin }: LeadCardProps) {
                 </div>
             )}
 
-            <div className="px-4 pb-12 space-y-6">
+            <div className="space-y-6">
                 <section className={`bg-white p-6 rounded-3xl border shadow-sm space-y-4 transition-all ${isGoldenRecord ? 'border-amber-300 ring-4 ring-amber-50/50 shadow-amber-100' : 'border-gray-100'}`}>
                     <div className="flex items-center gap-4">
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold uppercase ${isGoldenRecord ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-200' : 'bg-blue-50 text-primary'}`}>
@@ -322,12 +326,12 @@ export function LeadCard({ id, isAdmin }: LeadCardProps) {
                     </section>
                 )}
 
-                <div className="pt-6 text-center">
+            <div className="pt-6 text-center">
                     <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
                         Saisie le {new Date(lead.created_at).toLocaleString('fr-FR')} • Source: {lead.source}
                     </p>
                 </div>
-            </div>
+            </div>{/* end space-y-6 */}
         </div>
     );
 }

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { LeadForm } from "./LeadForm";
+import { useSubBarEffect } from "@/src/modules/desktop-ui/hooks/useSubBarEffect";
+import { ArrowLeft } from "lucide-react";
 
 interface LeadCreateProps {
     isAdmin: boolean;
@@ -40,37 +41,34 @@ export function LeadCreate({ isAdmin }: LeadCreateProps) {
         router.push(isAdmin ? "/admin/leads/list" : "/leads/list");
     };
 
-    const handleBack = () => {
-        router.push(isAdmin ? "/admin/dashboard" : "/dashboard");
-    };
+    const backUrl = isAdmin ? "/admin/leads/list" : "/leads/list";
+
+    // ── Inject into DesktopLayout sub-bar ────────────────────────────────────
+    useSubBarEffect({
+        title: "Nouveau Lead",
+        subtitle: "Saisie Manuelle",
+        actions: (
+            <button
+                onClick={() => router.push(backUrl)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded text-xs font-bold uppercase tracking-wider transition-all"
+            >
+                <ArrowLeft className="w-3 h-3" />
+                Retour
+            </button>
+        ),
+    });
 
     return (
-        <div className="flex-1 flex flex-col pt-4 min-h-screen bg-slate-50">
-            <header className="px-6 mb-6 flex items-center gap-4 sticky top-0 bg-slate-50 z-10 py-4 shadow-sm border-b border-slate-200">
-                <button
-                    onClick={handleBack}
-                    className="p-2 -ml-2 hover:bg-white border text-slate-500 border-transparent hover:border-slate-200 hover:shadow-sm rounded-xl transition-all"
-                >
-                    <ChevronLeft className="w-6 h-6" />
-                </button>
-                <div>
-                    <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nouvelle Fiche Prospect</h1>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Saisie Manuelle</p>
-                </div>
-            </header>
-
-            <div className="px-6 pb-28 space-y-8 max-w-3xl mx-auto w-full">
-                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                    
-                    <LeadForm
-                        source="commercial"
-                        agentId={userId || undefined}
-                        locationContext={typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('location') || undefined) : undefined}
-                        onSubmitSuccess={handleSuccess}
-                        isAdmin={isAdmin}
-                    />
-                </div>
+        <div className="p-6 max-w-3xl mx-auto w-full">
+            <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-100 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                <LeadForm
+                    source="commercial"
+                    agentId={userId || undefined}
+                    locationContext={typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('location') || undefined) : undefined}
+                    onSubmitSuccess={handleSuccess}
+                    isAdmin={isAdmin}
+                />
             </div>
         </div>
     );

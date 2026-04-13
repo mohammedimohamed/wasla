@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    ChevronLeft, Search, Download, Loader2, Plus,
+    Search, Download, Loader2, Plus,
     Circle, CheckCircle2, AlertCircle, User as UserIcon, Monitor, QrCode, Link2, ShieldCheck
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
 import { useFormConfig, getTableFields, FormField } from "@/src/hooks/useFormConfig";
+import { useSubBarEffect } from "@/src/modules/desktop-ui/hooks/useSubBarEffect";
 
 export interface Lead {
     id: string;
@@ -188,54 +189,38 @@ export function LeadList({ isAdmin }: LeadListProps) {
 
     const isManager = userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER';
 
+    // ── Inject into DesktopLayout sub-bar ───────────────────────────────────
+    useSubBarEffect({
+        title: "Leads",
+        subtitle: `${filteredLeads.length} résultat(s)`,
+        actions: (
+            <>
+                {isManager && isAdmin && (
+                    <button
+                        onClick={handleExport}
+                        disabled={isExporting}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60"
+                    >
+                        {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                        {isExporting ? "Export..." : "Export CSV"}
+                    </button>
+                )}
+                <button
+                    onClick={() => router.push(isAdmin ? "/admin/leads/new" : "/leads/new")}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-[#714B67] hover:bg-[#5a3c52] text-white rounded text-xs font-bold uppercase tracking-wider transition-all"
+                >
+                    <Plus className="w-3 h-3" />
+                    Nouveau
+                </button>
+            </>
+        ),
+    });
+
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-
-            {/* ── HEADER ─────────────────────────────────────────────────────── */}
-            <header className="bg-white border-b px-4 md:px-6 py-4 sticky top-0 z-20 shadow-sm">
-                <div className="w-full flex items-center gap-3 flex-wrap">
-                    <button
-                        onClick={() => router.push(isAdmin ? "/admin/dashboard" : "/dashboard")}
-                        className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <div className="flex-1">
-                        <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                            Liste des Prospects
-                        </h1>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                            {filteredLeads.length} résultat(s)
-                        </p>
-                    </div>
-
-                    {/* Export Button — visible only to managers */}
-                    {isManager && isAdmin && (
-                        <button
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 shadow-md shadow-emerald-200"
-                        >
-                            {isExporting
-                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                : <Download className="w-4 h-4" />
-                            }
-                            {isExporting ? "Export..." : "Export CSV"}
-                        </button>
-                    )}
-
-                    <button
-                        onClick={() => router.push(isAdmin ? "/admin/leads/new" : "/leads/new")}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-200"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nouveau
-                    </button>
-                </div>
-            </header>
+        <div className="flex-1 flex flex-col">
 
             {/* ── FILTERS ────────────────────────────────────────────────────── */}
-            <div className="bg-white border-b px-4 md:px-6 py-3 sticky top-[65px] z-10">
+            <div className="bg-white border-b px-4 md:px-6 py-3">
                 <div className="w-full flex flex-col sm:flex-row gap-3">
                     {/* Search */}
                     <div className="relative flex-1">
@@ -245,7 +230,7 @@ export function LeadList({ isAdmin }: LeadListProps) {
                             placeholder="Rechercher nom, société, téléphone..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-slate-50"
+                            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-slate-50"
                         />
                     </div>
                     {/* Source Filter */}
@@ -254,10 +239,11 @@ export function LeadList({ isAdmin }: LeadListProps) {
                             <button
                                 key={f}
                                 onClick={() => setFilterSource(f)}
-                                className={`px-3 py-2 border rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all ${filterSource === f
-                                    ? "bg-slate-900 border-slate-900 text-white"
-                                    : "bg-white border-gray-200 text-gray-500 hover:border-slate-400"
-                                    }`}
+                                className={`px-3 py-1.5 border rounded-lg text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                                    filterSource === f
+                                        ? "bg-slate-900 border-slate-900 text-white"
+                                        : "bg-white border-gray-200 text-gray-500 hover:border-slate-400"
+                                }`}
                             >
                                 {f === "all" ? "Tous" : f}
                             </button>
@@ -267,7 +253,7 @@ export function LeadList({ isAdmin }: LeadListProps) {
             </div>
 
             {/* ── TABLE ──────────────────────────────────────────────────────── */}
-            <div className="flex-1 overflow-auto p-4 md:p-6">
+            <div className="flex-1 p-4 md:p-6">
                 <div className="w-full bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
                     {loading ? (
                         <div className="flex items-center justify-center p-20 text-slate-300">
