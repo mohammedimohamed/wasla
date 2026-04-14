@@ -6,16 +6,17 @@ import * as securityGate from '@/src/lib/security-gate';
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const stmt = db.prepare(`
             SELECT l.*, u.name as created_by_name 
             FROM leads l
             LEFT JOIN users u ON l.created_by = u.id
             WHERE l.id = ?
         `);
-        const lead = stmt.get(params.id) as any;
+        const lead = stmt.get(id) as any;
 
         if (!lead) {
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
@@ -50,7 +51,7 @@ export async function GET(
             JOIN leads l ON lin.parent_id = l.id
             WHERE lin.child_id = ?
             ORDER BY lin.created_at DESC
-        `).all(params.id) as any[];
+        `).all(id) as any[];
 
         const lineage = await Promise.all(lineageRows.map(async row => {
             const rowMetaRaw = JSON.parse(row.metadata || '{}');
@@ -73,7 +74,7 @@ export async function GET(
             FROM lead_intelligence_logs 
             WHERE lead_id = ? AND type = 'SALES_INTEL' 
             ORDER BY created_at DESC
-        `).all(params.id) as any[];
+        `).all(id) as any[];
 
         const flattenedLead = {
             ...lead,
@@ -97,16 +98,17 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const body = await request.json();
         const { source, device_id, ...customFields } = body;
         const now = new Date().toISOString();
 
         // 🛡️ SECURITY: Verify existence
         const checkStmt = db.prepare('SELECT id, metadata FROM leads WHERE id = ?');
-        const existing = checkStmt.get(params.id) as any;
+        const existing = checkStmt.get(id) as any;
         if (!existing) {
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
         }
@@ -125,7 +127,7 @@ export async function PUT(
         `;
 
         const stmt = db.prepare(query);
-        stmt.run(JSON.stringify(updatedMeta), now, params.id);
+        stmt.run(JSON.stringify(updatedMeta), now, id);
 
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -136,11 +138,12 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const checkStmt = db.prepare('SELECT sync_status FROM leads WHERE id = ?');
-        const lead = checkStmt.get(params.id) as any;
+        const lead = checkStmt.get(id) as any;
 
         if (!lead) {
             return NextResponse.json({ success: false, error: 'Lead not found' }, { status: 404 });
@@ -155,7 +158,7 @@ export async function DELETE(
         }
 
         const stmt = db.prepare('DELETE FROM leads WHERE id = ?');
-        stmt.run(params.id);
+        stmt.run(id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -33,7 +33,7 @@ export async function createSession(user: SessionPayload) {
         .setExpirationTime('1d')
         .sign(SECRET);
 
-    cookies().set('wasla_session', token, {
+    (await cookies()).set('wasla_session', token, {
         httpOnly: true,
         secure: false, // 🔓 DISABLED for local network / IP testing (phone, tablet)
         expires,
@@ -47,7 +47,8 @@ export async function createSession(user: SessionPayload) {
  * 🔍 Retrieve and verify the active session.
  */
 export async function getSession() {
-    const sessionToken = cookies().get('wasla_session')?.value;
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('wasla_session')?.value;
     if (!sessionToken) return null;
 
     try {
@@ -61,6 +62,6 @@ export async function getSession() {
 /**
  * 🚪 Terminate the current session.
  */
-export function deleteSession() {
-    cookies().delete('wasla_session');
+export async function deleteSession() {
+    (await cookies()).delete('wasla_session');
 }

@@ -22,7 +22,8 @@ import {
     Brain,
     ShieldCheck,
     LayoutGrid,
-    Cloud
+    Cloud,
+    BadgeCheck
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
@@ -65,7 +66,8 @@ export default function AdminDashboardPage() {
         rewards: true,
         mediashow: true,
         intelligence: true,
-        analytics: true
+        analytics: true,
+        'badge-engine': true,
     });
 
     // 🛡️ RBAC Session & Stats Sync
@@ -564,6 +566,22 @@ export default function AdminDashboardPage() {
                             <div>
                                 <p className="font-black uppercase tracking-tight text-xs">Sync Cloud</p>
                                 <p className="text-[10px] text-indigo-300 font-medium mt-1">Webhooks & File d'attente</p>
+                            </div>
+                        </button>
+                    )}
+
+                    {moduleStatus['badge-engine'] && (
+                        <button
+                            onClick={() => router.push("/admin/badges/editor")}
+                            className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-violet-400 hover:shadow-xl hover:shadow-violet-100 transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
+                        >
+                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-violet-400 to-purple-400 opacity-10 rounded-full blur-xl group-hover:opacity-30 group-hover:scale-150 transition-all duration-700" />
+                            <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
+                                <BadgeCheck className="w-6 h-6" />
+                            </div>
+                            <div className="relative z-10">
+                                <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Badge Engine</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-1">Studio d'Édition & PVC</p>
                             </div>
                         </button>
                     )}

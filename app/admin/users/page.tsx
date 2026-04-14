@@ -14,7 +14,8 @@ import {
     KeyRound,
     XCircle,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    ImagePlus
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
@@ -42,6 +43,7 @@ interface UserData {
     active: number;
     created_at: string;
     quick_pin: string | null;
+    photo_url: string | null;
 }
 
 interface TeamData {
@@ -69,6 +71,33 @@ export default function AdminUsersPage() {
     });
 
     const currentRole = watch('role');
+
+    // ── Photo Upload State ──
+    const [uploadingUserId, setUploadingUserId] = useState<string | null>(null);
+
+    const handlePhotoUpload = async (userId: string, file: File) => {
+        setUploadingUserId(userId);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', userId);
+
+            const res = await fetch('/api/users/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+            toast.success("Photo mise à jour");
+            fetchData();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setUploadingUserId(null);
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -225,9 +254,33 @@ export default function AdminUsersPage() {
                                             <tr key={u.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${!u.active ? 'opacity-50' : ''}`}>
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${RMap.bg} ${RMap.color}`}>
-                                                            <RIcon className="w-5 h-5" />
-                                                        </div>
+                                                        <label className={`w-10 h-10 rounded-xl flex items-center justify-center relative cursor-pointer overflow-hidden group ${RMap.bg} ${RMap.color}`}>
+                                                            {uploadingUserId === u.id ? (
+                                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                            ) : u.photo_url ? (
+                                                                <>
+                                                                    <img src={u.photo_url} alt="Avatar" className="w-full h-full object-cover" />
+                                                                    <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center">
+                                                                        <ImagePlus className="w-4 h-4 text-white" />
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <RIcon className="w-5 h-5 group-hover:hidden" />
+                                                                    <ImagePlus className="w-5 h-5 hidden group-hover:block opacity-50" />
+                                                                </>
+                                                            )}
+                                                            <input 
+                                                                type="file" 
+                                                                className="hidden" 
+                                                                accept="image/jpeg, image/png, image/webp" 
+                                                                onChange={(e) => {
+                                                                    if (e.target.files?.[0]) handlePhotoUpload(u.id, e.target.files[0]);
+                                                                    e.target.value = '';
+                                                                }} 
+                                                                disabled={uploadingUserId === u.id}
+                                                            />
+                                                        </label>
                                                         <div>
                                                             <p className="font-black text-slate-900">{u.name}</p>
                                                             {!u.active && <span className="text-[9px] font-black bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full uppercase ml-2">Inactif</span>}

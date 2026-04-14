@@ -1,4 +1,3 @@
-export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose/jwt/verify';
@@ -21,7 +20,7 @@ interface SessionPayload {
  * 🛡️ Enterprise Middleware Gatekeeper
  * Enforces Role-Based Access Control (RBAC) and high-security session locks.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const sessionToken = request.cookies.get('wasla_session')?.value;
 

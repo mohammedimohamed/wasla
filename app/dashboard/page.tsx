@@ -6,11 +6,11 @@ import {
     Plus, List, RefreshCw, Monitor, LogOut,
     QrCode, X, Share2, User, Phone, Briefcase,
     Building2, Linkedin, Save, Loader2, ChevronRight,
-    CheckCircle2, WifiOff
+    CheckCircle2, WifiOff, Camera
 } from "lucide-react";
 import toast from "react-hot-toast";
 import dynamic from 'next/dynamic';
-import { generateVCard } from "@/lib/vcard";
+import { generateVCard } from "@/src/modules/badge-engine/vcard";
 import { CloudStatus } from "@/src/components/CloudStatus";
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then(mod => mod.QRCodeSVG), { ssr: false });
@@ -25,6 +25,7 @@ interface AgentProfile {
     job_title?: string | null;
     company_name?: string | null;
     linkedin_url?: string | null;
+    photo_url?: string | null;
 }
 
 interface StatsState {
@@ -53,6 +54,7 @@ export default function AgentDashboardPage() {
     const [editCompany, setEditCompany] = useState("");
     const [editLinkedin, setEditLinkedin] = useState("");
     const [saving, setSaving] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     // ─── Init: verify session + load profile ─────────────────────
     const fetchProfile = useCallback(async () => {
@@ -165,6 +167,30 @@ export default function AgentDashboardPage() {
         }
     };
 
+    const handlePhotoUpload = async (file: File) => {
+        setUploadingPhoto(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            // No userId needed since this is self-service upload
+            
+            const res = await fetch('/api/users/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            
+            toast.success("Photo de profil mise à jour");
+            await fetchProfile();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setUploadingPhoto(false);
+        }
+    };
+
     const handleLogout = async () => {
         await fetch('/api/auth', { method: 'DELETE' });
         localStorage.removeItem("sales_name");
@@ -197,7 +223,9 @@ export default function AgentDashboardPage() {
                 {/* ── HEADER ── */}
                 <header className="bg-white border-b px-5 py-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                        {branding.logo_url ? (
+                        {profile?.photo_url ? (
+                            <img src={profile.photo_url} className="w-10 h-10 rounded-xl object-cover bg-white shadow-sm border border-slate-100" />
+                        ) : branding.logo_url ? (
                             <img src={branding.logo_url} className="w-10 h-10 rounded-xl object-contain bg-white shadow-sm border border-slate-100" />
                         ) : (
                             <div
@@ -304,6 +332,39 @@ export default function AgentDashboardPage() {
                             </div>
 
                             <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
+                                {/* Photo Upload */}
+                                <div className="flex justify-center mb-6">
+                                    <label className="relative w-24 h-24 rounded-3xl cursor-pointer overflow-hidden group shadow-md border-4 border-white ring-1 ring-slate-100">
+                                        {uploadingPhoto ? (
+                                            <div className="absolute inset-0 bg-slate-50 flex items-center justify-center">
+                                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                            </div>
+                                        ) : profile?.photo_url ? (
+                                            <>
+                                                <img src={profile.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Camera className="w-6 h-6 text-white" />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center gap-1 group-hover:bg-slate-200 transition-colors">
+                                                <Camera className="w-6 h-6 text-slate-400" />
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Photo</span>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/jpeg, image/png, image/webp"
+                                            onChange={(e) => {
+                                                if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]);
+                                                e.target.value = '';
+                                            }}
+                                            disabled={uploadingPhoto}
+                                        />
+                                    </label>
+                                </div>
+
                                 {/* Read-only (admin-managed) */}
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">

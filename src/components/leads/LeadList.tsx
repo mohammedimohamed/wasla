@@ -38,7 +38,7 @@ function getSourceBadge(source: string) {
         kiosk: "bg-slate-100 text-slate-600",
         qrcode: "bg-purple-100 text-purple-700",
     };
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, React.JSX.Element> = {
         commercial: <UserIcon className="w-3 h-3" />,
         kiosk: <Monitor className="w-3 h-3" />,
         qrcode: <QrCode className="w-3 h-3" />,

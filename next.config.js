@@ -1,4 +1,4 @@
-const withPWA = require('next-pwa')({
+const withPWA = require('@ducanh2912/next-pwa').default({
     dest: 'public',
     // 🛠️ Enable in dev too so we can test offline behaviour without a full build
     // Set NEXT_PUBLIC_PWA_DISABLE=true in .env.local to silence it during pure UI work
@@ -147,8 +147,9 @@ const nextConfig = {
     reactStrictMode: true,
     output: 'standalone',
     transpilePackages: ['lucide-react', 'qrcode.react'],
+    serverExternalPackages: ['better-sqlite3'],
+    turbopack: {},
     experimental: {
-        serverComponentsExternalPackages: ['better-sqlite3']
     },
     async rewrites() {
         return [

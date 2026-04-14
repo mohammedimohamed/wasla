@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 import { db, auditTrail } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        const { id: teamId } = await params;
         const session = await getSession();
         if (!session || session.role !== 'ADMINISTRATOR') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -12,8 +13,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
         const body = await req.json();
         const { userId } = body;
-        const teamId = params.id;
-
         if (!userId) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }

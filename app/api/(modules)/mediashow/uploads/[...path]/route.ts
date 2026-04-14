@@ -12,10 +12,10 @@ import { Readable } from 'stream';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    { params }: { params: Promise<{ path: string[] }> }
 ) {
     try {
-        const filePathSegments = params.path;
+        const { path: filePathSegments } = await params;
         const baseUploadsDir = path.resolve(getPublicUploadDir());
         const fullPath = path.normalize(path.join(baseUploadsDir, ...filePathSegments));
 

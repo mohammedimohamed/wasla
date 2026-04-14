@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { settingsDb } from "@/lib/db";
@@ -7,8 +6,6 @@ import { LanguageProvider } from "@/src/context/LanguageContext";
 import { SyncManager } from "@/src/components/SyncManager";
 import { RefreshGuard } from "@/src/components/RefreshGuard";
 import { PWAManager } from "@/src/components/PWAManager";
-
-const inter = Inter({ subsets: ["latin"] });
 
 // We want the app to always read fresh settings, so force dynamic render
 export const dynamic = "force-dynamic";
@@ -69,7 +66,7 @@ export default function RootLayout({
 
     return (
         <html lang="fr" style={themeStyles}>
-            <body className={inter.className}>
+            <body className="font-sans antialiased">
                 <LanguageProvider>
                     <PWAManager />
                     <RefreshGuard />

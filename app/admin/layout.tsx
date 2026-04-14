@@ -12,7 +12,7 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const headersList = headers();
+    const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '';
 
     // 🧩 MODULE ROUTE MAPPING
@@ -23,6 +23,7 @@ export default async function AdminLayout({
         '/admin/intelligence': 'intelligence',
         '/admin/analytics': 'analytics',
         '/admin/sync': 'sync-cloud',
+        '/admin/badges': 'badge-engine',
     };
 
     // 🛡️ RE-ENFORCE MODULARITY

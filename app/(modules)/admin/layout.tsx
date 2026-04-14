@@ -12,7 +12,7 @@ export default async function ModulesAdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const headersList = headers();
+    const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '';
 
     // 🧩 MODULE ROUTE MAPPING

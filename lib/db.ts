@@ -271,6 +271,60 @@ export function initDb() {
     // Phase 15.8: Vault — Encryption toggle column
     try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN encryption_enabled INTEGER DEFAULT 1`); } catch (_) { }
 
+    // Phase 17.1: Badge Engine — Agent photo URL for vCard
+    try { db.exec(`ALTER TABLE users ADD COLUMN photo_url TEXT`); } catch (_) { }
+
+    // Phase 18: Slug + Digital Business Card tables
+    try { db.exec(`ALTER TABLE users ADD COLUMN slug TEXT`); } catch (_) { }
+    try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_slug ON users (slug) WHERE slug IS NOT NULL`); } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS agent_company_profiles (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL UNIQUE,
+            company_name TEXT,
+            company_logo_url TEXT,
+            company_website TEXT,
+            company_address TEXT,
+            company_phone TEXT,
+            company_email TEXT,
+            linkedin_url TEXT,
+            instagram_url TEXT,
+            facebook_url TEXT,
+            twitter_url TEXT,
+            whatsapp_number TEXT,
+            accent_color TEXT DEFAULT '#4f46e5',
+            font_name TEXT DEFAULT 'Inter',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )`);
+    } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS custom_fields (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            label TEXT NOT NULL,
+            field_key TEXT NOT NULL,
+            field_type TEXT NOT NULL DEFAULT 'text',
+            placeholder TEXT,
+            is_required INTEGER DEFAULT 0,
+            sort_order INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )`);
+    } catch (_) { }
+
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS agent_custom_values (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            field_id TEXT NOT NULL,
+            value TEXT,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, field_id)
+        )`);
+    } catch (_) { }
+
     // 🏆 Rewards Engine Schema (Legacy Bridge)
     try {
         db.exec(`CREATE TABLE IF NOT EXISTS rewards (
@@ -359,12 +413,24 @@ export function initDb() {
             ['intelligence', 'Intelligence Leads', 1, 'Lead scoring and analytics'],
             ['analytics', 'Analytics Dashboard', 1, 'Real-time performance and conversion metrics'],
             ['sync-cloud', 'Sync Cloud Intelligent', 1, 'Offline-first background sync with webhook delivery & exponential backoff'],
+            ['badge-engine', 'Badge Engine', 1, 'QR Code VCF Badges Settings & Printing'],
         ];
         
         const insertModule = db.prepare("INSERT OR IGNORE INTO module_registry (id, name, is_enabled, description) VALUES (?, ?, ?, ?)");
         for (const m of seedModules) {
             insertModule.run(...m);
         }
+    } catch (_) { }
+
+    // Phase 17: Badge Engine Configs
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS badge_configs (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            config TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_badge_configs_tenant ON badge_configs(tenant_id)`);
     } catch (_) { }
 
     // ── Phase 18: Sync Cloud — Enhance sync_queue + create config table ──────
@@ -542,11 +608,29 @@ export const userDb = {
     findByEmail: (email: string) => db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any,
 
     /** 🌐 VCARD: Fetch ONLY public-safe fields — never exposes role, password, pin */
-    findPublicProfile: (id: string) => db.prepare(`
-        SELECT name, email, phone_number, job_title, company_name, linkedin_url
+    findPublicProfile: (idOrSlug: string) => db.prepare(`
+        SELECT id, name, email, phone_number, job_title, company_name, linkedin_url, photo_url, slug, tenant_id
         FROM users
-        WHERE id = ? AND active = 1
-    `).get(id) as { name: string; email: string; phone_number: string | null; job_title: string | null; company_name: string | null; linkedin_url: string | null } | undefined,
+        WHERE (id = ? OR slug = ?) AND active = 1
+    `).get(idOrSlug, idOrSlug) as {
+        id: string; name: string; email: string;
+        phone_number: string | null; job_title: string | null;
+        company_name: string | null; linkedin_url: string | null;
+        photo_url: string | null; slug: string | null; tenant_id: string;
+    } | undefined,
+
+    /** 🔍 Resolve by slug first, fallback to UUID */
+    findBySlugOrId: (slugOrId: string) => db.prepare(`
+        SELECT id, name, email, phone_number, job_title, company_name, linkedin_url, photo_url, slug, tenant_id
+        FROM users
+        WHERE (slug = ? OR id = ?) AND active = 1
+        LIMIT 1
+    `).get(slugOrId, slugOrId) as {
+        id: string; name: string; email: string;
+        phone_number: string | null; job_title: string | null;
+        company_name: string | null; linkedin_url: string | null;
+        photo_url: string | null; slug: string | null; tenant_id: string;
+    } | undefined,
 
     // 🛡️ Initial Password Verification (Bcrypt Hashed)
     verifyPassword: (email: string, passwordInput: string) => {
@@ -601,7 +685,7 @@ export const userDb = {
     // ─────────────────────────────────────────────────────────────────────────────
     list: () => {
         return db.prepare(`
-            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.quick_pin, t.name as team_name
+            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.quick_pin, u.photo_url, u.slug, t.name as team_name
             FROM users u
             LEFT JOIN teams t ON u.team_id = t.id
             ORDER BY u.created_at DESC
@@ -624,10 +708,25 @@ export const userDb = {
             VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?)
         `).run(payload.id, payload.name, payload.email, payload.role, payload.team_id || null, finalTenantId, hashedPassword, now, now);
 
+        // Generate URL-safe slug from name, with collision fallback
+        const baseSlug = payload.name
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-');
+
+        let slug = baseSlug;
+        let suffix = 2;
+        while (db.prepare('SELECT id FROM users WHERE slug = ? AND id != ?').get(slug, payload.id)) {
+            slug = `${baseSlug}-${suffix++}`;
+        }
+        db.prepare('UPDATE users SET slug = ? WHERE id = ?').run(slug, payload.id);
+
         auditTrail.logAction(adminId, 'CREATE', 'USER', payload.id, `Admin created user: ${payload.email} (${payload.role}) for tenant ${finalTenantId}`);
     },
 
-    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null }, adminId: string) => {
+    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null, photo_url?: string | null }, adminId: string) => {
         const now = new Date().toISOString();
         const sets: string[] = ['updated_at = ?'];
         const params: any[] = [now];
@@ -641,6 +740,7 @@ export const userDb = {
         if (fields.job_title !== undefined) { sets.push('job_title = ?'); params.push(fields.job_title); }
         if (fields.company_name !== undefined) { sets.push('company_name = ?'); params.push(fields.company_name); }
         if (fields.linkedin_url !== undefined) { sets.push('linkedin_url = ?'); params.push(fields.linkedin_url); }
+        if (fields.photo_url !== undefined) { sets.push('photo_url = ?'); params.push(fields.photo_url); }
 
         params.push(id);
         db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...params);
@@ -783,6 +883,98 @@ export const formConfigDb = {
 // 🧩 MODULE REGISTRY (Modular Architecture)
 // ─────────────────────────────────────────────────────────────────────────────
 export { moduleDb, isModuleEnabled } from './module-registry';
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 🏢 COMPANY PROFILE DB
+// ───────────────────────────────────────────────────────────────────────────────
+export const companyProfileDb = {
+    get: (tenantId: string) =>
+        db.prepare('SELECT * FROM agent_company_profiles WHERE tenant_id = ?').get(tenantId) as any | undefined,
+
+    upsert: (tenantId: string, data: Partial<{
+        company_name: string; company_logo_url: string; company_website: string;
+        company_address: string; company_phone: string; company_email: string;
+        linkedin_url: string; instagram_url: string; facebook_url: string;
+        twitter_url: string; whatsapp_number: string;
+        accent_color: string; font_name: string;
+    }>, adminId: string) => {
+        const { v4: uuidv4 } = require('uuid');
+        const now = new Date().toISOString();
+        const existing = db.prepare('SELECT id FROM agent_company_profiles WHERE tenant_id = ?').get(tenantId) as any;
+        const id = existing?.id || uuidv4();
+
+        const fields = { ...data };
+        const columns = ['id', 'tenant_id', 'created_at', 'updated_at', ...Object.keys(fields)];
+        const values = [id, tenantId, now, now, ...Object.values(fields)];
+        const placeholders = columns.map(() => '?').join(', ');
+        const updateSets = Object.keys(fields).map(k => `${k} = excluded.${k}`).join(', ');
+
+        db.prepare(`
+            INSERT INTO agent_company_profiles (${columns.join(', ')})
+            VALUES (${placeholders})
+            ON CONFLICT(tenant_id) DO UPDATE SET
+                updated_at = excluded.updated_at,
+                ${updateSets}
+        `).run(...values);
+    },
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 📝 CUSTOM FIELDS DB
+// ───────────────────────────────────────────────────────────────────────────────
+export const customFieldsDb = {
+    listByTenant: (tenantId: string) =>
+        db.prepare('SELECT * FROM custom_fields WHERE tenant_id = ? ORDER BY sort_order ASC').all(tenantId) as any[],
+
+    create: (tenantId: string, data: { label: string; field_key: string; field_type?: string; placeholder?: string | null; is_required?: boolean; sort_order?: number }) => {
+        const { v4: uuidv4 } = require('uuid');
+        const now = new Date().toISOString();
+        const id = uuidv4();
+        db.prepare(`INSERT INTO custom_fields (id, tenant_id, label, field_key, field_type, placeholder, is_required, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).
+            run(id, tenantId, data.label, data.field_key, data.field_type || 'text',
+                data.placeholder || null, data.is_required ? 1 : 0, data.sort_order ?? 0, now);
+        return id;
+    },
+
+    update: (id: string, tenantId: string, data: Partial<{ label: string; placeholder: string | null; is_required: boolean; sort_order: number }>) => {
+        const sets: string[] = [];
+        const params: any[] = [];
+        if (data.label !== undefined) { sets.push('label = ?'); params.push(data.label); }
+        if (data.placeholder !== undefined) { sets.push('placeholder = ?'); params.push(data.placeholder); }
+        if (data.is_required !== undefined) { sets.push('is_required = ?'); params.push(data.is_required ? 1 : 0); }
+        if (data.sort_order !== undefined) { sets.push('sort_order = ?'); params.push(data.sort_order); }
+        if (!sets.length) return;
+        params.push(id, tenantId);
+        db.prepare(`UPDATE custom_fields SET ${sets.join(', ')} WHERE id = ? AND tenant_id = ?`).run(...params);
+    },
+
+    delete: (id: string, tenantId: string) => {
+        db.prepare('DELETE FROM agent_custom_values WHERE field_id = ?').run(id);
+        db.prepare('DELETE FROM custom_fields WHERE id = ? AND tenant_id = ?').run(id, tenantId);
+    },
+
+    getAgentValues: (userId: string) => {
+        const rows = db.prepare(`
+            SELECT cf.field_key, cf.label, cf.field_type, acv.value
+            FROM custom_fields cf
+            LEFT JOIN agent_custom_values acv ON acv.field_id = cf.id AND acv.user_id = ?
+            WHERE cf.tenant_id = (SELECT tenant_id FROM users WHERE id = ?)
+            ORDER BY cf.sort_order ASC
+        `).all(userId, userId) as any[];
+        return rows;
+    },
+
+    setAgentValue: (userId: string, fieldId: string, value: string) => {
+        const { v4: uuidv4 } = require('uuid');
+        const now = new Date().toISOString();
+        db.prepare(`
+            INSERT INTO agent_custom_values (id, user_id, field_id, value, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, field_id) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        `).run(uuidv4(), userId, fieldId, value, now);
+    },
+};
 
 // Initialize database
 initDb();

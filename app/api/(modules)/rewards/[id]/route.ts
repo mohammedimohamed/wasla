@@ -4,11 +4,12 @@ import db from '@/lib/db';
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const stmt = db.prepare('SELECT * FROM rewards WHERE id = ?');
-        const reward = stmt.get(params.id) as any;
+        const reward = stmt.get(id) as any;
 
         if (!reward) {
             return NextResponse.json({ success: false, error: 'Reward not found' }, { status: 404 });
@@ -29,9 +30,10 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const data = await request.json();
         const now = new Date().toISOString();
 
@@ -52,7 +54,7 @@ export async function PUT(
             data.produit_filter ? JSON.stringify(data.produit_filter) : null,
             data.active ? 1 : 0,
             now,
-            params.id
+            id
         );
 
         return NextResponse.json({ success: true });
@@ -64,11 +66,12 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const stmt = db.prepare('DELETE FROM rewards WHERE id = ?');
-        stmt.run(params.id);
+        stmt.run(id);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error deleting reward:', error);
