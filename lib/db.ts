@@ -444,6 +444,21 @@ export function initDb() {
     }
     // Additional index
     try { db.exec(`CREATE INDEX IF NOT EXISTS idx_sync_queue_attempts ON sync_queue(attempts)`); } catch (_) { }
+
+    // ── Phase 19: Dashboard Studio widgets ──────
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS dashboard_widgets (
+            id          TEXT PRIMARY KEY,
+            user_id     TEXT,
+            type        TEXT NOT NULL,
+            title       TEXT,
+            config      TEXT NOT NULL DEFAULT '{}',
+            position    INTEGER DEFAULT 0,
+            col_span    INTEGER DEFAULT 1,
+            created_at  TEXT NOT NULL
+        )`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_user ON dashboard_widgets(user_id)`);
+    } catch (_) { }
 }
 
 // Enterprise Audit Logging Utility
@@ -974,6 +989,83 @@ export const customFieldsDb = {
             ON CONFLICT(user_id, field_id) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
         `).run(uuidv4(), userId, fieldId, value, now);
     },
+};
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 📊 DASHBOARD STUDIO DB
+// ───────────────────────────────────────────────────────────────────────────────
+export const dashboardDb = {
+    getByUser: (userId: string | null) => {
+        let query = "SELECT * FROM dashboard_widgets WHERE user_id IS NULL ORDER BY position ASC";
+        let params: any[] = [];
+        if (userId) {
+            query = "SELECT * FROM dashboard_widgets WHERE user_id = ? ORDER BY position ASC";
+            params = [userId];
+        }
+        const rows = db.prepare(query).all(...params) as any[];
+        return rows.map(r => ({
+            ...r,
+            config: JSON.parse(r.config || '{}')
+        }));
+    },
+    
+    create: (widget: { id: string, user_id: string | null, type: string, title?: string | null, config: any, position: number, col_span: number }) => {
+        const now = new Date().toISOString();
+        db.prepare(`
+            INSERT INTO dashboard_widgets (id, user_id, type, title, config, position, col_span, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(widget.id, widget.user_id, widget.type, widget.title || null, JSON.stringify(widget.config || {}), widget.position, widget.col_span, now);
+        return widget.id;
+    },
+    
+    update: (id: string, updates: Partial<{ title: string | null, config: any, position: number, col_span: number }>) => {
+        const sets: string[] = [];
+        const params: any[] = [];
+        
+        // Explicitly check for properties in updates (checking undefined allows null, etc)
+        if (updates.title !== undefined) { sets.push('title = ?'); params.push(updates.title); }
+        if (updates.config !== undefined) { sets.push('config = ?'); params.push(JSON.stringify(updates.config)); }
+        if (updates.position !== undefined) { sets.push('position = ?'); params.push(updates.position); }
+        if (updates.col_span !== undefined) { sets.push('col_span = ?'); params.push(updates.col_span); }
+        
+        if (sets.length === 0) return;
+        params.push(id);
+        db.prepare(`UPDATE dashboard_widgets SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    },
+    
+    delete: (id: string) => {
+        db.prepare('DELETE FROM dashboard_widgets WHERE id = ?').run(id);
+    },
+    
+    bulkReplace: (userId: string | null, widgets: any[]) => {
+        const transaction = db.transaction(() => {
+            if (userId) {
+                db.prepare('DELETE FROM dashboard_widgets WHERE user_id = ?').run(userId);
+            } else {
+                db.prepare('DELETE FROM dashboard_widgets WHERE user_id IS NULL').run();
+            }
+            
+            const insertStmt = db.prepare(`
+                INSERT INTO dashboard_widgets (id, user_id, type, title, config, position, col_span, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            
+            const now = new Date().toISOString();
+            widgets.forEach((w) => {
+                insertStmt.run(
+                    w.id, 
+                    userId, 
+                    w.type, 
+                    w.title || null, 
+                    typeof w.config === 'string' ? w.config : JSON.stringify(w.config || {}), 
+                    w.position, 
+                    w.col_span || 1, 
+                    now
+                );
+            });
+        });
+        transaction();
+    }
 };
 
 // Initialize database
