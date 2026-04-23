@@ -159,12 +159,14 @@ export default function KioskPage() {
 
     useEffect(() => {
         const loadSettings = async () => {
+            const SETTINGS_LS_KEY = 'wasla_kiosk_settings_v2';
             try {
                 const res = await fetch('/api/settings');
                 const data = await res.json();
                 if (data.success) {
                     setSettings(data.settings);
                     document.documentElement.style.setProperty('--primary-color', data.settings.primary_color);
+                    localStorage.setItem(SETTINGS_LS_KEY, JSON.stringify(data.settings));
 
                     // If mediashow is enabled, fetch assets from PUBLIC API
                     if (data.settings.mediashow_enabled) {
@@ -187,7 +189,15 @@ export default function KioskPage() {
                     }
                 }
             } catch (err) {
-                toast.error("Impossible de charger la configuration.");
+                const cached = localStorage.getItem(SETTINGS_LS_KEY);
+                if (cached) {
+                    const s = JSON.parse(cached);
+                    setSettings(s);
+                    document.documentElement.style.setProperty('--primary-color', s.primary_color);
+                    toast.success("Mode hors ligne — Configuration en cache utilisée.", { icon: '📴' });
+                } else {
+                    toast.error("Hors ligne — impossible de charger la configuration.");
+                }
             }
         };
         loadSettings();

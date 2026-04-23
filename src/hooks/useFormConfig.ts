@@ -96,16 +96,28 @@ export function useFormConfig(): UseFormConfigReturn {
         setIsLoading(true);
         setError(null);
 
+        const LS_KEY = 'wasla_form_config_v2';
+
         fetch('/api/settings/form')
             .then(res => {
                 if (!res.ok) throw new Error(`Form config fetch failed: ${res.status}`);
                 return res.json();
             })
             .then(data => {
-                if (!cancelled) setConfig(data.config as FormConfig);
+                if (!cancelled) {
+                    setConfig(data.config as FormConfig);
+                    localStorage.setItem(LS_KEY, JSON.stringify(data.config));
+                }
             })
             .catch(err => {
-                if (!cancelled) setError(err.message);
+                if (!cancelled) {
+                    const cached = localStorage.getItem(LS_KEY);
+                    if (cached) {
+                        setConfig(JSON.parse(cached));
+                    } else {
+                        setError(err.message || 'Hors ligne — aucune configuration locale disponible.');
+                    }
+                }
                 console.error('[useFormConfig]', err);
             })
             .finally(() => {

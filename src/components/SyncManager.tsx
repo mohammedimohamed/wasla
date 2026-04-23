@@ -82,6 +82,10 @@ export function SyncManager() {
                         await markLeadFailed(lead.client_uuid, 'Server rejected the record');
                         failCount++;
                     }
+                } else if (res.status === 401 || res.status === 403) {
+                    // Session expired — leave as pending, will retry when re-authenticated
+                    console.warn('[SyncManager] Auth error — leaving as pending for retry after login.');
+                    break; // Stop sync, wait for re-auth
                 } else if (res.status === 500) {
                     // 500 = server error — keep it pending for later retry (zero data loss)
                     await markLeadFailed(lead.client_uuid, `HTTP ${res.status}`);

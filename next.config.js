@@ -68,7 +68,7 @@ const withPWA = require('next-pwa')({
         // ── 5. Public API endpoints for settings and form config ─────────────
         // StaleWhileRevalidate so the kiosk loads with last-known config when offline.
         {
-            urlPattern: /\/api\/(settings|mediashow|form-config)(\?.*)?$/i,
+            urlPattern: /\/api\/(settings|settings\/form|mediashow|form-config)(\?.*)?$/i,
             handler: 'StaleWhileRevalidate',
             options: {
                 cacheName: 'wasla-api-config',

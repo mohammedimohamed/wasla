@@ -94,8 +94,10 @@ export async function saveLeadOffline(payload: any, type: 'kiosk' | 'commercial'
         sync_status: 'pending',
     };
 
-    // Fire-and-forget so it never blocks the UI thread
-    getDb().then(db => db.put(STORE, lead)).catch(err => {
+    try {
+        const db = await getDb();
+        await db.put(STORE, lead);
+    } catch (err) {
         console.error('[Offline Engine] IndexedDB write failed, falling back to localStorage:', err);
         // Emergency fallback: localStorage
         try {
@@ -104,7 +106,7 @@ export async function saveLeadOffline(payload: any, type: 'kiosk' | 'commercial'
             arr.push({ id: lead.client_uuid, type: lead.type, payload: lead.payload, timestamp: lead.timestamp });
             localStorage.setItem(LEGACY_KEY, JSON.stringify(arr));
         } catch (_) { /* absolute last resort — nothing works */ }
-    });
+    }
 
     console.log(`[Offline Engine] Queued 1 lead (client_uuid: ${lead.client_uuid})`);
     return lead;
