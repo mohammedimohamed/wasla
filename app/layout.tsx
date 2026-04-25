@@ -62,8 +62,11 @@ export default function RootLayout({
                 <LanguageProvider>
                     <SwRegistrar />
                     <SyncManager />
-                    <main className="min-h-screen bg-slate-50 flex flex-col">
+                    <main className="min-h-screen bg-slate-50 flex flex-col relative pb-4">
                         {children}
+                        <div className="fixed bottom-1.5 left-2.5 text-[10px] font-black tracking-widest text-slate-300 opacity-60 pointer-events-none z-50">
+                            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+                        </div>
                     </main>
                     <Toaster position="bottom-center" />
                 </LanguageProvider>
