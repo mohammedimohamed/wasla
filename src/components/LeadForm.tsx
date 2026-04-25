@@ -159,10 +159,38 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     }, [isDirty]);
 
     const onFormSubmit = async (data: FormValues) => {
-        // ── EDIT PATH (leadId present) — stays online-only (admin panel only) ──
+        // ── EDIT PATH (leadId present) ──
         if (leadId) {
             setIsSubmitting(true);
             try {
+                // Try updating locally first (Offline-First)
+                const { getLead, updateLead } = await import('@/src/db/client');
+                const localRecord = await getLead(leadId);
+
+                if (localRecord) {
+                    // Update in IndexedDB
+                    await updateLead(leadId, {
+                        payload: { ...localRecord.payload, ...data }, // merge changes
+                        sync_status: 'pending'
+                    });
+                    
+                    toast.success(navigator.onLine ? t('common.success') : t('offline.savedLocally'), { icon: '📡' });
+                    onSubmitSuccess?.();
+                    
+                    // Trigger sync if online
+                    if (navigator.onLine && typeof window !== 'undefined') {
+                        window.dispatchEvent(new Event('online'));
+                    }
+                    return;
+                }
+
+                // If not found locally, and offline -> block
+                if (!navigator.onLine) {
+                    toast.error(t('offline.workingOffline'));
+                    return;
+                }
+
+                // Online fallback (for server-synced leads handled by admin/legacy)
                 const res = await fetch(`/api/leads/${leadId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -176,8 +204,8 @@ export const LeadForm: React.FC<LeadFormProps> = ({
                 if (!res.ok) throw new Error();
                 toast.success(t('common.success'));
                 onSubmitSuccess?.();
-            } catch {
-                toast.error(t('common.error'));
+            } catch (err: any) {
+                toast.error(err.message || t('common.error'));
             } finally {
                 setIsSubmitting(false);
             }

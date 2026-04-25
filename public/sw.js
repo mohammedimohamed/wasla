@@ -49,13 +49,18 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests — let them pass through normally
   if (request.method !== 'GET') return;
 
-  // 1. Navigation (page loads) → serve shell from cache
+  // 1. Navigation (page loads) → network-first (for now), fallback to cached shell
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches
-        .match('/')
-        .then((cached) => cached || fetch(request))
-        .catch(() => caches.match('/'))
+      fetch(request).catch(() => {
+        return caches.match('/').then((cached) => {
+          if (cached) return cached;
+          return new Response(
+            '<html><body><h1>Offline</h1><p>Verify your connection.</p></body></html>',
+            { status: 503, headers: { 'Content-Type': 'text/html' } }
+          );
+        });
+      })
     );
     return;
   }
@@ -65,13 +70,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
+        return fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => new Response(null, { status: 503 }));
       })
     );
     return;
@@ -105,13 +112,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
+        return fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => new Response(null, { status: 503 }));
       })
     );
     return;
@@ -128,7 +137,9 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => 
+          caches.match(request).then((cached) => cached || new Response('{}', { status: 503 }))
+        )
     );
     return;
   }
@@ -143,7 +154,9 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request))
+      .catch(() => 
+        caches.match(request).then((cached) => cached || new Response('', { status: 503 }))
+      )
   );
 });
 
