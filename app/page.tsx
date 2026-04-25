@@ -1,12 +1,24 @@
 'use client';
 
+/**
+ * app/page.tsx — Phase 1
+ *
+ * Renders the existing home page content via <AppShell />.
+ * In Phase 3 the children will be replaced with modal views controlled by AppShell state.
+ *
+ * Rules:
+ *  - No router.push() calls for in-app navigation (migrate to navigate() in Phase 3)
+ *  - The existing Link components here are OK for now (home → legacy pages still work)
+ */
+
 import React from 'react';
+import AppShell from '@/src/components/AppShell';
 import { tenantConfig } from '@/src/config/tenant';
 import Link from 'next/link';
 import { QrCode, UserCheck, ShieldCheck, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/src/context/LanguageContext';
 
-export default function Home() {
+function HomeContent() {
     const { t, locale, setLocale } = useTranslation();
 
     return (
@@ -74,10 +86,10 @@ export default function Home() {
                 </div>
 
                 <div className="flex gap-4 justify-center pt-4">
-                    {['en', 'fr', 'ar'].map(l => (
+                    {(['en', 'fr', 'ar'] as const).map((l) => (
                         <button
                             key={l}
-                            onClick={() => setLocale(l as any)}
+                            onClick={() => setLocale(l)}
                             className={`uppercase text-sm font-black tracking-widest ${locale === l ? 'text-primary' : 'text-slate-300'}`}
                         >
                             {l}
@@ -90,5 +102,11 @@ export default function Home() {
                 </footer>
             </div>
         </div>
+    );
+}
+
+export default function Page() {
+    return (
+        <AppShell initialContent={<HomeContent />} />
     );
 }

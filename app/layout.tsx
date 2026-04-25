@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { settingsDb } from "@/lib/db";
 import { LanguageProvider } from "@/src/context/LanguageContext";
 import { SyncManager } from "@/src/components/SyncManager";
+import { SwRegistrar } from "@/src/components/SwRegistrar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,6 +60,7 @@ export default function RootLayout({
         <html lang="fr" style={themeStyles}>
             <body className={inter.className}>
                 <LanguageProvider>
+                    <SwRegistrar />
                     <SyncManager />
                     <main className="min-h-screen bg-slate-50 flex flex-col">
                         {children}
