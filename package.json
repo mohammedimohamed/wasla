@@ -4,8 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "next dev -H 0.0.0.0",
-        "build": "next build && powershell -Command \"if (!(Test-Path '.next\\standalone\\.next')) { mkdir '.next\\standalone\\.next' }; xcopy /E /I /Y .next\\static .next\\standalone\\.next\\static; xcopy /E /I /Y public .next\\standalone\\public\" ",
-        "start": "SET HOSTNAME=0.0.0.0&&node .next/standalone/server.js",
+        "build": "next build && tsx scripts/post-build.ts",
+        "start": "node -e \"process.env.HOSTNAME='0.0.0.0'; require('./.next/standalone/server.js')\"",
         "lint": "next lint",
         "reset-db": "tsx scripts/reset-db.ts",
         "seed": "tsx scripts/seed.ts",
