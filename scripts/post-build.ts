@@ -6,6 +6,8 @@ const standaloneDir = path.join(rootDir, '.next', 'standalone');
 const standaloneNextDir = path.join(standaloneDir, '.next');
 const staticDir = path.join(rootDir, '.next', 'static');
 const publicDir = path.join(rootDir, 'public');
+const safeBackupDir = path.join(rootDir, '.wasla_db_backup');
+const standaloneDataDir = path.join(standaloneDir, 'data');
 
 console.log('🔄 Running cross-platform post-build script...');
 
@@ -30,6 +32,16 @@ try {
         console.log('✅ Copied public directory to standalone');
     } else {
         console.warn('⚠️ public directory not found');
+    }
+
+    // --- RESTORE DB BACKUP ---
+    if (fs.existsSync(safeBackupDir)) {
+        if (!fs.existsSync(standaloneDataDir)) {
+            fs.mkdirSync(standaloneDataDir, { recursive: true });
+        }
+        
+        fs.cpSync(safeBackupDir, standaloneDataDir, { recursive: true });
+        console.log('🛡️ ✅ Production database successfully RESTORED into standalone/data!');
     }
 
     console.log('🎉 Post-build completed successfully!');

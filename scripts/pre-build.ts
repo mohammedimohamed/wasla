@@ -1,33 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 
-const dbDir = path.join(process.cwd(), 'database');
-const dbFile = path.join(dbDir, 'wasla.sqlite');
+const rootDir = process.cwd();
+const standaloneDataDir = path.join(rootDir, '.next', 'standalone', 'data');
+const safeBackupDir = path.join(rootDir, '.wasla_db_backup');
 
 console.log('🔄 Running pre-build database backup...');
 
 try {
-    if (fs.existsSync(dbFile)) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const backupFile = path.join(dbDir, `wasla.backup.${timestamp}.sqlite`);
-        
-        // Backup the database
-        fs.cpSync(dbFile, backupFile);
-        console.log(`✅ Database backed up successfully to: ${backupFile}`);
-        
-        // If WAL (Write-Ahead Logging) mode is enabled in SQLite, we should also backup the -wal and -shm files if they exist
-        const walFile = path.join(dbDir, 'wasla.sqlite-wal');
-        if (fs.existsSync(walFile)) {
-            fs.cpSync(walFile, path.join(dbDir, `wasla.backup.${timestamp}.sqlite-wal`));
+    if (fs.existsSync(standaloneDataDir)) {
+        // Ensure backup directory exists
+        if (!fs.existsSync(safeBackupDir)) {
+            fs.mkdirSync(safeBackupDir, { recursive: true });
         }
 
-        const shmFile = path.join(dbDir, 'wasla.sqlite-shm');
-        if (fs.existsSync(shmFile)) {
-            fs.cpSync(shmFile, path.join(dbDir, `wasla.backup.${timestamp}.sqlite-shm`));
-        }
+        // Copy the entire data directory to the safe backup location outside .next
+        fs.cpSync(standaloneDataDir, safeBackupDir, { recursive: true });
         
+        console.log(`✅ Production database safely backed up to: ${safeBackupDir}`);
     } else {
-        console.warn('⚠️ No database found to backup at:', dbFile);
+        console.warn('⚠️ No existing production database found to backup at:', standaloneDataDir);
     }
 } catch (error) {
     console.error('❌ Error during pre-build backup:', error);
