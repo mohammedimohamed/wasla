@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev -H 0.0.0.0",
-        "build": "next build && tsx scripts/post-build.ts",
+        "build": "tsx scripts/pre-build.ts && next build && tsx scripts/post-build.ts",
         "start": "node -e \"process.env.HOSTNAME='0.0.0.0'; require('./.next/standalone/server.js')\"",
         "lint": "next lint",
         "reset-db": "tsx scripts/reset-db.ts",
