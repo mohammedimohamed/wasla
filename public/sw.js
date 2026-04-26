@@ -9,7 +9,7 @@
  *  - Everything else → network-first, cache as fallback
  */
 
-const CACHE_NAME = 'wasla-v2';
+const CACHE_NAME = 'wasla-v3';
 
 // The minimal set of URLs required to render the app shell offline.
 // /_next/static/ assets are added dynamically on first fetch.
@@ -103,10 +103,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Public assets (icons, manifest, images) → cache-first
+  // 5. Public assets (icons, images) → cache-first
   if (
     url.pathname.startsWith('/icons/') ||
-    url.pathname === '/manifest.json' ||
     /\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/.test(url.pathname)
   ) {
     event.respondWith(
