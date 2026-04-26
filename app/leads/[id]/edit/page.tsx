@@ -14,10 +14,35 @@ export default function EditLeadPage() {
     useEffect(() => {
         const init = async () => {
             try {
+                let localLead = null;
+                // 1. Try Dexie first (Offline Support)
+                try {
+                    const { getLead } = await import('@/src/db/client');
+                    const record = await getLead(id as string);
+                    if (record) {
+                        localLead = record.payload;
+                    }
+                } catch (e) {
+                    console.error("Dexie read error:", e);
+                }
+
+                if (localLead) {
+                    setLeadData({ ...localLead, id });
+                    setInitialLoading(false);
+                    return;
+                }
+
+                // 2. Fallback to API if online
+                if (!navigator.onLine) {
+                    throw new Error("Offline & not found locally.");
+                }
+
                 const res = await fetch(`/api/leads/${id}`);
                 if (res.ok) {
                     const data = await res.json();
                     setLeadData(data.lead);
+                } else {
+                    throw new Error("Lead not found on server.");
                 }
             } catch (err) {
                 console.error("Erreur de chargement", err);

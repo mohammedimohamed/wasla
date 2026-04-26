@@ -61,6 +61,34 @@ export default function LeadDetailPage() {
 
     const fetchLead = async () => {
         try {
+            let localLead = null;
+            // 1. Try Dexie first (Offline Support)
+            try {
+                const { getLead } = await import('@/src/db/client');
+                const record = await getLead(id as string);
+                if (record) {
+                    // Munge payload into the shape expected by View page
+                    localLead = { 
+                        id: record.client_uuid, 
+                        sync_status: record.sync_status,
+                        source: record.type,
+                        created_at: new Date(record.timestamp).toISOString(),
+                        ...record.payload 
+                    };
+                }
+            } catch (e) {}
+
+            if (localLead) {
+                setLead(localLead as Lead);
+                setLoading(false);
+                return;
+            }
+
+            // 2. Fallback to API if online
+            if (!navigator.onLine) {
+                throw new Error("Offline & not found locally.");
+            }
+
             const response = await fetch(`/api/leads/${id}`);
             if (response.ok) {
                 const data = await response.json();
