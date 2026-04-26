@@ -11,6 +11,7 @@ interface UserData {
     email: string;
     role: string;
     team_id: string | null;
+    active?: number;
 }
 
 interface TeamData {
@@ -26,16 +27,23 @@ export default function AdminTeamsPage() {
     const [teams, setTeams] = useState<TeamData[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [addMemberModal, setAddMemberModal] = useState<{ isOpen: boolean; teamId: string; teamName: string }>({ isOpen: false, teamId: '', teamName: '' });
+    const [users, setUsers] = useState<UserData[]>([]);
     const [newTeamName, setNewTeamName] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchTeams = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/teams');
-            if (!res.ok) throw new Error("Erreur de récupération");
-            const data = await res.json();
-            setTeams(data.teams || []);
+            const [resTeams, resUsers] = await Promise.all([
+                fetch('/api/teams'),
+                fetch('/api/users')
+            ]);
+            if (!resTeams.ok || !resUsers.ok) throw new Error("Erreur de récupération");
+            const dataTeams = await resTeams.json();
+            const dataUsers = await resUsers.json();
+            setTeams(dataTeams.teams || []);
+            setUsers(dataUsers.users || []);
         } catch (error) {
             toast.error("Veuillez vous reconnecter.");
             router.push("/admin/login");
@@ -86,6 +94,30 @@ export default function AdminTeamsPage() {
             fetchTeams();
         } catch (error: any) {
             toast.error(error.message);
+        }
+    };
+
+    const handleAddMember = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const formData = new FormData(e.target as HTMLFormElement);
+        const userId = formData.get('user_id') as string;
+        if (!userId) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId, team_id: addMemberModal.teamId }),
+            });
+            if (!res.ok) throw new Error("Erreur lors de l'ajout");
+            toast.success("Membre ajouté avec succès !");
+            setAddMemberModal({ ...addMemberModal, isOpen: false });
+            fetchTeams();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -144,7 +176,16 @@ export default function AdminTeamsPage() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Membres</p>
+                                    <div className="flex items-center justify-between pl-2">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Membres</p>
+                                        <button
+                                            onClick={() => setAddMemberModal({ isOpen: true, teamId: team.id, teamName: team.name })}
+                                            title="Ajouter un membre"
+                                            className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 transition-colors"
+                                        >
+                                            <UserPlus className="w-3 h-3" /> Ajouter
+                                        </button>
+                                    </div>
                                     <div className="bg-slate-50 rounded-2xl p-2 border border-slate-100 space-y-1">
                                         {team.users.length === 0 ? (
                                             <p className="text-xs text-slate-400 text-center py-4">Aucun membre dans cette équipe</p>
@@ -213,6 +254,45 @@ export default function AdminTeamsPage() {
 
                             <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] shadow-xl shadow-indigo-200/50 mt-8 py-4 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Créer l'équipe"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {addMemberModal.isOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-[40px] w-full max-w-sm shadow-2xl p-8 relative">
+                        <button onClick={() => setAddMemberModal({ ...addMemberModal, isOpen: false })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                            <XCircle className="w-7 h-7" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                                <UserPlus className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Ajout</h2>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{addMemberModal.teamName}</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleAddMember} className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Sélectionner un agent libre</label>
+                                <select name="user_id" required defaultValue="" className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-blue-400 focus:ring-4 focus:ring-blue-50 outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="" disabled>-- Choisir un agent --</option>
+                                    {users.filter(u => !u.team_id && u.role === 'SALES_AGENT' && u.active !== 0).map(u => (
+                                        <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                                    ))}
+                                </select>
+                                {users.filter(u => !u.team_id && u.role === 'SALES_AGENT' && u.active !== 0).length === 0 && (
+                                    <p className="text-xs text-amber-600 font-bold mt-2 pl-2">Aucun agent libre disponible.</p>
+                                )}
+                            </div>
+
+                            <button type="submit" disabled={isSubmitting || users.filter(u => !u.team_id && u.role === 'SALES_AGENT' && u.active !== 0).length === 0} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-[24px] shadow-xl shadow-blue-200/50 mt-8 py-4 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Ajouter à l'équipe"}
                             </button>
                         </form>
                     </div>

@@ -61,6 +61,7 @@ export default function AdminUsersPage() {
     const [teams, setTeams] = useState<TeamData[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [assignModal, setAssignModal] = useState<{ isOpen: boolean; userId: string; userName: string; currentTeamId: string | null }>({ isOpen: false, userId: '', userName: '', currentTeamId: null });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormValues>({
@@ -132,6 +133,29 @@ export default function AdminUsersPage() {
             fetchData();
         } catch (error: any) {
             toast.error(error.message);
+        }
+    };
+
+    const handleAssignTeam = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const formData = new FormData(e.target as HTMLFormElement);
+        const team_id = formData.get('team_id') as string;
+        
+        try {
+            const res = await fetch('/api/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: assignModal.userId, team_id: team_id || null })
+            });
+            if (!res.ok) throw new Error("Erreur d'affectation");
+            toast.success(`Équipe affectée pour ${assignModal.userName}`);
+            setAssignModal({ ...assignModal, isOpen: false });
+            fetchData();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -256,6 +280,15 @@ export default function AdminUsersPage() {
                                                     <div className="flex items-center justify-end gap-2">
                                                         {u.active && (
                                                             <>
+                                                                {u.role !== 'ADMINISTRATOR' && (
+                                                                    <button
+                                                                        onClick={() => setAssignModal({ isOpen: true, userId: u.id, userName: u.name, currentTeamId: u.team_id })}
+                                                                        title="Affecter à une équipe"
+                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                                                                    >
+                                                                        <Users className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
                                                                 <button
                                                                     onClick={() => handleResetPin(u.id, u.name)}
                                                                     title="Réinitialiser le PIN de session"
@@ -371,6 +404,46 @@ export default function AdminUsersPage() {
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Traitement en cours...</>
                                 ) : (
                                     <><CheckCircle2 className="w-5 h-5" /> Enregistrer le Compte</>
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* ── MODAL: ASSIGN TEAM ───────────────────────────────────────────────── */}
+            {assignModal.isOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
+                        <button onClick={() => setAssignModal({ ...assignModal, isOpen: false })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                            <XCircle className="w-7 h-7" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                                <Users className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Affectation</h2>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{assignModal.userName}</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleAssignTeam} className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Sélectionner une équipe</label>
+                                <select name="team_id" defaultValue={assignModal.currentTeamId || ""} className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-blue-400 focus:ring-4 focus:ring-blue-50 outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">Aucune équipe / Non assigné</option>
+                                    {teams.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-[24px] shadow-xl shadow-blue-200/50 mt-8 py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                                {isSubmitting ? (
+                                    <><Loader2 className="w-5 h-5 animate-spin" /> Traitement en cours...</>
+                                ) : (
+                                    <><CheckCircle2 className="w-5 h-5" /> Confirmer l'affectation</>
                                 )}
                             </button>
                         </form>
