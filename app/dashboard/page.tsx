@@ -111,6 +111,7 @@ export default function AgentDashboardPage() {
 
                 // Handle offline case: SW returns { offline: true }
                 if (data.offline) {
+                    setIsOnline(false); // Ensure UI reflects offline state
                     const cachedId   = localStorage.getItem("sales_agent_id");
                     const cachedName = localStorage.getItem("sales_name");
                     if (cachedId) {
