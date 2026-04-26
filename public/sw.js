@@ -9,7 +9,7 @@
  *  - Everything else → network-first, cache as fallback
  */
 
-const CACHE_NAME = 'wasla-v3';
+const CACHE_NAME = 'wasla-v4';
 
 // The minimal set of URLs required to render the app shell offline.
 // /_next/static/ assets are added dynamically on first fetch.
@@ -52,15 +52,26 @@ self.addEventListener('fetch', (event) => {
   // 1. Navigation (page loads) → network-first (for now), fallback to cached shell
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => {
-        return caches.match('/').then((cached) => {
-          if (cached) return cached;
-          return new Response(
-            '<html><body><h1>Offline</h1><p>Verify your connection.</p></body></html>',
-            { status: 503, headers: { 'Content-Type': 'text/html' } }
-          );
-        });
-      })
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            return caches.match('/').then((fallback) => {
+              if (fallback) return fallback;
+              return new Response(
+                '<html><body><h1>Offline</h1><p>Verify your connection.</p></body></html>',
+                { status: 503, headers: { 'Content-Type': 'text/html' } }
+              );
+            });
+          });
+        })
     );
     return;
   }

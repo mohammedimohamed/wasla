@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     Plus, List, RefreshCw, Monitor, LogOut,
     QrCode, X, Share2, User, Phone, Briefcase,
@@ -242,24 +243,24 @@ export default function AgentDashboardPage() {
                     </div>
 
                     {/* Primary CTA */}
-                    <button
-                        onClick={() => router.push("/leads/new")}
+                    <Link
+                        href="/leads/new"
                         className="w-full py-6 rounded-2xl font-black text-lg text-white shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
                         style={{ backgroundColor: branding.primary_color, boxShadow: `0 20px 25px -5px ${branding.primary_color}40` }}
                     >
                         <Plus className="w-6 h-6" />
                         Nouveau Lead
-                    </button>
+                    </Link>
 
                     {/* Secondary Actions */}
                     <div className="grid grid-cols-2 gap-3">
-                        <button
-                            onClick={() => router.push("/leads/list")}
+                        <Link
+                            href="/leads/list"
                             className="bg-white border border-slate-200 h-20 flex-col rounded-2xl shadow-sm flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-colors"
                         >
                             <List className="w-5 h-5 text-slate-500" />
                             <span className="text-xs font-black uppercase text-slate-600 tracking-wide">Mes Leads</span>
-                        </button>
+                        </Link>
 
                         <button
                             onClick={() => setShowQrModal(true)}
@@ -277,13 +278,13 @@ export default function AgentDashboardPage() {
                             <span className="text-xs font-black uppercase text-slate-600 tracking-wide">Mon Profil</span>
                         </button>
 
-                        <button
-                            onClick={() => router.push("/kiosk")}
+                        <Link
+                            href="/kiosk"
                             className="bg-slate-900 h-20 flex-col rounded-2xl shadow-sm flex items-center justify-center gap-1.5 hover:bg-slate-800 transition-colors"
                         >
                             <Monitor className="w-5 h-5 text-blue-400" />
                             <span className="text-xs font-black uppercase text-slate-300 tracking-wide">Kiosque</span>
-                        </button>
+                        </Link>
                     </div>
 
                     {/* ── Profile Edit Panel (inline slide-down) ── */}
