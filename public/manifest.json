@@ -1,8 +1,8 @@
 {
-    "name": "Wasla CRM Kiosk",
+    "name": "Wasla CRM",
     "short_name": "WaslaCRM",
     "description": "Enterprise Event Lead Capture — works offline and syncs automatically",
-    "start_url": "/kiosk",
+    "start_url": "/",
     "scope": "/",
     "display": "standalone",
     "background_color": "#f8fafc",
