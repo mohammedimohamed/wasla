@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     ChevronLeft,
     CheckCircle2,
@@ -45,9 +46,9 @@ export default function SyncPage() {
     return (
         <div className="flex-1 flex flex-col pt-4 bg-slate-50">
             <header className="px-6 mb-8 flex items-center gap-4">
-                <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+                <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-lg inline-flex items-center justify-center text-slate-700">
                     <ChevronLeft className="w-6 h-6" />
-                </button>
+                </Link>
                 <h1 className="text-xl font-black text-slate-900">Synchronisation</h1>
             </header>
 
