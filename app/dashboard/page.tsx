@@ -101,14 +101,29 @@ export default function AgentDashboardPage() {
         setIsOnline(navigator.onLine);
 
         const init = async () => {
-            const res = await fetch('/api/auth');
-            if (!res.ok) { window.location.href = '/login'; return; }
-            const data = await res.json();
-            setAgentId(data.user.id);
-            setAgentName(data.user.name);
-            localStorage.setItem("sales_agent_id", data.user.id);
-            localStorage.setItem("sales_name", data.user.name);
-            localStorage.setItem("sales_tenant_id", data.user.tenantId || "00000000-0000-0000-0000-000000000000");
+            try {
+                const res = await fetch('/api/auth');
+                const data = await res.json();
+                
+                // Handle offline case: SW returns { offline: true }
+                if (data.offline) {
+                    const cachedId = localStorage.getItem("sales_agent_id");
+                    const cachedName = localStorage.getItem("sales_name");
+                    if (cachedId) {
+                        setAgentId(cachedId);
+                        setAgentName(cachedName || 'Agent');
+                        await fetchProfile();
+                        return; // stay on dashboard
+                    }
+                }
+
+                if (!res.ok) { window.location.href = '/login'; return; }
+                
+                setAgentId(data.user.id);
+                setAgentName(data.user.name);
+                localStorage.setItem("sales_agent_id", data.user.id);
+                localStorage.setItem("sales_name", data.user.name);
+                localStorage.setItem("sales_tenant_id", data.user.tenantId || "00000000-0000-0000-0000-000000000000");
 
             // Load stats from sync queue / leads API
             try {
@@ -122,6 +137,10 @@ export default function AgentDashboardPage() {
                     });
                 }
             } catch (_) {}
+
+            } catch (err) {
+                console.error("Auth check failed", err);
+            }
 
             await fetchProfile();
         };

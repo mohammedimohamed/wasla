@@ -28,12 +28,24 @@ export function SwRegistrar() {
             })
             .catch((err) => console.error('[SW] Registration failed:', err));
 
-        // Reload once the new SW has taken control (after SKIP_WAITING)
+        // Notify instead of auto-reloading to protect unsaved form data
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
                 refreshing = true;
-                window.location.reload();
+                // Don't auto-reload. Use a toast to inform the user (assumes Toaster is in layout)
+                import('react-hot-toast').then(({ default: toast }) => {
+                    toast('Une mise à jour est disponible.', {
+                        duration: 8000,
+                        icon: '🔄',
+                        action: {
+                            label: 'Recharger',
+                            onClick: () => window.location.reload()
+                        }
+                    } as any);
+                }).catch(() => {
+                    console.log('Update available. Please refresh the page.');
+                });
             }
         });
     }, []);
