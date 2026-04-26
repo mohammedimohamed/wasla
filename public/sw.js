@@ -1,77 +1,49 @@
 /**
- * Wasla — Custom Service Worker v2
+ * Wasla — Custom Service Worker v3
  *
- * Strategy:
- *  - Navigation requests → serve cached shell (/) so the app works offline
- *  - /_next/static/ → cache-first (hashed assets, immutable)
- *  - /api/sync      → network-only (let the app handle offline gracefully)
- *  - /api/*         → network-first with a 503 JSON fallback (app reads IndexedDB)
- *  - Everything else → network-first, cache as fallback
+ * Root-cause fix: Next.js adds `Vary: RSC, Next-Router-State-Tree, ...`
+ * headers to every response. Standard caches.match() respects Vary and
+ * NEVER finds a match → pages appear uncached → dinosaur screen offline.
+ *
+ * Solution: cache responses WITHOUT the Vary header so they always match.
+ *
+ * Strategies:
+ *  - /offline.html         → Cache-only (always pre-cached, static file)
+ *  - Navigation requests   → Stale-While-Revalidate (serve cache, update in BG)
+ *  - /_next/static/        → Cache-first (immutable hashed assets)
+ *  - /api/sync             → Network-only
+ *  - /api/*                → Network-first with 503 JSON fallback
+ *  - Images / fonts        → Cache-first
+ *  - /locales/             → Network-first with cache fallback
+ *  - Everything else       → Network-first, cache as fallback
  */
 
-const CACHE_NAME = 'wasla-v7';
+const CACHE_NAME = 'wasla-v8';
 
-// The minimal set of URLs required to render the app offline.
-const PRECACHE_URLS = [
-  '/', 
-  '/dashboard', 
-  '/kiosk', 
-  '/login', 
-  '/offline.html',
-  '/leads/new',
-  '/leads/list'
-];
+// Only pre-cache the static fallback. Everything else is cached on first visit.
+const PRECACHE_URLS = ['/offline.html'];
+
+// ─── Helper: clone a response and strip Vary so caches.match() always works ──
+function stripVary(response) {
+  const headers = new Headers(response.headers);
+  headers.delete('vary');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+// ─── Helper: match ignoring Vary ─────────────────────────────────────────────
+function matchCache(cache, request) {
+  return cache.match(request, { ignoreVary: true });
+}
 
 // ─── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then(async (cache) => {
-        // We fetch explicitly with credentials so that if the user is logged in,
-        // '/' automatically follows the redirect to '/dashboard' and caches the 
-        // dashboard HTML under the '/' key. We handle each independently so an 
-        // error doesn't crash the entire SW installation!
-        for (const url of PRECACHE_URLS) {
-          try {
-            const req = new Request(url, { credentials: 'same-origin' });
-            const res = await fetch(req);
-            if (res.ok) {
-              const clone = res.clone();
-              await cache.put(req, res);
-
-              // 🚀 P2 Fix: Proactively parse HTML and cache all Next.js JS/CSS chunks!
-              // This guarantees the page will actually hydrate and run offline.
-              if (clone.headers.get('content-type')?.includes('text/html')) {
-                try {
-                  const html = await clone.text();
-                  const assetRegex = /(?:src|href)="(\/_next\/static\/[^"]+\.(?:js|css))"/g;
-                  const matches = [...html.matchAll(assetRegex)];
-                  
-                  for (const match of matches) {
-                    const assetUrl = match[1];
-                    try {
-                      const assetReq = new Request(assetUrl);
-                      // Don't re-fetch if already cached
-                      const existing = await cache.match(assetReq);
-                      if (!existing) {
-                        const assetRes = await fetch(assetReq);
-                        if (assetRes.ok) await cache.put(assetReq, assetRes);
-                      }
-                    } catch (err) {
-                      // Silently skip failed individual assets
-                    }
-                  }
-                } catch (parseErr) {
-                  console.warn(`[SW] HTML Parse failed for ${url}:`, parseErr);
-                }
-              }
-            }
-          } catch (e) {
-            console.warn(`[SW] Precache failed for ${url}:`, e);
-          }
-        }
-      })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.add('/offline.html'))
       .then(() => self.skipWaiting())
   );
 });
@@ -79,13 +51,10 @@ self.addEventListener('install', (event) => {
 // ─── Activate ─────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
+    caches.keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((k) => k !== CACHE_NAME)
-            .map((k) => caches.delete(k))
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
         )
       )
       .then(() => self.clients.claim())
@@ -97,62 +66,69 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests — let them pass through normally
+  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // 1. Navigation (page loads) → network-first (for now), fallback to cached shell
+  // 1. Navigation (page loads) → Stale-While-Revalidate
+  //    Serve cached version INSTANTLY, then update cache in background.
+  //    This is why the browser works: it restores cached HTML immediately.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            if (cached) return cached;
-            return caches.match('/offline.html').then((fallback) => {
-              if (fallback) return fallback;
-              return new Response(
-                '<html><body><h1>Offline</h1><p>Verify your connection.</p></body></html>',
-                { status: 503, headers: { 'Content-Type': 'text/html' } }
-              );
-            });
-          });
-        })
-    );
-    return;
-  }
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await matchCache(cache, request);
 
-  // 2. Next.js static assets → cache-first (they use content hashes, safe to cache forever)
-  if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        const networkFetch = fetch(request)
+          .then((networkRes) => {
+            if (networkRes.ok) {
+              // Strip Vary before storing — this is the critical fix
+              cache.put(request, stripVary(networkRes.clone()));
             }
-            return response;
+            return networkRes;
           })
-          .catch(() => new Response(null, { status: 503 }));
+          .catch(() => null);
+
+        if (cached) {
+          // Serve stale cache immediately, update in background
+          event.waitUntil(networkFetch);
+          return cached;
+        }
+
+        // Nothing cached → wait for network
+        const networkRes = await networkFetch;
+        if (networkRes && networkRes.ok) return networkRes;
+
+        // Both failed → serve offline fallback
+        const offline = await matchCache(cache, new Request('/offline.html'));
+        return offline || new Response(
+          '<html><body><h1>Offline</h1></body></html>',
+          { status: 503, headers: { 'Content-Type': 'text/html' } }
+        );
       })
     );
     return;
   }
 
-  // 3. Sync endpoint → network-only (app handles offline, no SW interference)
-  if (url.pathname === '/api/sync') {
-    // Pass through — if fetch throws, let the app's useSync hook deal with it
+  // 2. Next.js static assets → Cache-first (hashed, immutable)
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await matchCache(cache, request);
+        if (cached) return cached;
+        const res = await fetch(request).catch(() => null);
+        if (res && res.ok) {
+          cache.put(request, stripVary(res.clone()));
+          return res;
+        }
+        return new Response(null, { status: 503 });
+      })
+    );
     return;
   }
 
-  // 4. Other API routes → network-first with JSON offline fallback
+  // 3. Sync endpoint → Network-only
+  if (url.pathname === '/api/sync') return;
+
+  // 4. API routes → Network-first with JSON fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request).catch(() =>
@@ -165,66 +141,61 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Public assets (icons, images) → cache-first
+  // 5. Images / icons → Cache-first
   if (
     url.pathname.startsWith('/icons/') ||
     /\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/.test(url.pathname)
   ) {
     event.respondWith(
-      caches.match(request).then((cached) => {
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await matchCache(cache, request);
         if (cached) return cached;
-        return fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            }
-            return response;
-          })
-          .catch(() => new Response(null, { status: 503 }));
+        const res = await fetch(request).catch(() => null);
+        if (res && res.ok) {
+          cache.put(request, stripVary(res.clone()));
+          return res;
+        }
+        return new Response(null, { status: 503 });
       })
     );
     return;
   }
 
-  // 6. Locale JSON files → network-first with cache fallback
+  // 6. Locale JSON → Network-first with cache fallback
   if (url.pathname.startsWith('/locales/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() =>
-          caches.match(request).then((cached) => cached || new Response('{}', { status: 503 }))
-        )
+      caches.open(CACHE_NAME).then(async (cache) => {
+        try {
+          const res = await fetch(request);
+          if (res.ok) cache.put(request, stripVary(res.clone()));
+          return res;
+        } catch {
+          const cached = await matchCache(cache, request);
+          return cached || new Response('{}', { status: 503 });
+        }
+      })
     );
     return;
   }
 
-  // 7. Everything else → network-first, cache as fallback
+  // 7. Everything else → Network-first, cache as fallback
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(request).then((cached) => cached || new Response('', { status: 503 }))
-      )
+    caches.open(CACHE_NAME).then(async (cache) => {
+      try {
+        const res = await fetch(request);
+        if (res.ok) cache.put(request, stripVary(res.clone()));
+        return res;
+      } catch {
+        const cached = await matchCache(cache, request);
+        return cached || new Response('', { status: 503 });
+      }
+    })
   );
 });
 
 // ─── Background Sync ──────────────────────────────────────────────────────────
 self.addEventListener('sync', (event) => {
   if (event.tag === 'wasla-offline-sync' || event.tag === 'sync-pending-leads') {
-    // Notify all open clients to trigger the sync flush (app has IndexedDB access)
     event.waitUntil(
       self.clients.matchAll({ type: 'window' }).then((clients) => {
         clients.forEach((client) =>
@@ -235,7 +206,7 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// ─── Message handler (from app → SW) ─────────────────────────────────────────
+// ─── Message handler ──────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
