@@ -36,7 +36,9 @@ interface StatsState {
 export default function AgentDashboardPage() {
     const router = useRouter();
 
-    const [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(
+        typeof navigator !== 'undefined' ? navigator.onLine : true
+    );
     const [agentId, setAgentId] = useState<string | null>(null);
     const [agentName, setAgentName] = useState("");
     const [stats, setStats] = useState<StatsState>({ total: 0, synced: 0, pending: 0 });
@@ -94,9 +96,11 @@ export default function AgentDashboardPage() {
             } catch (_) {}
         };
         loadSettings();
-        const handleOnline = () => setIsOnline(true);
+
+        // ── Online / Offline detection ────────────────────────────
+        const handleOnline  = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
-        window.addEventListener("online", handleOnline);
+        window.addEventListener("online",  handleOnline);
         window.addEventListener("offline", handleOffline);
         setIsOnline(navigator.onLine);
 
@@ -104,51 +108,61 @@ export default function AgentDashboardPage() {
             try {
                 const res = await fetch('/api/auth');
                 const data = await res.json();
-                
+
                 // Handle offline case: SW returns { offline: true }
                 if (data.offline) {
-                    const cachedId = localStorage.getItem("sales_agent_id");
+                    const cachedId   = localStorage.getItem("sales_agent_id");
                     const cachedName = localStorage.getItem("sales_name");
                     if (cachedId) {
                         setAgentId(cachedId);
                         setAgentName(cachedName || 'Agent');
                         await fetchProfile();
-                        return; // stay on dashboard
+                        return;
                     }
                 }
 
                 if (!res.ok) { window.location.href = '/login'; return; }
-                
+
                 setAgentId(data.user.id);
                 setAgentName(data.user.name);
                 localStorage.setItem("sales_agent_id", data.user.id);
                 localStorage.setItem("sales_name", data.user.name);
                 localStorage.setItem("sales_tenant_id", data.user.tenantId || "00000000-0000-0000-0000-000000000000");
 
-            // Load stats from sync queue / leads API
-            try {
-                const statsRes = await fetch('/api/dashboard/stats');
-                if (statsRes.ok) {
-                    const d = await statsRes.json();
-                    setStats({
-                        total: d.data?.totalLeads ?? 0,
-                        synced: d.data?.syncedLeads ?? 0,
-                        pending: d.data?.pendingLeads ?? 0,
-                    });
-                }
-            } catch (_) {}
+                // Load stats
+                try {
+                    const statsRes = await fetch('/api/dashboard/stats');
+                    if (statsRes.ok) {
+                        const d = await statsRes.json();
+                        setStats({
+                            total:   d.data?.totalLeads   ?? 0,
+                            synced:  d.data?.syncedLeads  ?? 0,
+                            pending: d.data?.pendingLeads ?? 0,
+                        });
+                    }
+                } catch (_) {}
+
+                await fetchProfile();
 
             } catch (err) {
-                console.error("Auth check failed", err);
+                // fetch() throws a TypeError when the network is completely
+                // unavailable (airplane mode). Treat it as offline.
+                console.warn("[Dashboard] Init failed (likely offline):", err);
+                setIsOnline(false);
+                const cachedId   = localStorage.getItem("sales_agent_id");
+                const cachedName = localStorage.getItem("sales_name");
+                if (cachedId) {
+                    setAgentId(cachedId);
+                    setAgentName(cachedName || 'Agent');
+                    await fetchProfile();
+                }
             }
-
-            await fetchProfile();
         };
 
         init();
 
         return () => {
-            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("online",  handleOnline);
             window.removeEventListener("offline", handleOffline);
         };
     }, [fetchProfile]);
