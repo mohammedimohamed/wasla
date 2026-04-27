@@ -26,6 +26,7 @@ interface AgentProfile {
     company_name?: string | null;
     linkedin_url?: string | null;
     image_url?: string | null;
+    updated_at?: string;
 }
 
 interface StatsState {
@@ -225,7 +226,7 @@ export default function AgentDashboardPage() {
                 <header className="bg-white border-b px-5 py-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
                         {profile?.image_url ? (
-                            <img src={profile.image_url} className="w-10 h-10 rounded-xl object-cover bg-white shadow-sm border border-slate-100" />
+                            <img src={`${profile.image_url}?v=${new Date(profile.updated_at || Date.now()).getTime()}`} className="w-10 h-10 rounded-xl object-cover bg-white shadow-sm border border-slate-100" />
                         ) : branding.logo_url ? (
                             <img src={branding.logo_url} className="w-10 h-10 rounded-xl object-contain bg-white shadow-sm border border-slate-100" />
                         ) : (
@@ -322,7 +323,7 @@ export default function AgentDashboardPage() {
                             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                 <div className="flex items-center gap-3">
                                     {profile?.image_url ? (
-                                        <img src={profile.image_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-white" />
+                                        <img src={`${profile.image_url}?v=${new Date(profile.updated_at || Date.now()).getTime()}`} className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-white" />
                                     ) : (
                                         <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm border border-white">
                                             <User className="w-6 h-6" />

@@ -23,6 +23,8 @@ import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { DigitalProfileBuilder } from "@/src/components/DigitalProfileBuilder";
+import { updateDigitalProfileAction } from "./actions";
 import { updateUserAction, resetUserPasswordAction } from "./actions";
 
 // Zod Schema matches backend for validation
@@ -45,6 +47,7 @@ interface UserData {
     team_name: string | null;
     active: number;
     created_at: string;
+    updated_at: string;
     quick_pin: string | null;
     image_url: string | null;
     force_password_reset: number;
@@ -52,6 +55,9 @@ interface UserData {
     job_title: string | null;
     company_name: string | null;
     linkedin_url: string | null;
+    profile_slug: string | null;
+    profile_is_active: number;
+    profile_config: string | null;
 }
 
 interface TeamData {
@@ -76,6 +82,8 @@ export default function AdminUsersPage() {
     const [resetCodeModal, setResetCodeModal] = useState<{ isOpen: boolean; code: string; userName: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [editTab, setEditTab] = useState<'info' | 'nfc'>('info');
+    const [brandingSettings, setBrandingSettings] = useState<any>(null);
 
     const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormValues>({
         resolver: zodResolver(userSchema),
@@ -84,7 +92,7 @@ export default function AdminUsersPage() {
 
     const currentRole = watch('role');
 
-    const fetchData = async () => {
+    const fetchData = async (): Promise<UserData[] | undefined> => {
         setLoading(true);
         try {
             const res = await fetch('/api/users');
@@ -92,16 +100,27 @@ export default function AdminUsersPage() {
             const data = await res.json();
             setUsers(data.users || []);
             setTeams(data.teams || []);
+            return data.users as UserData[];
         } catch (error) {
             toast.error("Veuillez vous reconnecter.");
             router.push("/admin/login");
+            return [];
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchBranding = async () => {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (data.success) setBrandingSettings(data.settings);
+        } catch (_) {}
+    };
+
     useEffect(() => {
         fetchData();
+        fetchBranding();
     }, []);
 
     const onSubmit = async (data: UserFormValues) => {
@@ -296,7 +315,7 @@ export default function AdminUsersPage() {
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${RMap.bg} ${RMap.color}`}>
                                                             {u.image_url ? (
-                                                                <img src={u.image_url} alt={u.name} className="w-full h-full object-cover" />
+                                                                <img src={`${u.image_url}?v=${new Date(u.updated_at).getTime()}`} alt={u.name} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <RIcon className="w-5 h-5" />
                                                             )}
@@ -332,7 +351,7 @@ export default function AdminUsersPage() {
                                                                 <button
                                                                     onClick={() => {
                                                                         setEditModal({ isOpen: true, user: u });
-                                                                        setPhotoPreview(u.image_url);
+                                                                        setPhotoPreview(`${u.image_url}?v=${new Date(u.updated_at).getTime()}`);
                                                                     }}
                                                                     title="Modifier l'utilisateur"
                                                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
@@ -370,7 +389,7 @@ export default function AdminUsersPage() {
                                         );
                                     })}
                                 </tbody>
-                            </table>
+            </table>
                             {users.length === 0 && !loading && (
                                 <div className="p-20 text-center text-slate-400 font-medium">
                                     Aucun utilisateur trouvé.
@@ -478,17 +497,36 @@ export default function AdminUsersPage() {
                             <XCircle className="w-7 h-7" />
                         </button>
 
-                        <div className="flex items-center gap-4 mb-10">
-                            <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-[24px] flex items-center justify-center shadow-sm">
-                                <Pencil className="w-7 h-7" />
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-[24px] flex items-center justify-center shadow-sm">
+                                    <Pencil className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Modifier le Profil</h2>
+                                    <p className="text-xs font-bold text-slate-400 mt-1.5 uppercase tracking-[0.2em]">Management Identity & Security</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Modifier le Profil</h2>
-                                <p className="text-xs font-bold text-slate-400 mt-1.5 uppercase tracking-[0.2em]">Management Identity & Security</p>
+
+                            {/* Tab Switcher */}
+                            <div className="bg-slate-50 p-1.5 rounded-[22px] flex gap-1 border border-slate-100">
+                                <button 
+                                    onClick={() => setEditTab('info')}
+                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'info' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Informations
+                                </button>
+                                <button 
+                                    onClick={() => setEditTab('nfc')}
+                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'nfc' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Profil NFC
+                                </button>
                             </div>
                         </div>
 
-                        <form onSubmit={onEditSubmit} className="space-y-8">
+                        {editTab === 'info' ? (
+                            <form onSubmit={onEditSubmit} className="space-y-8">
                             <input type="hidden" name="id" value={editModal.user.id} />
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -623,6 +661,41 @@ export default function AdminUsersPage() {
                                 </button>
                             </div>
                         </form>
+                        ) : (
+                            <DigitalProfileBuilder 
+                                key={editModal.user.id + (editModal.user.updated_at || Date.now())}
+                                userId={editModal.user.id}
+                                userName={editModal.user.name}
+                                initialSlug={editModal.user.profile_slug || ""}
+                                initialConfig={editModal.user.profile_config}
+                                initialIsActive={editModal.user.profile_is_active === 1}
+                                userJob={editModal.user.job_title}
+                                userPhoto={editModal.user.image_url ? `${editModal.user.image_url}?v=${new Date(editModal.user.updated_at).getTime()}` : null}
+                                brandingLogo={brandingSettings?.logo_url}
+                                onSaveSuccess={(freshData) => {
+                                    if (!editModal.user) return;
+                                    
+                                    // 1. Optimistic update: merge fresh data into local state immediately
+                                    const updatedUser = {
+                                        ...editModal.user,
+                                        profile_config: freshData.profile_config,
+                                        profile_slug: freshData.profile_slug,
+                                        profile_is_active: freshData.profile_is_active,
+                                        updated_at: freshData.updated_at, // Changes the key → forces builder remount
+                                    };
+
+                                    // 2. Update the users list (no flicker, no round-trip)
+                                    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+                                    // 3. Update the modal with fresh data (changes key → clean remount)
+                                    setEditModal(prev => ({ ...prev, user: updatedUser }));
+
+                                    // 4. Background: invalidate Next.js cache + sync list from server
+                                    router.refresh();
+                                    fetchData();
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
             )}

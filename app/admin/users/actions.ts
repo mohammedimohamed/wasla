@@ -7,6 +7,7 @@ import { getPublicUploadDir } from "@/lib/storage";
 import fs from "fs/promises";
 import path from "path";
 import * as z from "zod";
+import { userDigitalProfileSchema } from "@/lib/schemas";
 
 const editUserSchema = z.object({
     id: z.string().uuid(),
@@ -88,6 +89,7 @@ export async function updateUserAction(formData: FormData) {
         }
 
         revalidatePath("/admin/users");
+        revalidatePath('/', 'layout'); // Purge global cache (especially for Header/Layout avatar)
         return { success: true };
 
     } catch (error: any) {
@@ -132,5 +134,60 @@ export async function resetUserPasswordAction(userId: string) {
     } catch (error: any) {
         console.error("[resetUserPasswordAction] Error:", error);
         return { error: "Erreur lors de la réinitialisation : " + error.message };
+    }
+}
+
+/**
+ * 🪪 Update Digital Profile Action
+ */
+export async function updateDigitalProfileAction(id: string, slug: string, isActive: boolean, config: any) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') {
+        return { error: "Accès non autorisé" };
+    }
+
+    try {
+        // Validate
+        const validation = userDigitalProfileSchema.safeParse({
+            profile_slug: slug,
+            profile_is_active: isActive,
+            profile_config: config
+        });
+
+        if (!validation.success) {
+            return { error: "Validation échouée", details: validation.error.flatten().fieldErrors };
+        }
+
+        // 🔍 Check slug uniqueness manually for better UX
+        const existingWithSlug = userDb.findBySlug(slug);
+        if (existingWithSlug && existingWithSlug.id !== id) {
+            return { error: "Ce lien (slug) est déjà utilisé par un autre profil." };
+        }
+
+        userDb.update(id, {
+            profile_slug: slug,
+            profile_is_active: isActive ? 1 : 0,
+            profile_config: JSON.stringify(config)
+        }, session.userId);
+
+        // Return the fresh user data immediately to avoid a network round-trip
+        const updatedUser = userDb.findById(id);
+
+        revalidatePath("/admin/users");
+        revalidatePath(`/p/${slug}`);
+        
+        return { 
+            success: true,
+            updatedAt: updatedUser?.updated_at || new Date().toISOString(),
+            profile_config: JSON.stringify(config),
+            profile_slug: slug,
+            profile_is_active: isActive ? 1 : 0
+        };
+    } catch (error: any) {
+        if (error.message?.includes('UNIQUE constraint failed')) {
+            return { error: "Ce slug est déjà utilisé par un autre profil." };
+        }
+        console.error("[updateDigitalProfileAction] Error:", error);
+        return { error: "Erreur serveur : " + error.message };
     }
 }

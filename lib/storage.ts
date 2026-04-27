@@ -15,18 +15,21 @@ export const getPublicUploadDir = (subDir: string = ''): string => {
     let publicBase = path.join(root, 'public');
 
     if (isProd) {
-        // Next.js standalone server serves from its own .next/standalone/public folder.
-        // If we are running node .next/standalone/server.js from the root, we must target that.
+        // When running `node .next/standalone/server.js` from the project root,
+        // cwd() is the project root and .next/standalone/public exists.
+        // When running `node server.js` from inside .next/standalone/,
+        // cwd() IS .next/standalone/ and public is directly at cwd()/public.
         const standalonePublic = path.join(root, '.next', 'standalone', 'public');
-        
+        const cwdPublic = path.join(root, 'public');
+
         if (fs.existsSync(standalonePublic)) {
+            // Running from project root (e.g. npm run start)
             publicBase = standalonePublic;
-        } else {
-            // Fallback for Docker environments where the standalone files are at the root
-            // and the 'server.js' is already in the CWD.
-            // If server.js is in root, it serves from ./public
-            publicBase = path.join(root, 'public');
+        } else if (fs.existsSync(cwdPublic)) {
+            // Running from inside standalone dir or Docker
+            publicBase = cwdPublic;
         }
+        // else keep the default path.join(root, 'public')
     }
 
     const uploadDir = path.join(publicBase, 'uploads', subDir);

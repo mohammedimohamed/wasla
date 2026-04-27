@@ -1130,11 +1130,23 @@ export const userDb = {
 
     findPublicProfile: (id: string) => {
         const user = db.prepare(`
-            SELECT name, email, phone_number, job_title, company_name, linkedin_url, image_url
+            SELECT name, email, phone_number, job_title, company_name, linkedin_url, image_url, 
+                   profile_slug, profile_is_active, profile_config, updated_at
             FROM users
             WHERE id = ? AND active = 1
         `).get(id) as any;
         if (!user) return undefined;
+        const { decrypt } = require('@/src/lib/crypto');
+        try {
+            return { ...user, email: decrypt(user.email) };
+        } catch {
+            return user;
+        }
+    },
+
+    findBySlug: (slug: string) => {
+        const user = db.prepare("SELECT * FROM users WHERE profile_slug = ? AND active = 1").get(slug) as any;
+        if (!user) return null;
         const { decrypt } = require('@/src/lib/crypto');
         try {
             return { ...user, email: decrypt(user.email) };
@@ -1197,8 +1209,10 @@ export const userDb = {
     // ─────────────────────────────────────────────────────────────────────────────
     list: () => {
         const users = db.prepare(`
-            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.quick_pin, u.image_url, 
+            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.updated_at, u.quick_pin, u.image_url, 
                    u.phone_number, u.job_title, u.company_name, u.linkedin_url,
+                   u.force_password_reset,
+                   u.profile_slug, u.profile_is_active, u.profile_config,
                    t.name as team_name
             FROM users u
             LEFT JOIN teams t ON u.team_id = t.id
@@ -1239,7 +1253,22 @@ export const userDb = {
         auditTrail.logAction(adminId, 'CREATE', 'USER', payload.id, `Admin created user: ${payload.email} (${payload.role}) for tenant ${finalTenantId}`);
     },
 
-    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null, image_url?: string | null, force_password_reset?: number }, adminId: string) => {
+    update: (id: string, fields: { 
+        name?: string, 
+        email?: string, 
+        role?: string, 
+        team_id?: string | null, 
+        active?: number, 
+        phone_number?: string | null, 
+        job_title?: string | null, 
+        company_name?: string | null, 
+        linkedin_url?: string | null, 
+        image_url?: string | null, 
+        force_password_reset?: number,
+        profile_slug?: string | null,
+        profile_is_active?: number,
+        profile_config?: string | null
+    }, adminId: string) => {
         const now = new Date().toISOString();
         const sets: string[] = ['updated_at = ?'];
         const params: any[] = [now];
@@ -1264,6 +1293,9 @@ export const userDb = {
         if (fields.linkedin_url !== undefined) { sets.push('linkedin_url = ?'); params.push(fields.linkedin_url); }
         if (fields.image_url !== undefined) { sets.push('image_url = ?'); params.push(fields.image_url); }
         if (fields.force_password_reset !== undefined) { sets.push('force_password_reset = ?'); params.push(fields.force_password_reset); }
+        if (fields.profile_slug !== undefined) { sets.push('profile_slug = ?'); params.push(fields.profile_slug); }
+        if (fields.profile_is_active !== undefined) { sets.push('profile_is_active = ?'); params.push(fields.profile_is_active); }
+        if (fields.profile_config !== undefined) { sets.push('profile_config = ?'); params.push(fields.profile_config); }
 
         params.push(id);
         db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...params);
