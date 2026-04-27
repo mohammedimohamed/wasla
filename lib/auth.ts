@@ -20,6 +20,7 @@ export interface SessionPayload {
     tenantId: string; // 🏢 SaaS isolation: The active tenant for this user
     teamId?: string | null;
     hasPin?: boolean; // 🚨 CRITICAL: Prevents unauthorized bypassing of terminal lock
+    pinExpiresAt?: number; // Timestamp when the PIN lock re-engages (typically 1h)
 }
 
 /**
@@ -28,6 +29,12 @@ export interface SessionPayload {
  */
 export async function createSession(user: SessionPayload) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
+    
+    // Automatically set PIN expiration to 1 hour if unlocked
+    if (user.hasPin && !user.pinExpiresAt) {
+        user.pinExpiresAt = Date.now() + 60 * 60 * 1000;
+    }
+
     const token = await new SignJWT({ ...user })
         .setProtectedHeader({ alg: 'HS256' })
         .setExpirationTime('1d')

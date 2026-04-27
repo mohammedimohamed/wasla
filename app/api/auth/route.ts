@@ -16,6 +16,8 @@ export async function GET() {
         const user = userDb.findById(session.userId);
         if (!user || !user.active) return NextResponse.json({ authenticated: false }, { status: 401 });
 
+        const isPinValid = !!session.hasPin && (!session.pinExpiresAt || Date.now() <= session.pinExpiresAt);
+
         return NextResponse.json({
             authenticated: true,
             user: {
@@ -25,7 +27,7 @@ export async function GET() {
                 tenantId: user.tenant_id,
                 isPinSet: !!user.quick_pin,
                 needsPin: !user.quick_pin,             // true = first time, go to PIN_SETUP
-                sessionHasPin: !!session.hasPin         // true = fully unlocked
+                sessionHasPin: isPinValid               // true = fully unlocked
             }
         });
     } catch (error) {

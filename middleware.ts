@@ -14,7 +14,8 @@ interface SessionPayload {
     userId: string;
     role: 'SALES_AGENT' | 'TEAM_LEADER' | 'ADMINISTRATOR';
     teamId?: string | null;
-    hasPin?: boolean; // 🚨 CRITICAL: Prevents unauthorized bypassing of terminal lock
+    hasPin?: boolean;
+    pinExpiresAt?: number;
 }
 
 /**
@@ -91,13 +92,15 @@ export async function middleware(request: NextRequest) {
             const { role, hasPin } = payload;
 
             // 🏗️ Step 4: PIN-Setup/Lock Gate
-            // Protected portals require the 'hasPin' identity claim to be true
+            // Protected portals require the 'hasPin' identity claim to be true and not expired
             const needsPinCheck =
                 pathname.startsWith('/dashboard') ||
                 pathname.startsWith('/admin/dashboard');
 
-            if (needsPinCheck && !hasPin) {
-                console.log(`DEBUG: [Middleware] REDIRECTING to PIN portal because: { hasToken: true, hasPin: false }`);
+            const isPinExpired = payload.pinExpiresAt ? Date.now() > payload.pinExpiresAt : false;
+
+            if (needsPinCheck && (!hasPin || isPinExpired)) {
+                console.log(`DEBUG: [Middleware] REDIRECTING to PIN portal because: { hasToken: true, hasPin: ${hasPin}, expired: ${isPinExpired} }`);
                 if (pathname.startsWith('/admin')) {
                     return NextResponse.redirect(new URL('/admin/login', request.url));
                 }
