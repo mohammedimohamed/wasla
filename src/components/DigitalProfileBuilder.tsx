@@ -60,6 +60,15 @@ export function DigitalProfileBuilder({
     const [isSaving, setIsSaving] = useState(false);
     const [slugError, setSlugError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'settings' | 'blocks'>('settings');
+    const [domain, setDomain] = useState<string>('');
+    
+    // 🔄 Sync state when props change (Safety for hydration)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setDomain(window.location.host);
+        }
+        setSlug(initialSlug || "");
+    }, [initialSlug]);
 
     const handleSave = async () => {
         if (!slug.trim()) {
@@ -146,7 +155,7 @@ export function DigitalProfileBuilder({
                             </div>
                             <div>
                                 <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Visibilité Publique</h4>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">wasla.dz/p/{slug || '...'}</p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{domain ? `${domain}/p/${slug || '...'}` : `/p/${slug || '...'}`}</p>
                             </div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -156,12 +165,14 @@ export function DigitalProfileBuilder({
                     </div>
 
                     <div className="flex gap-2">
-                        <div className="relative flex-1">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">wasla.dz/p/</span>
+                        <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-2xl focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-50 transition-all overflow-hidden">
+                            <span className="pl-4 pr-0.5 text-slate-400 text-xs font-bold whitespace-nowrap select-none">
+                                {domain ? `${domain}/p/` : '/p/'}
+                            </span>
                             <input 
                                 value={slug} 
                                 onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                                className="w-full bg-white border border-slate-200 pl-[85px] pr-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 outline-none transition-all"
+                                className="w-full bg-transparent pr-4 py-3.5 text-sm font-black outline-none"
                                 placeholder="identifiant-unique"
                             />
                         </div>
