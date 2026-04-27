@@ -6,6 +6,7 @@ import { settingsDb } from "@/lib/db";
 import { LanguageProvider } from "@/src/context/LanguageContext";
 import { SyncManager } from "@/src/components/SyncManager";
 import { SwRegistrar } from "@/src/components/SwRegistrar";
+import { SessionGuard } from "@/src/components/SessionGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -63,7 +64,9 @@ export default function RootLayout({
                     <SwRegistrar />
                     <SyncManager />
                     <main className="min-h-screen bg-slate-50 flex flex-col relative pb-4">
-                        {children}
+                        <SessionGuard>
+                            {children}
+                        </SessionGuard>
                         <div className="fixed bottom-1.5 left-2.5 text-[10px] font-black tracking-widest text-slate-300 opacity-60 pointer-events-none z-50">
                             v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
                         </div>

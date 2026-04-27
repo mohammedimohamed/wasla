@@ -8,8 +8,6 @@ import * as z from 'zod';
 const updateProfileSchema = z.object({
     phone_number: z.string().max(30).optional().nullable(),
     job_title:    z.string().max(100).optional().nullable(),
-    company_name: z.string().max(100).optional().nullable(),
-    linkedin_url: z.string().url('Invalid URL').max(300).optional().nullable().or(z.literal('')),
 });
 
 /**
@@ -40,11 +38,8 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
         }
 
-        // Convert empty string to null for linkedin_url
-        const updates = {
-            ...parsed.data,
-            linkedin_url: parsed.data.linkedin_url === '' ? null : parsed.data.linkedin_url,
-        };
+        // Convert empty string to null if needed (currently only job_title/phone)
+        const updates = parsed.data;
 
         // userDb.update accepts the new vCard-safe fields — name/email/role are NOT in the payload
         userDb.update(session.userId, updates, session.userId);

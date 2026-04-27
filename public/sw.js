@@ -68,6 +68,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') return;
+  
+  // Skip non-HTTP(s) requests (e.g. chrome-extension://)
+  if (!url.protocol.startsWith('http')) return;
 
   // 1. Navigation (page loads) → Stale-While-Revalidate
   //    Serve cached version INSTANTLY, then update cache in background.

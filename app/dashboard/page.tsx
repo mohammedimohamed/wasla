@@ -25,6 +25,7 @@ interface AgentProfile {
     job_title?: string | null;
     company_name?: string | null;
     linkedin_url?: string | null;
+    image_url?: string | null;
 }
 
 interface StatsState {
@@ -36,9 +37,7 @@ interface StatsState {
 export default function AgentDashboardPage() {
     const router = useRouter();
 
-    const [isOnline, setIsOnline] = useState(
-        typeof navigator !== 'undefined' ? navigator.onLine : true
-    );
+    const [isOnline, setIsOnline] = useState(true);
     const [agentId, setAgentId] = useState<string | null>(null);
     const [agentName, setAgentName] = useState("");
     const [stats, setStats] = useState<StatsState>({ total: 0, synced: 0, pending: 0 });
@@ -52,8 +51,6 @@ export default function AgentDashboardPage() {
     // Profile edit states
     const [editPhone, setEditPhone] = useState("");
     const [editTitle, setEditTitle] = useState("");
-    const [editCompany, setEditCompany] = useState("");
-    const [editLinkedin, setEditLinkedin] = useState("");
     const [saving, setSaving] = useState(false);
 
     // ─── Init: verify session + load profile ─────────────────────
@@ -67,8 +64,6 @@ export default function AgentDashboardPage() {
                 setProfile(p);
                 setEditPhone(p.phone_number || "");
                 setEditTitle(p.job_title || "");
-                setEditCompany(p.company_name || "");
-                setEditLinkedin(p.linkedin_url || "");
             }
         } finally {
             setProfileLoading(false);
@@ -182,8 +177,6 @@ export default function AgentDashboardPage() {
                 body: JSON.stringify({
                     phone_number: editPhone || null,
                     job_title: editTitle || null,
-                    company_name: editCompany || null,
-                    linkedin_url: editLinkedin || null,
                 }),
             });
             if (res.ok) {
@@ -231,7 +224,9 @@ export default function AgentDashboardPage() {
                 {/* ── HEADER ── */}
                 <header className="bg-white border-b px-5 py-4 sticky top-0 z-10 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                        {branding.logo_url ? (
+                        {profile?.image_url ? (
+                            <img src={profile.image_url} className="w-10 h-10 rounded-xl object-cover bg-white shadow-sm border border-slate-100" />
+                        ) : branding.logo_url ? (
                             <img src={branding.logo_url} className="w-10 h-10 rounded-xl object-contain bg-white shadow-sm border border-slate-100" />
                         ) : (
                             <div
@@ -324,13 +319,22 @@ export default function AgentDashboardPage() {
                     {/* ── Profile Edit Panel (inline slide-down) ── */}
                     {showProfilePanel && (
                         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-black text-slate-900 tracking-tight">Modifier mon profil</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Visible sur votre carte de visite</p>
+                            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                <div className="flex items-center gap-3">
+                                    {profile?.image_url ? (
+                                        <img src={profile.image_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-white" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm border border-white">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="font-black text-slate-900 tracking-tight leading-none">Modifier mon profil</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">Visible sur votre carte de visite</p>
+                                    </div>
                                 </div>
-                                <button onClick={() => setShowProfilePanel(false)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
-                                    <X className="w-4 h-4" />
+                                <button onClick={() => setShowProfilePanel(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-xl transition-all">
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
 
@@ -345,14 +349,20 @@ export default function AgentDashboardPage() {
                                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Email</p>
                                         <p className="text-sm font-bold text-slate-500 truncate">{profile?.email || '—'}</p>
                                     </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Entreprise</p>
+                                        <p className="text-sm font-bold text-slate-500 truncate">{profile?.company_name || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">LinkedIn</p>
+                                        <p className="text-sm font-bold text-slate-500 truncate">{profile?.linkedin_url ? 'Profil Lié' : '—'}</p>
+                                    </div>
                                 </div>
 
                                 {/* Editable fields */}
                                 {[
                                     { icon: <Phone className="w-4 h-4" />, label: 'Téléphone', value: editPhone, setter: setEditPhone, placeholder: '+213 xxx xxx xxx', type: 'tel' },
                                     { icon: <Briefcase className="w-4 h-4" />, label: 'Poste / Titre', value: editTitle, setter: setEditTitle, placeholder: 'Ex: Ingénieur Commercial', type: 'text' },
-                                    { icon: <Building2 className="w-4 h-4" />, label: 'Entreprise', value: editCompany, setter: setEditCompany, placeholder: 'Ex: Tech Wise Advisors', type: 'text' },
-                                    { icon: <Linkedin className="w-4 h-4" />, label: 'LinkedIn URL', value: editLinkedin, setter: setEditLinkedin, placeholder: 'https://linkedin.com/in/...', type: 'url' },
                                 ].map(({ icon, label, value, setter, placeholder, type }) => (
                                     <div key={label} className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -439,7 +449,7 @@ export default function AgentDashboardPage() {
                             </button>
                             {agentId && (
                                 <a
-                                    href={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/v/${agentId}?vcf=1`}
+                                    href={`/api/v/${agentId}?vcf=1`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 py-3 bg-slate-900 text-white font-black uppercase tracking-wider text-[10px] rounded-2xl hover:bg-slate-800 transition-colors"

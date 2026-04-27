@@ -294,6 +294,15 @@ export function initDb() {
 
         // Phase 15.8: Vault — Encryption toggle column
         try { db.exec(`ALTER TABLE tenant_settings ADD COLUMN encryption_enabled INTEGER DEFAULT 1`); } catch (_) { }
+
+        // Phase 16: User Profile Photo & Security Overrides
+        const userCols = (db.pragma('table_info(users)') as { name: string }[]).map(c => c.name);
+        if (!userCols.includes('image_url')) {
+            try { db.exec(`ALTER TABLE users ADD COLUMN image_url TEXT`); } catch (_) { }
+        }
+        if (!userCols.includes('force_password_reset')) {
+            try { db.exec(`ALTER TABLE users ADD COLUMN force_password_reset INTEGER DEFAULT 0`); } catch (_) { }
+        }
     }
 }
 
@@ -1094,20 +1103,50 @@ export const rewardsDb = {
 
 // Generic User/Auth helpers
 export const userDb = {
-    findById: (id: string) => db.prepare("SELECT * FROM users WHERE id = ?").get(id) as any,
-    findByEmail: (email: string) => db.prepare("SELECT * FROM users WHERE email = ?").get(email) as any,
+    findById: (id: string) => {
+        const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as any;
+        if (!user) return null;
+        const { decrypt } = require('@/src/lib/crypto');
+        try {
+            return { ...user, email: decrypt(user.email) };
+        } catch {
+            return user;
+        }
+    },
+    findByEmail: (email: string) => {
+        // Since emails can be encrypted (random IV), we must fetch all and decrypt for a safe match
+        // In an Enterprise setup with thousands of users, this should be replaced by a deterministic hash index
+        const users = db.prepare("SELECT * FROM users").all() as any[];
+        const { decrypt } = require('@/src/lib/crypto');
+        return users.find(u => {
+            try {
+                const decEmail = decrypt(u.email);
+                return decEmail.toLowerCase() === email.toLowerCase();
+            } catch {
+                return u.email.toLowerCase() === email.toLowerCase();
+            }
+        });
+    },
 
-    /** 🌐 VCARD: Fetch ONLY public-safe fields — never exposes role, password, pin */
-    findPublicProfile: (id: string) => db.prepare(`
-        SELECT name, email, phone_number, job_title, company_name, linkedin_url
-        FROM users
-        WHERE id = ? AND active = 1
-    `).get(id) as { name: string; email: string; phone_number: string | null; job_title: string | null; company_name: string | null; linkedin_url: string | null } | undefined,
+    findPublicProfile: (id: string) => {
+        const user = db.prepare(`
+            SELECT name, email, phone_number, job_title, company_name, linkedin_url, image_url
+            FROM users
+            WHERE id = ? AND active = 1
+        `).get(id) as any;
+        if (!user) return undefined;
+        const { decrypt } = require('@/src/lib/crypto');
+        try {
+            return { ...user, email: decrypt(user.email) };
+        } catch {
+            return user;
+        }
+    },
 
     // 🛡️ Initial Password Verification (Bcrypt Hashed)
     verifyPassword: (email: string, passwordInput: string) => {
-        const user = db.prepare("SELECT * FROM users WHERE email = ? AND active = 1").get(email) as any;
-        if (user && bcrypt.compareSync(passwordInput, user.password)) return user;
+        const user = userDb.findByEmail(email);
+        if (user && user.active === 1 && bcrypt.compareSync(passwordInput, user.password)) return user;
         return null;
     },
 
@@ -1127,21 +1166,22 @@ export const userDb = {
     },
 
     // Management Tool: Admin/Leader reset capability
-    resetUserCredentials: (adminId: string, targetUserId: string, updates: { password?: string, quick_pin?: string | null }) => {
+    resetUserCredentials: (adminId: string, targetUserId: string, fields: { password?: string, quick_pin?: string | null, force_password_reset?: number }) => {
         const timestamp = new Date().toISOString();
-        const { password, quick_pin } = updates;
-
         const sets: string[] = [];
         const params: any[] = [];
-        if (password) {
+
+        if (fields.password) {
             sets.push("password = ?");
-            params.push(bcrypt.hashSync(password, 10));
+            params.push(bcrypt.hashSync(fields.password, 10));
         }
-        if (quick_pin === null) {
-            sets.push("quick_pin = NULL");
-        } else if (quick_pin) {
+        if (fields.quick_pin !== undefined) {
             sets.push("quick_pin = ?");
-            params.push(bcrypt.hashSync(quick_pin, 10));
+            params.push(fields.quick_pin ? bcrypt.hashSync(fields.quick_pin, 10) : null);
+        }
+        if (fields.force_password_reset !== undefined) {
+            sets.push("force_password_reset = ?");
+            params.push(fields.force_password_reset);
         }
 
         if (sets.length === 0) return;
@@ -1149,19 +1189,30 @@ export const userDb = {
         params.push(timestamp, targetUserId);
         db.prepare(`UPDATE users SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`).run(...params);
 
-        auditTrail.logAction(adminId, 'UPDATE', 'USER', targetUserId, `Admin reset credentials for user ${targetUserId}.`);
+        auditTrail.logAction(adminId, 'UPDATE', 'USER', targetUserId, `Admin updated credentials for user ${targetUserId}.`);
     },
 
     // ─────────────────────────────────────────────────────────────────────────────
     // NEW: Comprehensive User Management CRUD
     // ─────────────────────────────────────────────────────────────────────────────
     list: () => {
-        return db.prepare(`
-            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.quick_pin, t.name as team_name
+        const users = db.prepare(`
+            SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.quick_pin, u.image_url, 
+                   u.phone_number, u.job_title, u.company_name, u.linkedin_url,
+                   t.name as team_name
             FROM users u
             LEFT JOIN teams t ON u.team_id = t.id
             ORDER BY u.created_at DESC
         `).all() as any[];
+
+        const { decrypt } = require('@/src/lib/crypto');
+        return users.map(u => {
+            try {
+                return { ...u, email: decrypt(u.email) };
+            } catch {
+                return u;
+            }
+        });
     },
 
     create: (payload: { id: string, name: string, email: string, role: string, team_id?: string | null, tenant_id?: string, password_plain: string }, adminId: string) => {
@@ -1175,21 +1226,35 @@ export const userDb = {
             finalTenantId = admin?.tenant_id || '00000000-0000-0000-0000-000000000000';
         }
 
+        // 🛡️ The Vault Integration: Encrypt email if enabled
+        const encEnabled = settingsDb.isEncryptionEnabled();
+        const { encrypt } = require('@/src/lib/crypto');
+        const finalEmail = encEnabled ? encrypt(payload.email) : payload.email;
+
         db.prepare(`
             INSERT INTO users (id, name, email, role, team_id, tenant_id, password, quick_pin, active, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?)
-        `).run(payload.id, payload.name, payload.email, payload.role, payload.team_id || null, finalTenantId, hashedPassword, now, now);
+        `).run(payload.id, payload.name, finalEmail, payload.role, payload.team_id || null, finalTenantId, hashedPassword, now, now);
 
         auditTrail.logAction(adminId, 'CREATE', 'USER', payload.id, `Admin created user: ${payload.email} (${payload.role}) for tenant ${finalTenantId}`);
     },
 
-    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null }, adminId: string) => {
+    update: (id: string, fields: { name?: string, email?: string, role?: string, team_id?: string | null, active?: number, phone_number?: string | null, job_title?: string | null, company_name?: string | null, linkedin_url?: string | null, image_url?: string | null, force_password_reset?: number }, adminId: string) => {
         const now = new Date().toISOString();
         const sets: string[] = ['updated_at = ?'];
         const params: any[] = [now];
 
+        // 🛡️ The Vault Integration: Encrypt email if enabled
+        const encEnabled = settingsDb.isEncryptionEnabled();
+
+        if (fields.email !== undefined) {
+            const { encrypt } = require('@/src/lib/crypto');
+            const targetEmail = encEnabled ? encrypt(fields.email) : fields.email;
+            sets.push('email = ?');
+            params.push(targetEmail);
+        }
+
         if (fields.name !== undefined) { sets.push('name = ?'); params.push(fields.name); }
-        if (fields.email !== undefined) { sets.push('email = ?'); params.push(fields.email); }
         if (fields.role !== undefined) { sets.push('role = ?'); params.push(fields.role); }
         if (fields.team_id !== undefined) { sets.push('team_id = ?'); params.push(fields.team_id); }
         if (fields.active !== undefined) { sets.push('active = ?'); params.push(fields.active); }
@@ -1197,6 +1262,8 @@ export const userDb = {
         if (fields.job_title !== undefined) { sets.push('job_title = ?'); params.push(fields.job_title); }
         if (fields.company_name !== undefined) { sets.push('company_name = ?'); params.push(fields.company_name); }
         if (fields.linkedin_url !== undefined) { sets.push('linkedin_url = ?'); params.push(fields.linkedin_url); }
+        if (fields.image_url !== undefined) { sets.push('image_url = ?'); params.push(fields.image_url); }
+        if (fields.force_password_reset !== undefined) { sets.push('force_password_reset = ?'); params.push(fields.force_password_reset); }
 
         params.push(id);
         db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...params);

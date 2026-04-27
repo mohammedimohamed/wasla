@@ -27,7 +27,8 @@ export async function GET() {
                 tenantId: user.tenant_id,
                 isPinSet: !!user.quick_pin,
                 needsPin: !user.quick_pin,             // true = first time, go to PIN_SETUP
-                sessionHasPin: isPinValid               // true = fully unlocked
+                sessionHasPin: isPinValid,              // true = fully unlocked
+                forcePasswordReset: !!user.force_password_reset
             }
         });
     } catch (error) {
@@ -83,7 +84,8 @@ export async function POST(request: Request) {
                     name: user.name,
                     role: user.role,
                     tenantId: user.tenant_id,
-                    needsPin: !user.quick_pin && !newPin
+                    needsPin: !user.quick_pin && !newPin,
+                    forcePasswordReset: !!user.force_password_reset
                 }
             });
         }
