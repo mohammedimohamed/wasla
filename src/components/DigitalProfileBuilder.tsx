@@ -6,7 +6,7 @@ import {
     GripVertical, Palette, CheckCircle2, Loader2, 
     Search, MessageCircle, Linkedin, Facebook, 
     Instagram, Twitter, Mail, Phone, Link as LinkIcon,
-    UserPlus, ExternalLink, QrCode
+    UserPlus, ExternalLink, QrCode, Copy
 } from "lucide-react";
 import * as Icons from "lucide-react";
 import { DigitalProfileConfig } from "@/lib/schemas";
@@ -140,6 +140,14 @@ export function DigitalProfileBuilder({
         setSlug(newSlug);
     };
 
+    const copyLink = () => {
+        if (!slug) return;
+        const protocol = window.location.protocol;
+        const url = `${protocol}//${domain}/p/${slug}`;
+        navigator.clipboard.writeText(url);
+        toast.success("Lien copié dans le presse-papiers !");
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             
@@ -178,6 +186,9 @@ export function DigitalProfileBuilder({
                         </div>
                         <button onClick={generateSlug} className="px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                             Générer
+                        </button>
+                        <button onClick={copyLink} title="Copier le lien" className="px-4 bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-2xl transition-all flex items-center justify-center">
+                            <Copy className="w-4 h-4" />
                         </button>
                     </div>
                     {slugError && <p className="text-red-500 text-[10px] font-bold mt-2 pl-2 uppercase tracking-tight">{slugError}</p>}
