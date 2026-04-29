@@ -24,8 +24,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { DigitalProfileBuilder } from "@/src/components/DigitalProfileBuilder";
-import { updateDigitalProfileAction } from "./actions";
+import { updateDigitalProfileAction, bulkDeactivateUsersAction, bulkCreateUsersAction } from "./actions";
 import { updateUserAction, resetUserPasswordAction } from "./actions";
+import * as XLSX from "xlsx";
+import { v4 as uuidv4 } from "uuid";
 
 // Zod Schema matches backend for validation
 const userSchema = z.object({
@@ -84,6 +86,9 @@ export default function AdminUsersPage() {
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [editTab, setEditTab] = useState<'info' | 'nfc'>('info');
     const [brandingSettings, setBrandingSettings] = useState<any>(null);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<UserFormValues>({
         resolver: zodResolver(userSchema),
@@ -238,6 +243,83 @@ export default function AdminUsersPage() {
         }
     };
 
+    const handleBulkDeactivate = async () => {
+        if (!confirm(`Désactiver les ${selectedUsers.length} utilisateurs sélectionnés ?`)) return;
+        setIsSubmitting(true);
+        try {
+            const res = await bulkDeactivateUsersAction(selectedUsers);
+            if (res.error) throw new Error(res.error);
+            toast.success("Utilisateurs désactivés");
+            setSelectedUsers([]);
+            fetchData();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsImporting(true);
+        try {
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                if (data.length === 0) {
+                    toast.error("Le fichier est vide");
+                    setIsImporting(false);
+                    return;
+                }
+
+                const usersToCreate = data.map((row: any) => ({
+                    id: uuidv4(),
+                    name: row["Nom Complet"] || row["name"],
+                    email: row["Email"] || row["email"],
+                    role: row["Rôle (ADMINISTRATOR, TEAM_LEADER, SALES_AGENT)"] || row["role"] || "SALES_AGENT",
+                    team_id: row["ID Équipe (Optionnel)"] || row["team_id"] || null,
+                    password: row["Mot de passe temporaire"] || row["password"] || Math.random().toString(36).slice(-8),
+                    tenant_id: brandingSettings?.tenant_id || "00000000-0000-0000-0000-000000000000"
+                }));
+
+                const res = await bulkCreateUsersAction(usersToCreate);
+                if (res.error) throw new Error(res.error);
+                
+                toast.success(`${usersToCreate.length} utilisateurs importés !`);
+                setIsImportModalOpen(false);
+                fetchData();
+            };
+            reader.readAsBinaryString(file);
+        } catch (error: any) {
+            toast.error("Erreur d'importation : " + error.message);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedUsers.length === users.length) {
+            setSelectedUsers([]);
+        } else {
+            setSelectedUsers(users.map(u => u.id));
+        }
+    };
+
+    const toggleSelectUser = (id: string) => {
+        if (selectedUsers.includes(id)) {
+            setSelectedUsers(selectedUsers.filter(uid => uid !== id));
+        } else {
+            setSelectedUsers([...selectedUsers, id]);
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
             {/* ── HEADER ─────────────────────────────────────────────────────── */}
@@ -254,13 +336,22 @@ export default function AdminUsersPage() {
                         <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">RBAC & Équipes</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => { reset({ role: 'SALES_AGENT', team_id: '' }); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-200"
-                >
-                    <Plus className="w-4 h-4" />
-                    Ajouter Compte
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
+                    >
+                        <ImageIcon className="w-4 h-4" />
+                        Importer (Excel)
+                    </button>
+                    <button
+                        onClick={() => { reset({ role: 'SALES_AGENT', team_id: '' }); setIsModalOpen(true); }}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-200"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Ajouter Compte
+                    </button>
+                </div>
             </header>
 
             <div className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
@@ -298,6 +389,14 @@ export default function AdminUsersPage() {
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50 border-b border-slate-100">
                                     <tr>
+                                        <th className="px-8 py-5 w-10">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                checked={users.length > 0 && selectedUsers.length === users.length}
+                                                onChange={toggleSelectAll}
+                                            />
+                                        </th>
                                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateur</th>
                                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
                                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rôle & Équipe</th>
@@ -310,7 +409,15 @@ export default function AdminUsersPage() {
                                         const RMap = roleMap[u.role] || roleMap['SALES_AGENT'];
                                         const RIcon = RMap.icon;
                                         return (
-                                            <tr key={u.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${!u.active ? 'opacity-50' : ''}`}>
+                                            <tr key={u.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${!u.active ? 'opacity-50' : ''} ${selectedUsers.includes(u.id) ? 'bg-indigo-50/30' : ''}`}>
+                                                <td className="px-8 py-5">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                        checked={selectedUsers.includes(u.id)}
+                                                        onChange={() => toggleSelectUser(u.id)}
+                                                    />
+                                                </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${RMap.bg} ${RMap.color}`}>
@@ -331,7 +438,13 @@ export default function AdminUsersPage() {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <p className={`text-xs font-bold ${RMap.color} mb-1`}>{RMap.label}</p>
-                                                    {u.team_name && <p className="text-xs text-slate-400 font-medium">Équipe: {u.team_name}</p>}
+                                                    {u.team_name ? (
+                                                        <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg uppercase border border-indigo-100">
+                                                            {u.team_name}
+                                                        </span>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-400 font-medium italic">Sans Équipe</p>
+                                                    )}
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     {u.quick_pin ? (
@@ -504,7 +617,22 @@ export default function AdminUsersPage() {
                                 </div>
                                 <div>
                                     <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Modifier le Profil</h2>
-                                    <p className="text-xs font-bold text-slate-400 mt-1.5 uppercase tracking-[0.2em]">Management Identity & Security</p>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Management Identity</p>
+                                        {editModal.user.team_name ? (
+                                            <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase border border-indigo-100">
+                                                Équipe: {editModal.user.team_name}
+                                            </span>
+                                        ) : editModal.user.team_id ? (
+                                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase border border-slate-200">
+                                                Team ID: {editModal.user.team_id}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-3 py-1 rounded-full uppercase border border-amber-100">
+                                                Sans Équipe
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -769,6 +897,91 @@ export default function AdminUsersPage() {
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* ── STICKY BULK BAR ─────────────────────────────────────────────────── */}
+            {selectedUsers.length > 0 && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-[32px] shadow-2xl flex items-center gap-8 z-50 animate-in slide-in-from-bottom-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center font-black">
+                            {selectedUsers.length}
+                        </div>
+                        <p className="text-xs font-black uppercase tracking-widest">Sélectionnés</p>
+                    </div>
+                    <div className="h-8 w-[1px] bg-slate-700"></div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={handleBulkDeactivate}
+                            disabled={isSubmitting}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Désactiver en masse
+                        </button>
+                        <button 
+                            onClick={() => setSelectedUsers([])}
+                            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── MODAL: IMPORT EXCEL ─────────────────────────────────────────────── */}
+            {isImportModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
+                        <button onClick={() => setIsImportModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                            <XCircle className="w-7 h-7" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                <ImageIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Importation Excel</h2>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Déploiement Rapide</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-10 text-center relative group hover:border-indigo-400 transition-all">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all">
+                                        {isImporting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Plus className="w-8 h-8" />}
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-black text-slate-900 uppercase">Choisir un fichier</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format .xlsx uniquement</p>
+                                    </div>
+                                </div>
+                                <input 
+                                    type="file" 
+                                    accept=".xlsx" 
+                                    onChange={handleFileUpload}
+                                    disabled={isImporting}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                            </div>
+
+                            <div className="bg-indigo-50/50 rounded-2xl p-4 flex gap-3">
+                                <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />
+                                <p className="text-[10px] font-bold text-indigo-900/60 leading-relaxed uppercase tracking-tight">
+                                    Assurez-vous d'utiliser notre modèle officiel. <br/>
+                                    Tous les comptes importés devront réinitialiser leur mot de passe.
+                                </p>
+                            </div>
+
+                            <a 
+                                href="/api/users/template" 
+                                className="flex items-center justify-center gap-2 text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 transition-all"
+                            >
+                                <Plus className="w-3 h-3" /> Télécharger le modèle vide
+                            </a>
+                        </div>
                     </div>
                 </div>
             )}

@@ -114,7 +114,7 @@ export function initDb() {
     // Migrations that are safe to run in a single transaction (CREATE TABLE / INSERT OR IGNORE)
     const txMigrations = ['001_init.sql', '002_seed.sql', '003_rewards_engine.sql', '004_settings.sql', '005_form_builder.sql'];
     // Migrations that contain ALTER TABLE — MUST run outside a transaction, one statement at a time
-    const alterMigrations = ['006_vcard.sql', '007_multi_tenancy.sql'];
+    const alterMigrations = ['006_vcard.sql', '007_multi_tenancy.sql', '008_nfc_templates.sql'];
 
     // ── Phase 1: Transactional schema migrations ──────────────────────────────
     const migrationTx = db.transaction(() => {
@@ -1245,12 +1245,54 @@ export const userDb = {
         const { encrypt } = require('@/src/lib/crypto');
         const finalEmail = encEnabled ? encrypt(payload.email) : payload.email;
 
+        // 🧬 Module 16: Auto-apply default NFC template if exists
+        let profileConfig = null;
+        try {
+            const defaultTemplate = nfcTemplatesDb.getDefault();
+            if (defaultTemplate) profileConfig = defaultTemplate.config;
+        } catch (_) {}
+
         db.prepare(`
-            INSERT INTO users (id, name, email, role, team_id, tenant_id, password, quick_pin, active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?)
-        `).run(payload.id, payload.name, finalEmail, payload.role, payload.team_id || null, finalTenantId, hashedPassword, now, now);
+            INSERT INTO users (id, name, email, role, team_id, tenant_id, password, quick_pin, active, account_status, profile_config, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, 'Active', ?, ?, ?)
+        `).run(payload.id, payload.name, finalEmail, payload.role, payload.team_id || null, finalTenantId, hashedPassword, profileConfig, now, now);
 
         auditTrail.logAction(adminId, 'CREATE', 'USER', payload.id, `Admin created user: ${payload.email} (${payload.role}) for tenant ${finalTenantId}`);
+    },
+
+    bulkDeactivate: (ids: string[], adminId: string) => {
+        const now = new Date().toISOString();
+        const tx = db.transaction(() => {
+            const stmt = db.prepare("UPDATE users SET active = 0, account_status = 'Deactivated', updated_at = ? WHERE id = ?");
+            for (const id of ids) {
+                stmt.run(now, id);
+            }
+            auditTrail.logAction(adminId, 'UPDATE', 'USER(BULK)', ids.join(','), `Admin bulk deactivated ${ids.length} users.`);
+        });
+        tx();
+    },
+
+    bulkCreate: (users: any[], adminId: string) => {
+        const now = new Date().toISOString();
+        const tx = db.transaction(() => {
+            const defaultTemplate = nfcTemplatesDb.getDefault();
+            const profileConfig = defaultTemplate?.config || null;
+            const { encrypt } = require('@/src/lib/crypto');
+            const encEnabled = settingsDb.isEncryptionEnabled();
+
+            const stmt = db.prepare(`
+                INSERT INTO users (id, name, email, role, team_id, tenant_id, password, quick_pin, active, account_status, profile_config, force_password_reset, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, 'Active', ?, 1, ?, ?)
+            `);
+
+            for (const u of users) {
+                const hashedPassword = bcrypt.hashSync(u.password, 10);
+                const finalEmail = encEnabled ? encrypt(u.email) : u.email;
+                stmt.run(u.id, u.name, finalEmail, u.role, u.team_id || null, u.tenant_id, hashedPassword, profileConfig, now, now);
+            }
+            auditTrail.logAction(adminId, 'CREATE', 'USER(BULK)', `COUNT:${users.length}`, `Admin imported ${users.length} users via Excel.`);
+        });
+        tx();
     },
 
     update: (id: string, fields: { 
@@ -1306,7 +1348,7 @@ export const userDb = {
     delete: (id: string, adminId: string) => {
         const now = new Date().toISOString();
         // Soft-delete to preserve FK constraints on leads
-        db.prepare('UPDATE users SET active = 0, updated_at = ? WHERE id = ?').run(now, id);
+        db.prepare("UPDATE users SET active = 0, account_status = 'Deactivated', updated_at = ? WHERE id = ?").run(now, id);
         auditTrail.logAction(adminId, 'DELETE', 'USER', id, `Admin deactivated user: ${id}`);
     }
 };
@@ -1465,6 +1507,53 @@ export const formConfigDb = {
         auditTrail.logAction(adminId, 'UPDATE', 'FORM_CONFIG', 'active', `Form schema updated to v${newVersion}`);
         return newVersion;
     },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🧬 NFC TEMPLATES ENGINE (Module 16)
+// ─────────────────────────────────────────────────────────────────────────────
+export const nfcTemplatesDb = {
+    list: () => {
+        return db.prepare("SELECT * FROM nfc_templates ORDER BY created_at DESC").all() as any[];
+    },
+    getById: (id: string) => {
+        return db.prepare("SELECT * FROM nfc_templates WHERE id = ?").get(id) as any;
+    },
+    getDefault: () => {
+        return db.prepare("SELECT * FROM nfc_templates WHERE is_default = 1 LIMIT 1").get() as any;
+    },
+    create: (payload: { id: string, name: string, config: string, is_default?: number }) => {
+        const now = new Date().toISOString();
+        const tx = db.transaction(() => {
+            if (payload.is_default) {
+                db.prepare("UPDATE nfc_templates SET is_default = 0").run();
+            }
+            db.prepare(`
+                INSERT INTO nfc_templates (id, name, config, is_default, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(payload.id, payload.name, payload.config, payload.is_default || 0, now, now);
+        });
+        tx();
+    },
+    update: (id: string, fields: { name?: string, config?: string, is_default?: number }) => {
+        const now = new Date().toISOString();
+        const tx = db.transaction(() => {
+            if (fields.is_default) {
+                db.prepare("UPDATE nfc_templates SET is_default = 0").run();
+            }
+            const sets: string[] = ['updated_at = ?'];
+            const params: any[] = [now];
+            if (fields.name !== undefined) { sets.push('name = ?'); params.push(fields.name); }
+            if (fields.config !== undefined) { sets.push('config = ?'); params.push(fields.config); }
+            if (fields.is_default !== undefined) { sets.push('is_default = ?'); params.push(fields.is_default); }
+            params.push(id);
+            db.prepare(`UPDATE nfc_templates SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+        });
+        tx();
+    },
+    delete: (id: string) => {
+        return db.prepare("DELETE FROM nfc_templates WHERE id = ?").run(id);
+    }
 };
 
 // Initialize database

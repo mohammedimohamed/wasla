@@ -127,6 +127,20 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                         );
                     }
 
+                    if (block.type === 'file') {
+                        return (
+                            <a 
+                                key={idx}
+                                href={block.fileUrl}
+                                download
+                                className="w-full py-4 px-6 rounded-2xl font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 bg-emerald-600 text-white hover:bg-emerald-700"
+                            >
+                                <Icons.Download className="w-5 h-5" />
+                                {block.label}
+                            </a>
+                        );
+                    }
+
                     return null;
                 })}
 

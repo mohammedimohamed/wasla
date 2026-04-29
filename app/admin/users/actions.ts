@@ -191,3 +191,76 @@ export async function updateDigitalProfileAction(id: string, slug: string, isAct
         return { error: "Erreur serveur : " + error.message };
     }
 }
+
+/**
+ * 🗑️ Bulk Deactivate Users
+ */
+export async function bulkDeactivateUsersAction(ids: string[]) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        userDb.bulkDeactivate(ids, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 📥 Bulk Create Users (Excel Import)
+ */
+export async function bulkCreateUsersAction(users: any[]) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        userDb.bulkCreate(users, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🧬 NFC Template: Save
+ */
+export async function saveNfcTemplateAction(name: string, config: any, isDefault: boolean) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { nfcTemplatesDb } = require("@/lib/db");
+        const { v4: uuidv4 } = require("uuid");
+        nfcTemplatesDb.create({
+            id: uuidv4(),
+            name,
+            config: JSON.stringify(config),
+            is_default: isDefault ? 1 : 0
+        });
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🧬 NFC Template: List (Client-side use cases)
+ */
+export async function listNfcTemplatesAction() {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { nfcTemplatesDb } = require("@/lib/db");
+        return { success: true, templates: nfcTemplatesDb.list() };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+

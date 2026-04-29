@@ -25,6 +25,12 @@ export const digitalProfileConfigSchema = z.object({
             id: z.string(),
             type: z.literal('free_text'),
             content: z.string()
+        }),
+        z.object({
+            id: z.string(),
+            type: z.literal('file'),
+            fileUrl: z.string(),
+            label: z.string()
         })
     ])).default([])
 });
