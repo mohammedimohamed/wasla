@@ -61,6 +61,14 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ─── Intercept Fetch to handle Partial Content (206) ─────────────────────────
+async function fetchWith206Fix(request) {
+  const response = await fetch(request);
+  // 🛡️ Guard: 206 Partial Content (Videos/Media) should NOT be cached by sw logic
+  // but must be returned to the browser to work correctly.
+  return response;
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -73,8 +81,6 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
 
   // 1. Navigation (page loads) → Stale-While-Revalidate
-  //    Serve cached version INSTANTLY, then update cache in background.
-  //    This is why the browser works: it restores cached HTML immediately.
   if (request.mode === 'navigate') {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
@@ -82,8 +88,7 @@ self.addEventListener('fetch', (event) => {
 
         const networkFetch = fetch(request)
           .then((networkRes) => {
-            if (networkRes.ok) {
-              // Strip Vary before storing — this is the critical fix
+            if (networkRes.ok && networkRes.status !== 206) {
               cache.put(request, stripVary(networkRes.clone()));
             }
             return networkRes;
@@ -91,38 +96,35 @@ self.addEventListener('fetch', (event) => {
           .catch(() => null);
 
         if (cached) {
-          // Serve stale cache immediately, update in background
           event.waitUntil(networkFetch);
           return cached;
         }
 
-        // Nothing cached → wait for network
         const networkRes = await networkFetch;
         if (networkRes && networkRes.ok) return networkRes;
 
-        // Both failed → serve offline fallback
         const offline = await matchCache(cache, new Request('/offline.html'));
-        return offline || new Response(
-          '<html><body><h1>Offline</h1></body></html>',
-          { status: 503, headers: { 'Content-Type': 'text/html' } }
-        );
+        return offline || new Response('Offline', { status: 503 });
       })
     );
     return;
   }
 
-  // 2. Next.js static assets → Cache-first (hashed, immutable)
+  // 2. Next.js static assets → Cache-first
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await matchCache(cache, request);
         if (cached) return cached;
-        const res = await fetch(request).catch(() => null);
-        if (res && res.ok) {
-          cache.put(request, stripVary(res.clone()));
+        try {
+          const res = await fetch(request);
+          if (res.ok && res.status !== 206) {
+            cache.put(request, stripVary(res.clone()));
+          }
           return res;
+        } catch {
+          return new Response(null, { status: 503 });
         }
-        return new Response(null, { status: 503 });
       })
     );
     return;
@@ -144,7 +146,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 5. Images / icons → Cache-first
+  // 5. Images / icons → Cache-first with explicit logging
   if (
     url.pathname.startsWith('/icons/') ||
     /\.(png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/.test(url.pathname)
@@ -153,18 +155,33 @@ self.addEventListener('fetch', (event) => {
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await matchCache(cache, request);
         if (cached) return cached;
-        const res = await fetch(request).catch(() => null);
-        if (res && res.ok) {
-          cache.put(request, stripVary(res.clone()));
+        
+        try {
+          const res = await fetch(request);
+          
+          // Never cache 206
+          if (res.status === 206) return res;
+
+          if (res.ok) {
+            cache.put(request, stripVary(res.clone()));
+            return res;
+          }
+          
+          // Debugging: why is the image failing?
+          if (res.status === 404) {
+            console.warn(`[SW] Image 404: ${url.pathname}`);
+          }
           return res;
+        } catch (err) {
+          console.error(`[SW] Network error for image: ${url.pathname}`, err);
+          return new Response(null, { status: 503 });
         }
-        return new Response(null, { status: 503 });
       })
     );
     return;
   }
 
-  // 6. Locale JSON → Network-first with cache fallback
+  // 6. Locale JSON → Network-first
   if (url.pathname.startsWith('/locales/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
@@ -173,24 +190,24 @@ self.addEventListener('fetch', (event) => {
           if (res.ok) cache.put(request, stripVary(res.clone()));
           return res;
         } catch {
-          const cached = await matchCache(cache, request);
-          return cached || new Response('{}', { status: 503 });
+          return await matchCache(cache, request) || new Response('{}', { status: 503 });
         }
       })
     );
     return;
   }
 
-  // 7. Everything else → Network-first, cache as fallback
+  // 7. Everything else → Network-first
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       try {
         const res = await fetch(request);
-        if (res.ok) cache.put(request, stripVary(res.clone()));
+        if (res.ok && res.status !== 206) {
+          cache.put(request, stripVary(res.clone()));
+        }
         return res;
       } catch {
-        const cached = await matchCache(cache, request);
-        return cached || new Response('', { status: 503 });
+        return await matchCache(cache, request) || new Response('', { status: 503 });
       }
     })
   );

@@ -14,8 +14,17 @@ export async function GET() {
         const teams = db.prepare('SELECT * FROM teams ORDER BY name ASC').all() as any[];
         const users = db.prepare('SELECT id, name, email, role, team_id, active FROM users WHERE active = 1').all() as any[];
 
+        const { decrypt } = require('@/src/lib/crypto');
+        const decryptedUsers = users.map(u => {
+            try {
+                return { ...u, email: decrypt(u.email) };
+            } catch {
+                return u;
+            }
+        });
+
         const teamsWithUsers = teams.map(team => {
-            const teamUsers = users.filter(u => u.team_id === team.id);
+            const teamUsers = decryptedUsers.filter(u => u.team_id === team.id);
             const leader = teamUsers.find(u => u.role === 'TEAM_LEADER') || null;
             return {
                 ...team,
@@ -24,7 +33,7 @@ export async function GET() {
             };
         });
 
-        return NextResponse.json({ success: true, teams: teamsWithUsers, users });
+        return NextResponse.json({ success: true, teams: teamsWithUsers, users: decryptedUsers });
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }

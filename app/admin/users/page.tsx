@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { DigitalProfileBuilder } from "@/src/components/DigitalProfileBuilder";
-import { updateDigitalProfileAction, bulkDeactivateUsersAction, bulkCreateUsersAction } from "./actions";
+import { updateDigitalProfileAction, bulkDeactivateUsersAction, bulkCreateUsersAction, deleteUserAction, toggleUserStatusAction } from "./actions";
 import { updateUserAction, resetUserPasswordAction } from "./actions";
 import * as XLSX from "xlsx";
 import { v4 as uuidv4 } from "uuid";
@@ -60,6 +60,7 @@ interface UserData {
     profile_slug: string | null;
     profile_is_active: number;
     profile_config: string | null;
+    is_enterprise_default: number;
 }
 
 interface TeamData {
@@ -124,8 +125,22 @@ export default function AdminUsersPage() {
     };
 
     useEffect(() => {
-        fetchData();
-        fetchBranding();
+        const init = async () => {
+            const currentUsers = await fetchData();
+            fetchBranding();
+
+            // 🧬 Auto-edit from query param (e.g. /admin/users?edit=enterprise)
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get('edit');
+            if (editId && currentUsers) {
+                const target = currentUsers.find(u => u.id === editId || u.profile_slug === editId);
+                if (target) {
+                    setEditModal({ isOpen: true, user: target });
+                    setEditTab('nfc');
+                }
+            }
+        };
+        init();
     }, []);
 
     const onSubmit = async (data: UserFormValues) => {
@@ -231,11 +246,8 @@ export default function AdminUsersPage() {
     const handleDelete = async (id: string, email: string) => {
         if (!confirm(`Désactiver définitivement le compte : ${email} ?`)) return;
         try {
-            const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || "Erreur de désactivation");
-            }
+            const res = await deleteUserAction(id);
+            if (res.error) throw new Error(res.error);
             toast.success("Utilisateur désactivé");
             fetchData();
         } catch (error: any) {
@@ -421,14 +433,19 @@ export default function AdminUsersPage() {
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${RMap.bg} ${RMap.color}`}>
-                                                            {u.image_url ? (
+                                                            {u.image_url && u.image_url !== 'null' ? (
                                                                 <img src={`${u.image_url}?v=${new Date(u.updated_at).getTime()}`} alt={u.name} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <RIcon className="w-5 h-5" />
                                                             )}
                                                         </div>
                                                         <div>
-                                                            <p className="font-black text-slate-900">{u.name}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-black text-slate-900">{u.name}</p>
+                                                                {u.is_enterprise_default === 1 && (
+                                                                    <span className="text-[8px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Corporate</span>
+                                                                )}
+                                                            </div>
                                                             {!u.active && <span className="text-[9px] font-black bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full uppercase ml-1">Inactif</span>}
                                                         </div>
                                                     </div>
@@ -464,36 +481,40 @@ export default function AdminUsersPage() {
                                                                 <button
                                                                     onClick={() => {
                                                                         setEditModal({ isOpen: true, user: u });
-                                                                        setPhotoPreview(`${u.image_url}?v=${new Date(u.updated_at).getTime()}`);
+                                                                        setPhotoPreview(u.image_url ? `${u.image_url}?v=${new Date(u.updated_at).getTime()}` : null);
                                                                     }}
                                                                     title="Modifier l'utilisateur"
                                                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
                                                                 >
                                                                     <Pencil className="w-4 h-4" />
                                                                 </button>
-                                                                {u.role !== 'ADMINISTRATOR' && (
-                                                                    <button
-                                                                        onClick={() => setAssignModal({ isOpen: true, userId: u.id, userName: u.name, currentTeamId: u.team_id })}
-                                                                        title="Affecter à une équipe"
-                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
-                                                                    >
-                                                                        <Users className="w-4 h-4" />
-                                                                    </button>
+                                                                {u.is_enterprise_default !== 1 && (
+                                                                    <>
+                                                                        {u.role !== 'ADMINISTRATOR' && (
+                                                                            <button
+                                                                                onClick={() => setAssignModal({ isOpen: true, userId: u.id, userName: u.name, currentTeamId: u.team_id })}
+                                                                                title="Affecter à une équipe"
+                                                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                                                                            >
+                                                                                <Users className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => handleResetPin(u.id, u.name)}
+                                                                            title="Réinitialiser le PIN de session"
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                                                                        >
+                                                                            <KeyRound className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDelete(u.id, u.email)}
+                                                                            title="Désactiver l'utilisateur"
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </>
                                                                 )}
-                                                                <button
-                                                                    onClick={() => handleResetPin(u.id, u.name)}
-                                                                    title="Réinitialiser le PIN de session"
-                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
-                                                                >
-                                                                    <KeyRound className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDelete(u.id, u.email)}
-                                                                    title="Désactiver l'utilisateur"
-                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
                                                             </>
                                                         )}
                                                     </div>
@@ -704,18 +725,30 @@ export default function AdminUsersPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Rôle</label>
-                                            <select name="role" defaultValue={editModal.user.role} className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer">
+                                            <select 
+                                                name="role" 
+                                                defaultValue={editModal.user.role} 
+                                                disabled={editModal.user.is_enterprise_default === 1}
+                                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                                            >
                                                 <option value="SALES_AGENT">Agent Commercial</option>
                                                 <option value="TEAM_LEADER">Chef d'Équipe</option>
                                                 <option value="ADMINISTRATOR">Administrateur</option>
                                             </select>
+                                            {editModal.user.is_enterprise_default === 1 && <input type="hidden" name="role" value={editModal.user.role} />}
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Statut Compte</label>
-                                            <select name="active" defaultValue={editModal.user.active} className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer">
+                                            <select 
+                                                name="active" 
+                                                defaultValue={editModal.user.active} 
+                                                disabled={editModal.user.is_enterprise_default === 1}
+                                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                                            >
                                                 <option value="1">Actif (Accès total)</option>
                                                 <option value="0">Désactivé (Banni)</option>
                                             </select>
+                                            {editModal.user.is_enterprise_default === 1 && <input type="hidden" name="active" value="1" />}
                                         </div>
                                     </div>
 
@@ -753,8 +786,9 @@ export default function AdminUsersPage() {
                                             <input name="password" type="password" placeholder="••••••••" className="flex-1 bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-red-400 focus:ring-4 focus:ring-red-50 outline-none transition-all tracking-widest" />
                                             <button 
                                                 type="button" 
+                                                disabled={editModal.user!.is_enterprise_default === 1}
                                                 onClick={() => onResetPassword(editModal.user!.id, editModal.user!.name)}
-                                                className="px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl text-[10px] font-black uppercase transition-all whitespace-nowrap"
+                                                className="px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl text-[10px] font-black uppercase transition-all whitespace-nowrap disabled:opacity-50"
                                             >
                                                 Générer Code
                                             </button>
@@ -764,7 +798,13 @@ export default function AdminUsersPage() {
                                     <div className="flex flex-col justify-center">
                                         <label className="flex items-center gap-3 cursor-pointer group">
                                             <div className="relative">
-                                                <input type="checkbox" name="resetPin" value="true" className="sr-only peer" />
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="resetPin" 
+                                                    value="true" 
+                                                    disabled={editModal.user.is_enterprise_default === 1}
+                                                    className="sr-only peer" 
+                                                />
                                                 <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
                                             </div>
                                             <div className="flex flex-col">
@@ -800,6 +840,7 @@ export default function AdminUsersPage() {
                                 userJob={editModal.user.job_title}
                                 userPhoto={editModal.user.image_url ? `${editModal.user.image_url}?v=${new Date(editModal.user.updated_at).getTime()}` : null}
                                 brandingLogo={brandingSettings?.logo_url}
+                                isEnterpriseDefault={editModal.user.is_enterprise_default === 1}
                                 onSaveSuccess={(freshData) => {
                                     if (!editModal.user) return;
                                     

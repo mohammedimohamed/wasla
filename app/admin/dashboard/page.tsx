@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     BarChart3,
-    Gift,
     Download,
     Users,
     ArrowLeft,
@@ -19,7 +18,6 @@ import {
     Server,
     QrCode,
     LayoutTemplate,
-    Brain,
     ShieldCheck
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -200,7 +198,7 @@ export default function AdminDashboardPage() {
 
             <div className="p-6 space-y-8 max-w-4xl mx-auto w-full">
                 {/* Real-time Business Intelligence Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
                         <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
                             <Users className="w-5 h-5" />
@@ -226,18 +224,6 @@ export default function AdminDashboardPage() {
                         <div>
                             <p className="text-2xl font-black text-slate-900 leading-none">{syncedLeads}</p>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Synchronisés</p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-2 group hover:shadow-xl transition-all">
-                        <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center">
-                            <Gift className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <div className="flex items-end gap-2">
-                                <p className="text-2xl font-black text-slate-900 leading-none">{stats.rewardsDistributed || 0}</p>
-                                <p className="text-sm font-bold text-slate-400 mb-0.5">/ {stats.totalRewards || 0} Campaigns</p>
-                            </div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Distributed / Active Types</p>
                         </div>
                     </div>
                 </div>
@@ -369,18 +355,6 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
-                    <button
-                        onClick={() => router.push("/admin/rewards")}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
-                    >
-                        <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Gift className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Catalogue Récompenses</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">Gérer les quotas & cadeaux</p>
-                        </div>
-                    </button>
 
                     <button
                         onClick={() => router.push("/admin/golden-records")}
@@ -461,16 +435,18 @@ export default function AdminDashboardPage() {
                         </div>
                     </button>
 
+
                     <button
-                        onClick={() => router.push("/admin/intelligence")}
-                        className="p-6 bg-white rounded-[32px] border border-slate-100 hover:border-indigo-400 hover:shadow-xl transition-all text-left flex flex-col gap-4 group"
+                        onClick={() => router.push("/admin/users?edit=entreprise")}
+                        className="p-6 bg-indigo-900 text-white rounded-[32px] border border-indigo-700 hover:shadow-2xl transition-all text-left flex flex-col gap-4 group relative overflow-hidden"
                     >
-                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Brain className="w-6 h-6" />
+                        <div className="absolute -right-2 -top-2 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                        <div className="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                            <Monitor className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="font-black text-slate-900 uppercase tracking-tight text-xs">Intelligence Leads</p>
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">Dédoublonnage & Anti-Fraude</p>
+                            <p className="font-black uppercase tracking-tight text-xs">Profil Entreprise</p>
+                            <p className="text-[10px] text-indigo-200 font-medium mt-1">Éditer la page de repli (Fallback)</p>
                         </div>
                     </button>
                 </div>

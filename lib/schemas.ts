@@ -31,7 +31,20 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('file'),
             fileUrl: z.string(),
             label: z.string()
-        })
+        }),
+        z.object({
+            id: z.string(),
+            type: z.literal('media'),
+            items: z.array(z.object({
+                url: z.string(),
+                type: z.enum(['image', 'video']),
+            })),
+        }),
+        z.object({
+            id: z.string(),
+            type: z.literal('separator'),
+            style: z.enum(['solid', 'dotted', 'spacer']),
+        }),
     ])).default([])
 });
 

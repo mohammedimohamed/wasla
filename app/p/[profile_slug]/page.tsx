@@ -5,6 +5,7 @@ import { userDb, settingsDb } from '@/lib/db';
 import { DigitalProfileConfig } from '@/lib/schemas';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
+import { Slideshow } from '@/src/components/Slideshow';
 
 interface PublicProfilePageProps {
     params: Promise<{ profile_slug: string }>;
@@ -28,10 +29,17 @@ export async function generateMetadata({ params }: PublicProfilePageProps): Prom
 
 export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
     const { profile_slug } = await params;
-    const user = userDb.findBySlug(profile_slug);
+    let user = userDb.findBySlug(profile_slug);
     const settings = settingsDb.get();
+    let isEnterpriseFallback = false;
 
-    if (!user || !user.profile_is_active) {
+    // 🛡️ Fallback Logic: If user missing or deactivated, show Enterprise Profile
+    if (!user || !user.profile_is_active || user.account_status === 'Deactivated') {
+        user = userDb.findEnterpriseDefault();
+        isEnterpriseFallback = true;
+    }
+
+    if (!user) {
         notFound();
     }
 
@@ -46,7 +54,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             
             {/* 🏢 Company Header */}
             <header className="w-full flex justify-center mb-10">
-                {settings.logo_url ? (
+                {settings.logo_url && settings.logo_url !== 'null' ? (
                     <img src={settings.logo_url} alt={settings.event_name} className="h-12 object-contain" />
                 ) : (
                     <h2 className="text-xl font-black tracking-tighter uppercase">{settings.event_name}</h2>
@@ -56,7 +64,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
             {/* 👤 Profile Identity */}
             <div className="flex flex-col items-center text-center mb-8">
                 <div className={`w-32 h-32 rounded-[48px] overflow-hidden mb-4 border-4 ${isDark ? 'border-slate-800' : 'border-white'} shadow-2xl`}>
-                    {user.image_url ? (
+                    {user.image_url && user.image_url !== 'null' ? (
                         <img src={`${user.image_url}?v=${new Date(user.updated_at || Date.now()).getTime()}`} alt={user.name} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-4xl font-black">
@@ -65,9 +73,16 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                     )}
                 </div>
                 <h1 className="text-3xl font-black tracking-tight mb-1">{user.name}</h1>
-                <p className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {config.job_title || user.job_title || 'Expert Solutions'}
-                </p>
+                <div className="flex flex-col items-center gap-2">
+                    <p className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {config.job_title || user.job_title || 'Expert Solutions'}
+                    </p>
+                    {(isEnterpriseFallback || user.is_enterprise_default === 1) && (
+                        <span className="bg-indigo-600/10 text-indigo-600 text-[10px] font-black uppercase px-3 py-1 rounded-full border border-indigo-600/20 tracking-widest">
+                            Page Officielle
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* 🧱 Dynamic Blocks */}
@@ -138,6 +153,35 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                                 <Icons.Download className="w-5 h-5" />
                                 {block.label}
                             </a>
+                        );
+                    }
+
+                    if (block.type === 'media') {
+                        if (!block.items || block.items.length === 0) return null;
+                        return (
+                            <div key={idx} className="w-full shadow-2xl rounded-3xl overflow-hidden">
+                                {block.items.length === 1 ? (
+                                    block.items[0].type === 'video' ? (
+                                        <video src={block.items[0].url} className="w-full aspect-video object-cover" autoPlay muted loop playsInline />
+                                    ) : (
+                                        block.items[0].url && block.items[0].url !== 'null' && (
+                                            <img src={block.items[0].url} className="w-full aspect-video object-cover" alt="" />
+                                        )
+                                    )
+                                ) : (
+                                    <Slideshow items={block.items.filter((i: any) => i.url && i.url !== 'null')} />
+                                )}
+                            </div>
+                        );
+                    }
+
+                    if (block.type === 'separator') {
+                        return (
+                            <div key={idx} className="w-full py-4">
+                                {block.style === 'solid' && <div className={`h-[2px] w-full rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />}
+                                {block.style === 'dotted' && <div className={`h-0 w-full border-t-2 border-dotted ${isDark ? 'border-slate-800' : 'border-slate-300'}`} />}
+                                {block.style === 'spacer' && <div className="h-8" />}
+                            </div>
                         );
                     }
 

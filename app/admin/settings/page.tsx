@@ -28,7 +28,7 @@ const settingsSchema = z.object({
     event_name: z.string().min(2, "Nom obligatoire"),
     primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Format de couleur invalide (ex: #4f46e5)"),
     kiosk_welcome_text: z.string().min(2, "Texte d'accueil obligatoire"),
-    logo_url: z.string().url("URL invalide").optional().or(z.literal('')),
+    logo_url: z.string().optional().or(z.literal('')),
     mediashow_enabled: z.boolean().optional(),
     idle_timeout: z.number().int().optional(),
 });
@@ -185,6 +185,7 @@ export default function AdminSettingsPage() {
     const [isTogglingEncryption, setIsTogglingEncryption] = useState(false);
     const [isMigrating, setIsMigrating] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -314,6 +315,33 @@ export default function AdminSettingsPage() {
         }
     };
 
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingLogo(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload/file", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                reset({ ...form.getValues(), logo_url: data.url });
+                toast.success("Logo mis à jour !");
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error: any) {
+            toast.error("Erreur d'upload : " + error.message);
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    };
+
     const colorPresets = ["#4f46e5", "#e11d48", "#059669", "#d97706", "#0284c7", "#7c3aed", "#111827"];
 
     // ── Render ───────────────────────────────────────────────────────────────
@@ -395,16 +423,30 @@ export default function AdminSettingsPage() {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">
-                                                Logo URL
+                                                Logo de l'Événement
                                             </label>
-                                            <div className="flex bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
-                                                <div className="pl-4 flex items-center justify-center text-slate-400">
-                                                    <ImageIcon className="w-5 h-5" />
+                                            <div className="flex items-center gap-6 p-6 bg-slate-50 border border-slate-200 rounded-2xl group/logo relative overflow-hidden">
+                                                <div className="w-20 h-20 bg-white rounded-2xl shadow-inner border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                                    {watch("logo_url") ? (
+                                                        <img src={watch("logo_url")} alt="Preview" className="w-full h-full object-contain p-2" />
+                                                    ) : (
+                                                        <ImageIcon className="w-8 h-8 text-slate-200" />
+                                                    )}
                                                 </div>
-                                                <input
-                                                    {...register("logo_url")}
-                                                    className="w-full bg-transparent px-4 py-4 text-sm font-medium outline-none placeholder:text-slate-300"
-                                                />
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Format conseillé</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">PNG, SVG (Max 2MB)</span>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-400 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm">
+                                                            {isUploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                                            {watch("logo_url") ? "Remplacer le Logo" : "Sélectionner un Logo"}
+                                                            <input type="file" className="sr-only" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} />
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" {...register("logo_url")} />
                                             </div>
                                         </div>
                                     </div>

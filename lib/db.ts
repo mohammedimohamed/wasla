@@ -285,6 +285,37 @@ export function initDb() {
             )`);
         } catch (_) { }
 
+        // Phase 16: Enterprise Fallback Profile
+        try {
+            const usersCols = (db.pragma('table_info(users)') as { name: string }[]).map(c => c.name);
+            if (!usersCols.includes('is_enterprise_default')) {
+                db.exec(`ALTER TABLE users ADD COLUMN is_enterprise_default INTEGER DEFAULT 0`);
+                db.exec(`CREATE INDEX IF NOT EXISTS idx_users_enterprise_default ON users(is_enterprise_default)`);
+            }
+            
+            // Seed Corporate User if missing
+            const enterpriseUser = db.prepare("SELECT id FROM users WHERE is_enterprise_default = 1").get();
+            if (!enterpriseUser) {
+                const now = new Date().toISOString();
+                const { encrypt } = require('@/src/lib/crypto');
+                db.prepare(`
+                    INSERT INTO users (id, name, email, role, active, account_status, profile_slug, is_enterprise_default, created_at, updated_at, password, tenant_id)
+                    VALUES (?, ?, ?, ?, 1, 'Active', ?, 1, ?, ?, ?, ?)
+                `).run(
+                    'SYSTEM_ENTERPRISE',
+                    'WASLA Corporate',
+                    encrypt('corporate@wasla.app'),
+                    'ADMINISTRATOR',
+                    'entreprise',
+                    now, now,
+                    bcrypt.hashSync(require('uuid').v4(), 10), // Random locked password
+                    '00000000-0000-0000-0000-000000000000'
+                );
+            }
+        } catch (e) { 
+            console.error('[DB Migration] Enterprise Fallback failed:', e);
+        }
+
         try {
             db.prepare(`
                 INSERT OR IGNORE INTO users (id, name, email, role, password, created_at, updated_at, active, tenant_id)
@@ -302,6 +333,9 @@ export function initDb() {
         }
         if (!userCols.includes('force_password_reset')) {
             try { db.exec(`ALTER TABLE users ADD COLUMN force_password_reset INTEGER DEFAULT 0`); } catch (_) { }
+        }
+        if (!userCols.includes('is_enterprise_default')) {
+            try { db.exec(`ALTER TABLE users ADD COLUMN is_enterprise_default INTEGER DEFAULT 0`); } catch (_) { }
         }
     }
 }
@@ -1155,6 +1189,17 @@ export const userDb = {
         }
     },
 
+    findEnterpriseDefault: () => {
+        const user = db.prepare("SELECT * FROM users WHERE is_enterprise_default = 1 LIMIT 1").get() as any;
+        if (!user) return null;
+        const { decrypt } = require('@/src/lib/crypto');
+        try {
+            return { ...user, email: decrypt(user.email) };
+        } catch {
+            return user;
+        }
+    },
+
     // 🛡️ Initial Password Verification (Bcrypt Hashed)
     verifyPassword: (email: string, passwordInput: string) => {
         const user = userDb.findByEmail(email);
@@ -1212,7 +1257,7 @@ export const userDb = {
             SELECT u.id, u.name, u.email, u.role, u.team_id, u.tenant_id, u.active, u.created_at, u.updated_at, u.quick_pin, u.image_url, 
                    u.phone_number, u.job_title, u.company_name, u.linkedin_url,
                    u.force_password_reset,
-                   u.profile_slug, u.profile_is_active, u.profile_config,
+                   u.profile_slug, u.profile_is_active, u.profile_config, u.is_enterprise_default,
                    t.name as team_name
             FROM users u
             LEFT JOIN teams t ON u.team_id = t.id
