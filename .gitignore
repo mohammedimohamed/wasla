@@ -55,10 +55,10 @@ mohammedimohamed_85_gmail_com.pub
 *.tsbuildinfo
 next-env.d.ts
 
-
+deploy.sh
 
 *.log
 
 # --- User Uploads & Dynamic Assets ---
 # Mediashow images, videos and tenant branding assets
-public/uploads/
+public/uploads/
