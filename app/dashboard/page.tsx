@@ -120,6 +120,11 @@ export default function AgentDashboardPage() {
 
                 if (!res.ok) { window.location.href = '/login'; return; }
 
+                if (data.user.role === 'ADMINISTRATOR' || data.user.role === 'TEAM_LEADER') {
+                    window.location.href = '/admin/dashboard';
+                    return;
+                }
+
                 setAgentId(data.user.id);
                 setAgentName(data.user.name);
                 localStorage.setItem("sales_agent_id", data.user.id);

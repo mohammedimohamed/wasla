@@ -39,7 +39,7 @@ export default function NewLeadPage() {
 
     const handleSuccess = () => {
         if (userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER') {
-            router.push("/leads/list");
+            router.push("/admin/dashboard");
         } else {
             router.push("/dashboard");
         }

@@ -10,7 +10,7 @@ import * as z from "zod";
 import { userDigitalProfileSchema } from "@/lib/schemas";
 
 const editUserSchema = z.object({
-    id: z.string().uuid(),
+    id: z.union([z.string().uuid(), z.literal('SYSTEM_ENTERPRISE')]),
     name: z.string().min(2, "Nom obligatoire"),
     email: z.string().email("Email invalide"),
     role: z.enum(['ADMINISTRATOR', 'TEAM_LEADER', 'SALES_AGENT']),
@@ -50,6 +50,13 @@ export async function updateUserAction(formData: FormData) {
     try {
         const existingUser = userDb.findById(id);
         if (!existingUser) return { error: "Utilisateur non trouvé" };
+
+        // 🛡️ Corporate Protection: Cannot deactivate or change role of enterprise default
+        if (existingUser.is_enterprise_default === 1) {
+            if (active !== 1 || role !== 'ADMINISTRATOR') {
+                return { error: "Action interdite : Le profil entreprise doit rester actif et Administrateur." };
+            }
+        }
 
         // 🖼️ Handle Profile Photo
         const photo = formData.get("photo") as File | null;
@@ -158,9 +165,17 @@ export async function updateDigitalProfileAction(id: string, slug: string, isAct
             return { error: "Validation échouée", details: validation.error.flatten().fieldErrors };
         }
 
+        const existingUser = userDb.findById(id);
+
+        // 🛡️ Corporate Integrity Protection
+        if (existingUser?.is_enterprise_default === 1) {
+            if (!isActive) return { error: "Le profil Corporate doit rester actif." };
+            if (slug !== 'entreprise') return { error: "Le slug du profil Corporate doit rester 'entreprise'." };
+        }
+
         // 🔍 Check slug uniqueness manually for better UX
         const existingWithSlug = userDb.findBySlug(slug);
-        if (existingWithSlug && existingWithSlug.id !== id) {
+        if (existingWithSlug && String(existingWithSlug.id) !== String(id)) {
             return { error: "Ce lien (slug) est déjà utilisé par un autre profil." };
         }
 
@@ -191,3 +206,140 @@ export async function updateDigitalProfileAction(id: string, slug: string, isAct
         return { error: "Erreur serveur : " + error.message };
     }
 }
+
+/**
+ * 🗑️ Bulk Deactivate Users
+ */
+export async function bulkDeactivateUsersAction(ids: string[]) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        
+        // Filter out enterprise default from IDs to deactivate
+        const safeIds = ids.filter(id => {
+            const u = userDb.findById(id);
+            return u?.is_enterprise_default !== 1;
+        });
+
+        if (safeIds.length === 0 && ids.length > 0) {
+            return { error: "Action annulée : Le profil entreprise ne peut pas être désactivé." };
+        }
+
+        userDb.bulkDeactivate(safeIds, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 📥 Bulk Create Users (Excel Import)
+ */
+export async function bulkCreateUsersAction(users: any[]) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        userDb.bulkCreate(users, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🧬 NFC Template: Save
+ */
+export async function saveNfcTemplateAction(name: string, config: any, isDefault: boolean) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { nfcTemplatesDb } = require("@/lib/db");
+        const { v4: uuidv4 } = require("uuid");
+        nfcTemplatesDb.create({
+            id: uuidv4(),
+            name,
+            config: JSON.stringify(config),
+            is_default: isDefault ? 1 : 0
+        });
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🧬 NFC Template: List (Client-side use cases)
+ */
+export async function listNfcTemplatesAction() {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { nfcTemplatesDb } = require("@/lib/db");
+        return { success: true, templates: nfcTemplatesDb.list() };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🗑️ Single Deactivate User
+ */
+export async function deleteUserAction(id: string) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        const existing = userDb.findById(id);
+        if (!existing) return { error: "Utilisateur non trouvé" };
+
+        if (existing.is_enterprise_default === 1) {
+            return { error: "Action interdite : Le profil entreprise ne peut pas être supprimé." };
+        }
+
+        if (id === session.userId) {
+            return { error: "Vous ne pouvez pas supprimer votre propre compte." };
+        }
+
+        userDb.delete(id, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+/**
+ * 🔄 Toggle User Status
+ */
+export async function toggleUserStatusAction(id: string, active: boolean) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMINISTRATOR') return { error: "Non autorisé" };
+
+    try {
+        const { userDb } = require("@/lib/db");
+        const existing = userDb.findById(id);
+        if (!existing) return { error: "Utilisateur non trouvé" };
+
+        if (existing.is_enterprise_default === 1) {
+            return { error: "Le profil Corporate doit rester actif en permanence pour garantir le fallback." };
+        }
+
+        userDb.update(id, { active: active ? 1 : 0 }, session.userId);
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+

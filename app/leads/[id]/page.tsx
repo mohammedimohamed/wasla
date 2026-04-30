@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import {
     ChevronLeft,
     Edit,
-    Trash2,
     User,
     Building,
     Phone,
@@ -143,9 +142,6 @@ export default function LeadDetailPage() {
                     <h1 className="text-xl font-bold">Détail du lead</h1>
                 </div>
                 <div className="flex gap-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">
-                        <Trash2 className="w-5 h-5" />
-                    </button>
                     <button
                         onClick={() => router.push(`/leads/${id}/edit`)}
                         className="p-2 hover:bg-gray-100 rounded-lg text-primary"

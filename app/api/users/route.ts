@@ -94,6 +94,16 @@ export async function PUT(request: Request) {
         const existingUser = userDb.findById(id);
         if (!existingUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+        // 🛡️ Corporate Protection
+        if (existingUser.is_enterprise_default === 1) {
+            if (action === 'reset_pin') {
+                return NextResponse.json({ error: 'Action interdite : Le profil entreprise ne peut pas être réinitialisé.' }, { status: 403 });
+            }
+            if (fields.active === 0) {
+                return NextResponse.json({ error: 'Le profil Corporate doit rester actif.' }, { status: 403 });
+            }
+        }
+
         // Action routing: Reset PIN
         if (action === 'reset_pin') {
             userDb.resetUserCredentials(auth.session!.userId, id, { quick_pin: null });
@@ -128,6 +138,11 @@ export async function DELETE(request: Request) {
 
         const existing = userDb.findById(id);
         if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+        // 🛡️ Corporate Protection
+        if (existing.is_enterprise_default === 1) {
+            return NextResponse.json({ error: "Action interdite : Le profil entreprise ne peut pas être supprimé." }, { status: 403 });
+        }
 
         userDb.delete(id, auth.session!.userId);
 

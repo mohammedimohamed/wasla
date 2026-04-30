@@ -10,8 +10,9 @@ import {
 } from "lucide-react";
 import * as Icons from "lucide-react";
 import { DigitalProfileConfig } from "@/lib/schemas";
-import { updateDigitalProfileAction } from "@/app/admin/users/actions";
+import { updateDigitalProfileAction, saveNfcTemplateAction, listNfcTemplatesAction } from "@/app/admin/users/actions";
 import toast from "react-hot-toast";
+import { v4 as uuidv4 } from "uuid";
 
 interface DigitalProfileBuilderProps {
     userId: string;
@@ -22,6 +23,7 @@ interface DigitalProfileBuilderProps {
     userPhoto?: string | null;
     userJob?: string | null;
     brandingLogo?: string | null;
+    isEnterpriseDefault?: boolean;
     onSaveSuccess?: (freshData: {
         profile_config: string | null;
         profile_slug: string;
@@ -37,7 +39,7 @@ const COMMON_ICONS = [
 
 export function DigitalProfileBuilder({ 
     userId, initialSlug, initialConfig, initialIsActive, 
-    userName, userPhoto, userJob, brandingLogo, onSaveSuccess
+    userName, userPhoto, userJob, brandingLogo, isEnterpriseDefault, onSaveSuccess
 }: DigitalProfileBuilderProps) {
     
     const [slug, setSlug] = useState(initialSlug || "");
@@ -61,6 +63,10 @@ export function DigitalProfileBuilder({
     const [slugError, setSlugError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'settings' | 'blocks'>('settings');
     const [domain, setDomain] = useState<string>('');
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [templateName, setTemplateName] = useState("");
+    const [isDefaultTemplate, setIsDefaultTemplate] = useState(false);
     
     // 🔄 Sync state when props change (Safety for hydration)
     useEffect(() => {
@@ -68,7 +74,65 @@ export function DigitalProfileBuilder({
             setDomain(window.location.host);
         }
         setSlug(initialSlug || "");
+        loadTemplates();
     }, [initialSlug]);
+
+    const loadTemplates = async () => {
+        const res = await listNfcTemplatesAction();
+        if (res.success) setTemplates(res.templates);
+    };
+
+    const handleSaveTemplate = async () => {
+        if (!templateName.trim()) {
+            toast.error("Nom du modèle requis");
+            return;
+        }
+        const res = await saveNfcTemplateAction(templateName, config, isDefaultTemplate);
+        if (res.success) {
+            toast.success("Modèle enregistré !");
+            setShowTemplateModal(false);
+            loadTemplates();
+        } else {
+            toast.error(res.error);
+        }
+    };
+
+    const applyTemplate = (templateId: string) => {
+        const template = templates.find(t => t.id === templateId);
+        if (template) {
+            try {
+                const parsedConfig = JSON.parse(template.config);
+                setConfig(parsedConfig);
+                toast.success(`Modèle "${template.name}" appliqué`);
+            } catch (e) {
+                toast.error("Erreur lors de l'application du modèle");
+            }
+        }
+    };
+
+    const handleFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload/file", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                updateBlock(index, { fileUrl: data.url });
+                toast.success("Fichier téléchargé !");
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error: any) {
+            toast.error("Erreur d'upload : " + error.message);
+        }
+    };
 
     const handleSave = async () => {
         if (!slug.trim()) {
@@ -106,7 +170,7 @@ export function DigitalProfileBuilder({
         }
     };
 
-    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text') => {
+    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'file' | 'media' | 'separator') => {
         const newBlock: any = { id: window.crypto.randomUUID(), type };
         if (type === 'social_grid') newBlock.items = [];
         if (type === 'action_button') {
@@ -115,8 +179,47 @@ export function DigitalProfileBuilder({
             newBlock.value = '';
         }
         if (type === 'free_text') newBlock.content = 'Votre texte ici...';
+        if (type === 'file') {
+            newBlock.label = 'Télécharger le catalogue';
+            newBlock.fileUrl = '';
+        }
+        if (type === 'media') {
+            newBlock.items = [];
+        }
+        if (type === 'separator') {
+            newBlock.style = 'solid';
+        }
         
         setConfig({ ...config, blocks: [...config.blocks, newBlock] });
+    };
+
+    const handleMediaUpload = async (blockIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload/file", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const block = config.blocks[blockIndex] as any;
+                const newItems = [...(block.items || []), { 
+                    url: data.url, 
+                    type: file.type.startsWith('video') ? 'video' : 'image' 
+                }];
+                updateBlock(blockIndex, { items: newItems });
+                toast.success("Média ajouté !");
+            }
+        } catch (error) {
+            toast.error("Erreur d'upload");
+        } finally {
+            e.target.value = '';
+        }
     };
 
     const removeBlock = (index: number) => {
@@ -157,6 +260,18 @@ export function DigitalProfileBuilder({
                 {/* Status & Slug */}
                 <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100">
                     <div className="flex items-center justify-between mb-6">
+                        <div className="flex-1">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Titre du Profil (Poste)</label>
+                            <input 
+                                value={config.job_title || ''}
+                                onChange={(e) => setConfig({ ...config, job_title: e.target.value })}
+                                placeholder={userJob || "Expert Solutions"}
+                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
                                 <Globe className="w-5 h-5" />
@@ -173,18 +288,29 @@ export function DigitalProfileBuilder({
                     </div>
 
                     <div className="flex gap-2">
-                        <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-2xl focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-50 transition-all overflow-hidden">
-                            <span className="pl-4 pr-0.5 text-slate-400 text-xs font-bold whitespace-nowrap select-none">
-                                {domain ? `${domain}/p/` : '/p/'}
-                            </span>
-                            <input 
-                                value={slug} 
-                                onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                                className="w-full bg-transparent pr-4 py-3.5 text-sm font-black outline-none"
-                                placeholder="identifiant-unique"
-                            />
+                        <div className="flex-1">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Lien du profil (Slug)</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                    <Icons.Globe className="w-4 h-4" />
+                                </div>
+                                <input 
+                                    value={slug}
+                                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                                    disabled={isEnterpriseDefault}
+                                    placeholder="nom-prenom"
+                                    className={`w-full bg-white border ${slugError ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-200'} pl-11 pr-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all ${isEnterpriseDefault ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                                />
+                                {isEnterpriseDefault && (
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500">
+                                        <Icons.ShieldCheck className="w-4 h-4" />
+                                    </div>
+                                )}
+                            </div>
+                            {isEnterpriseDefault && <p className="text-[9px] font-black text-indigo-500 uppercase mt-2 ml-2 tracking-widest">Le lien Corporate est verrouillé.</p>}
+                            {slugError && <p className="text-red-500 text-[10px] font-bold mt-1 ml-2">{slugError}</p>}
                         </div>
-                        <button onClick={generateSlug} className="px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        <button onClick={generateSlug} disabled={isEnterpriseDefault} className="px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
                             Générer
                         </button>
                         <button onClick={copyLink} title="Copier le lien" className="px-4 bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-2xl transition-all flex items-center justify-center">
@@ -192,6 +318,33 @@ export function DigitalProfileBuilder({
                         </button>
                     </div>
                     {slugError && <p className="text-red-500 text-[10px] font-bold mt-2 pl-2 uppercase tracking-tight">{slugError}</p>}
+                </div>
+
+                {/* Templates Manager */}
+                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100">
+                    <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                            <Icons.Copy className="w-4 h-4 text-indigo-500" /> Modèles NFC
+                        </h4>
+                        <button 
+                            onClick={() => setShowTemplateModal(true)}
+                            className="text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                        >
+                            <Icons.Save className="w-3 h-3" /> Enregistrer comme modèle
+                        </button>
+                    </div>
+                    <div className="flex gap-2">
+                        <select 
+                            onChange={(e) => applyTemplate(e.target.value)}
+                            className="flex-1 bg-white border border-slate-200 px-4 py-3 rounded-2xl text-xs font-black outline-none appearance-none cursor-pointer"
+                            defaultValue=""
+                        >
+                            <option value="" disabled>Charger un modèle...</option>
+                            {templates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name} {t.is_default ? '(Défaut)' : ''}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Theme Selector */}
@@ -345,6 +498,97 @@ export function DigitalProfileBuilder({
                                                 />
                                             </div>
                                         )}
+
+                                        {block.type === 'file' && (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Label du bouton de téléchargement</label>
+                                                    <input 
+                                                        value={block.label} 
+                                                        onChange={e => updateBlock(idx, { label: e.target.value })}
+                                                        className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300"
+                                                    />
+                                                </div>
+                                                <div className="relative group/upload">
+                                                    <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center group-hover/upload:border-indigo-300 transition-all">
+                                                        {block.fileUrl ? (
+                                                            <div className="flex items-center justify-between">
+                                                                 <span className="text-[10px] font-bold text-emerald-600 truncate flex-1 pr-4">{block.fileUrl}</span>
+                                                                 <button onClick={() => updateBlock(idx, { fileUrl: '' })} className="text-red-500 hover:text-red-700">
+                                                                     <Trash2 className="w-4 h-4" />
+                                                                 </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Icons.FileUp className="w-6 h-6 text-slate-300" />
+                                                                <span className="text-[9px] font-black uppercase text-slate-400">Cliquez pour uploader un fichier (PDF, Catologue...)</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {!block.fileUrl && (
+                                                        <input 
+                                                            type="file" 
+                                                            onChange={(e) => handleFileUpload(idx, e)}
+                                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {block.type === 'media' && (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Slideshow / Médias</span>
+                                                    <label className="cursor-pointer text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 flex items-center gap-1">
+                                                        <Plus className="w-3 h-3" /> Ajouter Média
+                                                        <input type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleMediaUpload(idx, e)} />
+                                                    </label>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {block.items.map((item: any, i: number) => (
+                                                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden group/item">
+                                                            {item.type === 'video' && item.url && item.url !== 'null' ? (
+                                                                <video src={item.url} className="w-full h-full object-cover" muted />
+                                                            ) : item.type === 'image' && item.url && item.url !== 'null' ? (
+                                                                <img src={item.url} className="w-full h-full object-cover" alt="" />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                                                                    <Loader2 className="w-4 h-4 animate-spin text-slate-300" />
+                                                                </div>
+                                                            )}
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const newItems = [...block.items];
+                                                                    newItems.splice(i, 1);
+                                                                    updateBlock(idx, { items: newItems });
+                                                                }}
+                                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {block.type === 'separator' && (
+                                            <div className="space-y-4">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Séparateur / Espace</span>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {['solid', 'dotted', 'spacer'].map((style) => (
+                                                        <button 
+                                                            key={style}
+                                                            onClick={() => updateBlock(idx, { style })}
+                                                            className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${block.style === style ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'}`}
+                                                        >
+                                                            {style === 'solid' ? 'Ligne' : style === 'dotted' ? 'Pointillés' : 'Espace'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +601,15 @@ export function DigitalProfileBuilder({
                         </button>
                         <button onClick={() => addBlock('free_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Bloc Texte
+                        </button>
+                        <button onClick={() => addBlock('media')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Média / Slideshow
+                        </button>
+                        <button onClick={() => addBlock('separator')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Séparateur
+                        </button>
+                        <button onClick={() => addBlock('file')} className="col-span-2 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Bloc Fichier (Catalogue)
                         </button>
                     </div>
                 </div>
@@ -382,21 +635,21 @@ export function DigitalProfileBuilder({
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6">
                         {/* Mock Header */}
                         <div className="flex justify-center mb-8">
-                            {brandingLogo ? (
+                            {brandingLogo && brandingLogo !== 'null' ? (
                                 <img src={brandingLogo} alt="Logo" className="h-8 object-contain" />
                             ) : (
-                                <div className="h-8 w-20 bg-slate-200 rounded animate-pulse" />
+                                <div className="h-8 w-20 bg-slate-100 rounded-lg animate-pulse flex items-center justify-center text-[8px] font-black text-slate-300 uppercase tracking-widest">Logo</div>
                             )}
                         </div>
 
                         {/* Mock Profile */}
                         <div className="flex flex-col items-center text-center mb-6">
                             <div className={`w-24 h-24 rounded-[32px] overflow-hidden mb-3 border-4 ${config.theme === 'dark' ? 'border-slate-800' : 'border-white'} shadow-xl`}>
-                                {userPhoto ? (
+                                {userPhoto && userPhoto !== 'null' ? (
                                     <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-black">
-                                        {userName.charAt(0)}
+                                        {userName?.charAt(0) || 'U'}
                                     </div>
                                 )}
                             </div>
@@ -444,6 +697,48 @@ export function DigitalProfileBuilder({
                                         </div>
                                     );
                                 }
+                                if (block.type === 'file') {
+                                    return (
+                                        <div key={idx} className="w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center shadow-md bg-emerald-600 text-white flex items-center justify-center gap-2">
+                                            <Icons.Download className="w-3 h-3" />
+                                            {block.label}
+                                        </div>
+                                    );
+                                }
+                                if (block.type === 'media') {
+                                    if (!block.items || block.items.length === 0) return null;
+                                    return (
+                                        <div key={idx} className="rounded-2xl overflow-hidden shadow-md">
+                                            {block.items.length === 1 ? (
+                                                block.items[0].type === 'video' ? (
+                                                    <video src={block.items[0].url} className="w-full aspect-video object-cover" muted />
+                                                ) : (
+                                                    <img src={block.items[0].url} className="w-full aspect-video object-cover" alt="" />
+                                                )
+                                            ) : (
+                                                <div className="aspect-video bg-slate-100 flex items-center justify-center relative">
+                                                    {block.items[0].url && block.items[0].url !== 'null' ? (
+                                                        <img src={block.items[0].url} className="w-full h-full object-cover opacity-50" alt="" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-slate-200 animate-pulse" />
+                                                    )}
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                        <span className="bg-white/90 text-slate-900 px-3 py-1 rounded-full text-[8px] font-black uppercase">Slideshow ({block.items.length})</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+                                if (block.type === 'separator') {
+                                    return (
+                                        <div key={idx} className="py-2">
+                                            {block.style === 'solid' && <div className={`h-px w-full ${config.theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`} />}
+                                            {block.style === 'dotted' && <div className={`h-px w-full border-t border-dashed ${config.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`} />}
+                                            {block.style === 'spacer' && <div className="h-4" />}
+                                        </div>
+                                    );
+                                }
                                 return null;
                             })}
                         </div>
@@ -460,6 +755,62 @@ export function DigitalProfileBuilder({
                     </div>
                 </div>
             </div>
+
+            {/* ── MODAL: SAVE TEMPLATE ────────────────────────────────────────────── */}
+            {showTemplateModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
+                        <button onClick={() => setShowTemplateModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                            <Icons.XCircle className="w-7 h-7" />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                <Icons.Save className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Nouveau Modèle</h2>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Automation Engine</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Nom du modèle</label>
+                                <input 
+                                    value={templateName} 
+                                    onChange={e => setTemplateName(e.target.value)}
+                                    placeholder="Ex: Template Commercial 2026"
+                                    className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                />
+                            </div>
+
+                            <label className="flex items-center gap-3 cursor-pointer group p-2">
+                                <div className="relative">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isDefaultTemplate}
+                                        onChange={e => setIsDefaultTemplate(e.target.checked)}
+                                        className="sr-only peer" 
+                                    />
+                                    <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase text-slate-900 tracking-wider">Modèle par défaut</span>
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase">Appliqué aux nouveaux agents</span>
+                                </div>
+                            </label>
+
+                            <button 
+                                onClick={handleSaveTemplate}
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-[24px] py-5 text-sm font-black uppercase tracking-widest transition-all shadow-xl"
+                            >
+                                Enregistrer le modèle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -160,7 +160,11 @@ export default function AdminTeamsPage() {
                                             <Users className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-slate-900 uppercase">{team.name}</h3>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-lg font-black text-slate-900 uppercase">{team.name}</h3>
+                                                <span className="bg-red-600 text-white px-3 py-1 rounded-xl text-[10px] font-mono shadow-lg">ID: {team.id || 'N/A'}</span>
+
+                                            </div>
                                             <p className="text-xs text-slate-500 font-medium">{team.users.length} membres</p>
                                         </div>
                                     </div>
@@ -195,6 +199,7 @@ export default function AdminTeamsPage() {
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-700">{user.name}</p>
                                                         <p className="text-xs text-slate-400">{user.email}</p>
+                                                        <p className="text-[10px] font-mono text-red-600 mt-1 font-black uppercase tracking-widest">TEAM ID: {user.team_id || 'N/A'}</p>
                                                     </div>
                                                     {user.id !== team.leader?.id && (
                                                         <button
