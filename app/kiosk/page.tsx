@@ -372,8 +372,7 @@ export default function KioskPage() {
     }
 
     return (
-        <div className={`min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl transition-all duration-500 ${isSignageMode ? 'opacity-0' : 'opacity-100'}`}
-             style={isFullscreen ? { maxHeight: '100vh', overflow: 'hidden' } : {}}
+        <div className={`h-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl transition-all duration-500 ${isSignageMode ? 'opacity-0' : 'opacity-100'}`}
         >
             
             {/* 🔄 RESTORE FULLSCREEN FAB (If staff exits FS) */}
