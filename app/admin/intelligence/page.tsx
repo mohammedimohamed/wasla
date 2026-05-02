@@ -137,22 +137,22 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="px-8 py-6 border-b flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200 border dark:border-white/5">
+                <div className="px-8 py-6 border-b dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
                     <div>
-                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('intelligence.conflictTitle')}</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{t('intelligence.accumulativeDesc')}</p>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('intelligence.conflictTitle')}</h2>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">{t('intelligence.accumulativeDesc')}</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={collectAll}
-                            className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 transition-all flex items-center gap-2"
+                            className="px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/10"
                         >
                             <CheckCircle2 className="w-4 h-4" /> {t('intelligence.collectAll')}
                         </button>
-                        <button onClick={onCancel} className="p-2 hover:bg-slate-200 rounded-full transition-all">
-                            <X className="w-5 h-5 text-slate-500" />
+                        <button onClick={onCancel} className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-all">
+                            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         </button>
                     </div>
                 </div>
@@ -160,9 +160,9 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                 <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     {/* Column headers */}
                     <div className="grid grid-cols-3 gap-6 mb-4 px-4">
-                        <div className="text-[10px] font-black uppercase text-slate-400">Field</div>
-                        <div className="text-[10px] font-black uppercase text-indigo-500">Lead #1 (Latest)</div>
-                        <div className="text-[10px] font-black uppercase text-slate-400">Lead #2 (Oldest)</div>
+                        <div className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-600">Field</div>
+                        <div className="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400">Lead #1 (Latest)</div>
+                        <div className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-600">Lead #2 (Oldest)</div>
                     </div>
 
                     <div className="space-y-3">
@@ -179,7 +179,7 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                                 const f2 = flatten(val2);
 
                                 return (
-                                    <div key={key} className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                                    <div key={key} className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
                                         <div className="flex items-center justify-between mb-3">
                                             <span className="font-black text-xs text-emerald-700 uppercase tracking-wider flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4" /> {key} — {t('intelligence.collectAllHint')}
@@ -188,16 +188,16 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                                         </div>
                                         <div className="flex flex-wrap gap-3">
                                             {allVals.map((v, idx) => (
-                                                <label key={idx} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${checkedSet.has(v) ? 'border-emerald-500 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}>
+                                                <label key={idx} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${checkedSet.has(v) ? 'border-emerald-500 dark:border-emerald-400 bg-white dark:bg-slate-800 shadow-md' : 'border-transparent bg-slate-100 dark:bg-white/5 opacity-60'}`}>
                                                     <input
                                                         type="checkbox"
                                                         checked={checkedSet.has(v)}
                                                         onChange={() => toggleMulti(key, v)}
-                                                        className="accent-emerald-600"
+                                                        className="accent-emerald-600 dark:accent-emerald-500"
                                                     />
-                                                    <span className="text-xs font-black text-slate-800">{v}</span>
-                                                    {f1.includes(v) && <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 rounded font-black">L1</span>}
-                                                    {f2.includes(v) && <span className="text-[9px] bg-slate-200 text-slate-500 px-1.5 rounded font-black">L2</span>}
+                                                    <span className="text-xs font-black text-slate-800 dark:text-slate-200">{v}</span>
+                                                    {f1.includes(v) && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-1.5 rounded font-black">L1</span>}
+                                                    {f2.includes(v) && <span className="text-[9px] bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400 px-1.5 rounded font-black">L2</span>}
                                                 </label>
                                             ))}
                                         </div>
@@ -207,22 +207,22 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
 
                             // Radio selection for scalar fields
                             return (
-                                <div key={key} className={`grid grid-cols-3 gap-4 p-4 rounded-2xl border items-center ${areSame ? 'bg-slate-50 border-slate-100' : 'bg-white border-amber-100'}`}>
-                                    <div className="font-bold text-xs text-slate-600 capitalize flex items-center gap-2">
-                                        {!areSame && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />}
+                                <div key={key} className={`grid grid-cols-3 gap-4 p-4 rounded-2xl border transition-colors items-center ${areSame ? 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-white/5' : 'bg-white dark:bg-slate-800 border-amber-100 dark:border-amber-500/30'}`}>
+                                    <div className="font-bold text-xs text-slate-600 dark:text-slate-400 capitalize flex items-center gap-2">
+                                        {!areSame && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-amber-500 inline-block shadow-[0_0_8px_rgba(251,191,36,0.5)]" />}
                                         {key}
                                     </div>
                                     <button
                                         onClick={() => setResolved({ ...resolved, [key]: val1 })}
-                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val1 ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val1 ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 shadow-md' : 'border-transparent bg-slate-100 dark:bg-white/5 opacity-60'}`}
                                     >
-                                        <p className="text-[11px] font-black text-slate-800 truncate">{val1 || '—'}</p>
+                                        <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate">{val1 || '—'}</p>
                                     </button>
                                     <button
                                         onClick={() => setResolved({ ...resolved, [key]: val2 })}
-                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val2 ? 'border-indigo-600 bg-white shadow-md' : 'border-transparent bg-slate-100 opacity-60'}`}
+                                        className={`p-3 rounded-xl border-2 text-left transition-all ${resolved[key] === val2 ? 'border-indigo-600 dark:border-indigo-500 bg-white dark:bg-slate-800 shadow-md' : 'border-transparent bg-slate-100 dark:bg-white/5 opacity-60'}`}
                                     >
-                                        <p className="text-[11px] font-black text-slate-800 truncate">{val2 || '—'}</p>
+                                        <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate">{val2 || '—'}</p>
                                     </button>
                                 </div>
                             );
@@ -230,23 +230,23 @@ function ConflictModal({ merge, onMerge, onCancel }: { merge: SuggestedMerge, on
                     </div>
                 </div>
 
-                <div className="p-8 bg-slate-50 border-t flex items-center justify-between">
+                <div className="p-8 bg-slate-50 dark:bg-slate-950 border-t dark:border-white/5 flex items-center justify-between transition-colors">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                             <Merge className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merge Strategy</p>
-                            <p className="text-sm font-black text-slate-900">Accumulative Union · Zero Data Loss</p>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Merge Strategy</p>
+                            <p className="text-sm font-black text-slate-900 dark:text-white">Accumulative Union · Zero Data Loss</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={onCancel} className="px-6 py-3 font-black text-slate-500 uppercase tracking-widest text-xs">
+                        <button onClick={onCancel} className="px-6 py-3 font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest text-xs hover:text-slate-900 dark:hover:text-white transition-colors">
                             {t('common.cancel')}
                         </button>
                         <button
                             onClick={() => onMerge(buildPayload())}
-                            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 hover:bg-slate-900 transition-all"
+                            className="px-8 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-500/20 hover:bg-slate-900 dark:hover:bg-indigo-400 transition-all"
                         >
                             {t('intelligence.mergeBtn')}
                         </button>
@@ -276,9 +276,9 @@ function LineageModal({ leadId, onClose }: { leadId: string, onClose: () => void
     }, [leadId]);
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="px-8 py-6 border-b flex items-center justify-between bg-indigo-600 text-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 border dark:border-white/5">
+                <div className="px-8 py-6 border-b dark:border-white/5 flex items-center justify-between bg-indigo-600 dark:bg-indigo-700 text-white">
                     <div className="flex items-center gap-3">
                         <GitBranch className="w-6 h-6" />
                         <div>
@@ -291,21 +291,21 @@ function LineageModal({ leadId, onClose }: { leadId: string, onClose: () => void
                     </button>
                 </div>
 
-                <div className="p-10">
+                <div className="p-10 dark:bg-slate-900 transition-colors">
                     {loading ? (
-                        <div className="flex py-10 justify-center"><Loader2 className="animate-spin" /></div>
+                        <div className="flex py-10 justify-center"><Loader2 className="animate-spin text-indigo-600 dark:text-indigo-400" /></div>
                     ) : lineage.length === 0 ? (
-                        <p className="text-center py-10 text-slate-400 font-bold uppercase tracking-widest text-xs">No parents found (Initial Commit)</p>
+                        <p className="text-center py-10 text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest text-xs">No parents found (Initial Commit)</p>
                     ) : (
                         <div className="space-y-8 relative">
-                            <div className="absolute left-[23px] top-6 bottom-6 w-1 bg-indigo-50 border-l-2 border-dashed border-indigo-200" />
+                            <div className="absolute left-[23px] top-6 bottom-6 w-1 bg-indigo-50 dark:bg-indigo-500/10 border-l-2 border-dashed border-indigo-200 dark:border-indigo-500/30" />
 
                             <div className="flex items-center gap-6 relative z-10">
-                                <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                                <div className="w-12 h-12 bg-indigo-600 dark:bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                                     <Check className="w-6 h-6" />
                                 </div>
-                                <div className="bg-slate-900 text-white p-4 rounded-3xl flex-1 shadow-xl">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">Golden Record</p>
+                                <div className="bg-slate-900 dark:bg-slate-950 text-white p-4 rounded-3xl flex-1 shadow-xl border dark:border-white/5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 dark:text-indigo-400 mb-1">Golden Record</p>
                                     <p className="font-bold text-sm">HEAD • Active Version</p>
                                 </div>
                             </div>
@@ -313,19 +313,19 @@ function LineageModal({ leadId, onClose }: { leadId: string, onClose: () => void
                             {lineage.map((parent, idx) => {
                                 const meta = JSON.parse(parent.metadata);
                                 return (
-                                    <div key={idx} className="flex items-center gap-6 relative z-10">
-                                        <div className="w-12 h-12 bg-slate-200 text-slate-500 rounded-2xl flex items-center justify-center">
+                                    <div key={idx} className="flex items-center gap-6 relative z-10 group">
+                                        <div className="w-12 h-12 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-indigo-500/10 group-hover:text-indigo-500 dark:group-hover:text-indigo-400">
                                             <History className="w-6 h-6" />
                                         </div>
-                                        <div className="bg-white border-2 border-slate-100 p-4 rounded-3xl flex-1 shadow-sm">
+                                        <div className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-white/5 p-4 rounded-3xl flex-1 shadow-sm group-hover:border-indigo-500/30 transition-all">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Parent Lead</p>
-                                                    <p className="font-black text-slate-800 text-sm">{getDisplayName(meta, "Anonymous")}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Parent Lead</p>
+                                                    <p className="font-black text-slate-800 dark:text-slate-200 text-sm">{getDisplayName(meta, "Anonymous")}</p>
                                                 </div>
-                                                <span className="text-[9px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">Archived</span>
+                                                <span className="text-[9px] font-black bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full uppercase border dark:border-white/5">Archived</span>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 truncate">{meta.email} • {meta.phone}</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-500 truncate">{meta.email} • {meta.phone}</p>
                                         </div>
                                     </div>
                                 );
@@ -334,8 +334,8 @@ function LineageModal({ leadId, onClose }: { leadId: string, onClose: () => void
                     )}
                 </div>
 
-                <div className="p-8 bg-slate-50 border-t text-center">
-                    <button onClick={onClose} className="px-10 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs">
+                <div className="p-8 bg-slate-50 dark:bg-slate-950 border-t dark:border-white/5 text-center transition-colors">
+                    <button onClick={onClose} className="px-10 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-slate-200 dark:shadow-none hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all">
                         Close Lineage
                     </button>
                 </div>
@@ -443,9 +443,9 @@ function HelpModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-            <div className="bg-white rounded-[48px] shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in duration-300">
-                <div className="px-10 py-8 border-b bg-emerald-600 text-white flex items-center justify-between">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 dark:bg-black/90 backdrop-blur-md transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[48px] shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in duration-300 border dark:border-white/10">
+                <div className="px-10 py-8 border-b dark:border-white/5 bg-emerald-600 dark:bg-emerald-700 text-white flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <HelpCircle className="w-8 h-8" />
                         <div>
@@ -458,16 +458,16 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                     </button>
                 </div>
 
-                <div className="p-12 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="p-12 max-h-[70vh] overflow-y-auto custom-scrollbar dark:bg-slate-900 transition-colors">
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
-                            <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+                            <Loader2 className="w-10 h-10 animate-spin text-emerald-600 dark:text-emerald-400" />
                         </div>
                     ) : (
                         <div className="md-content">
                             {renderMarkdown(content)}
-                            <div className="mt-12 p-8 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                            <div className="mt-12 p-8 bg-slate-50 dark:bg-slate-950 rounded-[32px] border-2 border-dashed border-slate-200 dark:border-white/5">
+                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center">
                                     Need more help? Contact your System Administrator
                                 </p>
                             </div>
@@ -475,10 +475,10 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                     )}
                 </div>
 
-                <div className="p-10 bg-slate-50 border-t flex justify-center">
+                <div className="p-10 bg-slate-50 dark:bg-slate-950 border-t dark:border-white/5 flex justify-center transition-colors">
                     <button
                         onClick={onClose}
-                        className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200"
+                        className="px-12 py-4 bg-slate-900 dark:bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-600 dark:hover:bg-emerald-500 transition-all shadow-xl shadow-slate-200 dark:shadow-none"
                     >
                         Got it, Thanks!
                     </button>
@@ -633,86 +633,78 @@ export default function IntelligencePage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen pb-20 overflow-x-hidden">
+        <div className="flex-1 selection:bg-indigo-500/30 font-sans transition-colors duration-300">
             {/* ── MODALS ── */}
             {conflictMerge && <ConflictModal merge={conflictMerge} onMerge={executeMerge} onCancel={() => setConflictMerge(null)} />}
             {viewLineageId && <LineageModal leadId={viewLineageId} onClose={() => setViewLineageId(null)} />}
             {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
-            {/* ── HEADER ── */}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => router.push("/admin/dashboard")}
-                        className="p-2 -ml-2 hover:bg-slate-100 rounded-xl transition-all"
-                    >
-                        <ChevronLeft className="w-6 h-6 text-slate-700" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{t('intelligence.title')}</h1>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">V3 Git-Inspired Identity Resolution</p>
+            <main className="p-6 lg:p-8 space-y-10 max-w-7xl mx-auto w-full">
+                {/* ── SUB-HEADER ── */}
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Identity <span className="text-indigo-600 dark:text-indigo-400">Intelligence</span></h2>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">V3 Git-Inspired Identity Resolution</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleRecalculate}
+                            disabled={isRecalculating || loading}
+                            className="flex items-center gap-3 bg-white dark:bg-white/5 border-2 border-slate-200 dark:border-white/5 hover:border-slate-900 dark:hover:border-indigo-500 transition-all px-6 py-2.5 rounded-2xl group shadow-sm disabled:opacity-50"
+                        >
+                            {isRecalculating ? (
+                                <Loader2 className="w-4 h-4 text-slate-900 dark:text-white animate-spin" />
+                            ) : (
+                                <RotateCcw className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                            )}
+                            <span className="text-[10px] font-black text-slate-900 dark:text-slate-200 uppercase tracking-widest">Recalculate Weights</span>
+                        </button>
+                        <button
+                            onClick={() => setShowHelp(true)}
+                            className="p-2.5 bg-white dark:bg-white/5 border-2 border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all shadow-sm"
+                        >
+                            <HelpCircle className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={fetchData}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-all shadow-lg shadow-slate-200 dark:shadow-none"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Node
+                        </button>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleRecalculate}
-                        disabled={isRecalculating || loading}
-                        className="flex items-center gap-3 bg-white border-2 border-slate-200 hover:border-slate-900 transition-all px-6 py-2.5 rounded-2xl group shadow-sm disabled:opacity-50"
-                    >
-                        {isRecalculating ? (
-                            <Loader2 className="w-4 h-4 text-slate-900 animate-spin" />
-                        ) : (
-                            <RotateCcw className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                        )}
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Recalculate Weights</span>
-                    </button>
-                    <button
-                        onClick={() => setShowHelp(true)}
-                        className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all border border-emerald-100"
-                    >
-                        <HelpCircle className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={fetchData}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh Node
-                    </button>
-                </div>
-            </header>
-
-            <div className="flex-1 p-6 md:p-8 max-w-[1400px] mx-auto w-full">
                 {loading ? (
                     <div className="flex items-center justify-center p-20">
-                        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+                        <Loader2 className="w-10 h-10 animate-spin text-indigo-600 dark:text-indigo-400" />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
 
                         <div className="lg:col-span-1 space-y-8">
                             {/* ── AGENT PERFORMANCE ── */}
-                            <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm p-8 overflow-hidden relative">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 opacity-50" />
+                            <div className="bg-white dark:bg-white/5 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-sm p-8 overflow-hidden relative transition-colors duration-300">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 dark:bg-emerald-500/10 rounded-full -mr-16 -mt-16 opacity-50" />
                                 <div className="flex items-center gap-4 mb-10 relative z-10">
-                                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
                                         <TrendingUp className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Agent Performance</h3>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Git Stats</p>
+                                        <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm">Agent Performance</h3>
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Git Stats</p>
                                     </div>
                                 </div>
                                 <div className="space-y-6 relative z-10">
                                     {garbageReport.map((rpt, idx) => (
                                         <div key={idx} className="group">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="font-black text-slate-800 text-xs truncate pr-4">{rpt.agent_name}</span>
-                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${rpt.avg_score < 50 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                <span className="font-black text-slate-800 dark:text-slate-300 text-xs truncate pr-4">{rpt.agent_name}</span>
+                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${rpt.avg_score < 50 ? 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
                                                     {Math.round(rpt.avg_score)}%
                                                 </span>
                                             </div>
-                                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="w-full h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                                                 <div
                                                     className={`h-full transition-all duration-1000 ${rpt.avg_score < 50 ? 'bg-rose-500' : 'bg-emerald-500'}`}
                                                     style={{ width: `${rpt.avg_score}%` }}
@@ -724,19 +716,19 @@ export default function IntelligencePage() {
                             </div>
 
                             {/* ── IDENTITY CONSOLIDATION (GIT MERGE) ── */}
-                            <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm p-8 relative overflow-hidden">
-                                <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-50 rounded-full -mb-20 -mr-20 opacity-50" />
+                            <div className="bg-white dark:bg-white/5 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-sm p-8 relative overflow-hidden transition-colors duration-300">
+                                <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-50 dark:bg-indigo-500/10 rounded-full -mb-20 -mr-20 opacity-50" />
                                 <div className="flex items-center justify-between mb-10 relative z-10">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center">
                                             <GitBranch className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">Merge Queue</h3>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Conflicts Found</p>
+                                            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm">Merge Queue</h3>
+                                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Conflicts Found</p>
                                         </div>
                                     </div>
-                                    <span className="text-xs font-black bg-indigo-600 text-white px-3 py-1 rounded-full">{merges.length}</span>
+                                    <span className="text-xs font-black bg-indigo-600 dark:bg-indigo-500 text-white px-3 py-1 rounded-full shadow-lg shadow-indigo-500/20">{merges.length}</span>
                                 </div>
                                 <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
                                     {merges.length === 0 ? (
@@ -749,24 +741,24 @@ export default function IntelligencePage() {
                                             const m1 = parseMeta(merge.meta1);
                                             const m2 = parseMeta(merge.meta2);
                                             return (
-                                                <div key={idx} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 hover:border-indigo-300 transition-all cursor-pointer group shadow-sm hover:shadow-md" onClick={() => setConflictMerge(merge)}>
+                                                <div key={idx} className="p-5 bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all cursor-pointer group shadow-sm hover:shadow-md" onClick={() => setConflictMerge(merge)}>
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1">
+                                                        <span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1">
                                                             <RotateCcw className="w-2.5 h-2.5" /> Conflict
                                                         </span>
-                                                        <Merge className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                                                        <Merge className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-1.5 h-10 bg-indigo-200 rounded-full" />
+                                                            <div className="w-1.5 h-10 bg-indigo-200 dark:bg-indigo-500/20 rounded-full" />
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-black text-slate-800 truncate">{getDisplayName(m1, "User 1")}</p>
-                                                                <p className="text-[10px] font-medium text-slate-400 truncate">{m1.email || m1.phone}</p>
-                                                                <p className="text-xs font-black text-slate-700 truncate mt-1">{getDisplayName(m2, "User 2")}</p>
+                                                                <p className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">{getDisplayName(m1, "User 1")}</p>
+                                                                <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">{m1.email || m1.phone}</p>
+                                                                <p className="text-xs font-black text-slate-700 dark:text-slate-300 truncate mt-1">{getDisplayName(m2, "User 2")}</p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <button className="mt-5 w-full py-3 bg-white border-2 border-slate-200 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm">
+                                                    <button className="mt-5 w-full py-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-all shadow-sm">
                                                         Resolve
                                                     </button>
                                                 </div>
@@ -779,8 +771,8 @@ export default function IntelligencePage() {
 
                         {/* ── MAIN CONTENT: COMMIT LOG (FLAGGED VS CLEAN) ── */}
                         <div className="lg:col-span-3 space-y-8">
-                            <div className="bg-white rounded-[48px] border border-slate-200 shadow-sm overflow-hidden min-h-[700px] flex flex-col">
-                                <div className="p-10 pb-6 flex items-center justify-between border-b bg-slate-50/50">
+                            <div className="bg-white dark:bg-white/5 rounded-[48px] border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden min-h-[700px] flex flex-col transition-colors duration-300">
+                                <div className="p-10 pb-6 flex items-center justify-between border-b dark:border-white/5 bg-slate-50/50 dark:bg-slate-950">
                                     <div className="flex items-center gap-10">
                                         <button
                                             onClick={() => setActiveTab('FLAGGED')}
@@ -791,15 +783,15 @@ export default function IntelligencePage() {
                                         </button>
                                         <button
                                             onClick={() => setActiveTab('CLEAN')}
-                                            className={`pb-6 text-sm font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'CLEAN' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                            className={`pb-6 text-sm font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'CLEAN' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'}`}
                                         >
                                             {t('intelligence.statusClean')} ({cleanLeads.length})
-                                            {activeTab === 'CLEAN' && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-emerald-600 rounded-full shadow-[0_-4px_10px_rgba(16,185,129,0.4)]" />}
+                                            {activeTab === 'CLEAN' && <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-emerald-600 dark:bg-emerald-500 rounded-full shadow-[0_-4px_10px_rgba(16,185,129,0.4)]" />}
                                         </button>
                                     </div>
-                                    <div className="flex items-center gap-3 bg-white border-2 border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
-                                        <Filter className="w-4 h-4 text-slate-400" />
-                                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Filter by Score</span>
+                                    <div className="flex items-center gap-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-white/5 rounded-2xl px-4 py-2 shadow-sm transition-colors">
+                                        <Filter className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+                                        <span className="text-[11px] font-black text-slate-900 dark:text-slate-200 uppercase tracking-widest">Filter by Score</span>
                                     </div>
                                 </div>
 
@@ -952,15 +944,15 @@ export default function IntelligencePage() {
 
                     </div>
                 )}
-            </div>
+            </main>
 
-            <style jsx global>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
                 .dashed { background-image: linear-gradient(to right, #e2e8f0 40%, rgba(255,255,255,0) 0%); background-position: bottom; background-size: 8px 1px; background-repeat: repeat-x; }
-            `}</style>
+            ` }} />
         </div>
     );
 }

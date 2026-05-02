@@ -130,21 +130,21 @@ export default function LeadDetailPage() {
     const isGoldenRecord = multiCount > 2 || (Array.isArray(lead.associated_entities) && lead.associated_entities.length > 0);
 
     return (
-        <div className="flex-1 flex flex-col pt-4">
-            <header className="px-4 mb-4 flex items-center justify-between">
+        <div className="flex-1 flex flex-col pt-4 bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors duration-300">
+            <header className="px-4 py-4 mb-4 flex items-center justify-between border-b dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-md">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => router.push("/leads/list")}
-                        className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
+                        className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-400 transition-colors"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <h1 className="text-xl font-bold">Détail du lead</h1>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Détail du lead</h1>
                 </div>
                 <div className="flex gap-2">
                     <button
                         onClick={() => router.push(`/leads/${id}/edit`)}
-                        className="p-2 hover:bg-gray-100 rounded-lg text-primary"
+                        className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400 transition-colors"
                     >
                         <Edit className="w-5 h-5" />
                     </button>
@@ -152,15 +152,15 @@ export default function LeadDetailPage() {
             </header>
 
             {isKioskUnqualified && (
-                <div className="mx-4 mb-6 bg-orange-50 border border-orange-200 p-4 rounded-2xl flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-orange-700 font-bold">
-                        <AlertTriangle className="w-5 h-5" />
+                <div className="mx-4 mb-6 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 p-5 rounded-[24px] flex flex-col gap-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-black uppercase text-xs tracking-widest">
+                        <AlertTriangle className="w-4 h-4" />
                         Lead non qualifié
                     </div>
-                    <p className="text-sm text-orange-600">Ce prospect s'est auto-enregistré. Enrichissez sa fiche avec ses besoins détaillés.</p>
+                    <p className="text-sm text-orange-600 dark:text-orange-300/80 font-medium">Ce prospect s'est auto-enregistré. Enrichissez sa fiche avec ses besoins détaillés.</p>
                     <button
                         onClick={() => router.push(`/leads/${id}/edit`)}
-                        className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl active:scale-95 transition-all text-sm"
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest py-3.5 rounded-xl active:scale-[0.98] transition-all text-xs shadow-lg shadow-orange-200 dark:shadow-none"
                     >
                         Qualifier ce lead
                     </button>
@@ -168,34 +168,36 @@ export default function LeadDetailPage() {
             )}
 
             <div className="px-4 pb-12 space-y-6">
-                <section className={`bg-white p-6 rounded-3xl border shadow-sm space-y-4 transition-all ${isGoldenRecord ? 'border-amber-300 ring-4 ring-amber-50/50 shadow-amber-100' : 'border-gray-100'}`}>
-                    <div className="flex items-center gap-4">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold uppercase ${isGoldenRecord ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-200' : 'bg-blue-50 text-primary'}`}>
+                <section className={`bg-white dark:bg-white/5 p-6 rounded-[32px] border shadow-sm space-y-4 transition-all duration-300 ${isGoldenRecord ? 'border-amber-300 dark:border-amber-500/50 ring-4 ring-amber-50/50 dark:ring-amber-500/5 shadow-amber-100 dark:shadow-none' : 'border-slate-100 dark:border-white/5'}`}>
+                    <div className="flex flex-col md:flex-row md:items-center gap-6">
+                        <div className={`w-20 h-20 rounded-[28px] flex items-center justify-center text-3xl font-black uppercase shrink-0 ${isGoldenRecord ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-200 dark:shadow-none' : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'}`}>
                             {lead.contact?.charAt(0) || "?"}
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">{lead.contact}</h2>
-                            <p className="text-gray-500">{lead.societe}</p>
-                            {lead.source === 'kiosk' && lead.device_id && (
-                                <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md bg-indigo-50 text-[11px] font-black text-indigo-600 uppercase tracking-widest border border-indigo-100/50 mr-2">
-                                    <MapPin className="w-3 h-3" />
-                                    {lead.device_id === 'Generic_QR' ? 'QR Générique (Kiosk)' : `Kiosk: ${lead.device_id}`}
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">{lead.contact}</h2>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm truncate uppercase tracking-widest">{lead.societe || "Individuel"}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                {lead.source === 'kiosk' && lead.device_id && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest border border-indigo-100/50 dark:border-indigo-500/20">
+                                        <MapPin className="w-3 h-3" />
+                                        {lead.device_id === 'Generic_QR' ? 'QR Générique' : `Kiosk: ${lead.device_id}`}
+                                    </span>
+                                )}
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-white/10">
+                                    Formulaire v{lead.form_version || 1}
                                 </span>
-                            )}
-                            <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-200">
-                                Formulaire v{lead.form_version || 1}
-                            </span>
+                            </div>
                         </div>
                         {isGoldenRecord && (
-                            <div className="ml-auto flex flex-col items-end gap-2">
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-xl border-2 border-amber-200">
-                                    <ShieldCheck className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{t('intelligence.goldenRecord')}</span>
+                            <div className="flex flex-col items-end gap-3 shrink-0">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-2xl border-2 border-amber-200 dark:border-amber-500/20 shadow-sm">
+                                    <ShieldCheck className="w-5 h-5" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('intelligence.goldenRecord')}</span>
                                 </div>
                                 {userRole === 'ADMINISTRATOR' && (
                                     <button 
                                         onClick={handleRevertMerge}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 border border-rose-200 transition-colors text-[10px] font-bold uppercase tracking-widest"
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-200 dark:border-rose-500/20 transition-all text-[10px] font-black uppercase tracking-widest active:scale-95 shadow-sm"
                                     >
                                         <RotateCcw className="w-3.5 h-3.5" />
                                         {t('intelligence.revert')}
@@ -207,18 +209,18 @@ export default function LeadDetailPage() {
                 </section>
 
                 {isGoldenRecord && (
-                    <section className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                        <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
+                    <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        <h3 className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
                             <Link2 className="w-4 h-4 text-amber-500" />
                             {t('intelligence.secondaryIdentities')}
                         </h3>
-                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border-2 border-amber-100 shadow-inner grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-6 rounded-[32px] border-2 border-amber-100 dark:border-amber-500/20 shadow-inner grid grid-cols-1 md:grid-cols-2 gap-6 transition-colors">
                             {Array.isArray(lead.phone) && lead.phone.length > 1 && (
-                                <div className="space-y-1.5">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-amber-600/70">Téléphones fusionnés</span>
+                                <div className="space-y-2">
+                                    <span className="text-[9px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/50 block">Téléphones fusionnés</span>
                                     <div className="flex flex-wrap gap-2">
                                         {lead.phone.map((p, i) => (
-                                            <span key={i} className={`px-2 py-1 rounded-md text-xs font-bold ${i === 0 ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 border border-amber-200'}`}>
+                                            <span key={i} className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${i === 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-200 dark:shadow-none' : 'bg-white dark:bg-white/5 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'}`}>
                                                 {p} {i === 0 && <span className="ml-1 opacity-70">(Principal)</span>}
                                             </span>
                                         ))}
@@ -226,11 +228,11 @@ export default function LeadDetailPage() {
                                 </div>
                             )}
                             {Array.isArray(lead.email) && lead.email.length > 1 && (
-                                <div className="space-y-1.5">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-amber-600/70">Emails fusionnés</span>
+                                <div className="space-y-2">
+                                    <span className="text-[9px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/50 block">Emails fusionnés</span>
                                     <div className="flex flex-wrap gap-2">
                                         {lead.email.map((e, i) => (
-                                            <span key={i} className={`px-2 py-1 rounded-md text-xs font-bold ${i === 0 ? 'bg-amber-500 text-white' : 'bg-white text-amber-700 border border-amber-200'}`}>
+                                            <span key={i} className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${i === 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-200 dark:shadow-none' : 'bg-white dark:bg-white/5 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'}`}>
                                                 {e} {i === 0 && <span className="ml-1 opacity-70">(Principal)</span>}
                                             </span>
                                         ))}
@@ -238,12 +240,12 @@ export default function LeadDetailPage() {
                                 </div>
                             )}
                             {Array.isArray(lead.associated_entities) && lead.associated_entities.length > 0 && (
-                                <div className="space-y-1.5 col-span-full border-t border-amber-200/50 pt-3 mt-1">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-amber-600/70">{t('intelligence.associatedEntities')}</span>
+                                <div className="space-y-2 col-span-full border-t border-amber-200/50 dark:border-amber-500/20 pt-4 mt-2">
+                                    <span className="text-[9px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/50 block">{t('intelligence.associatedEntities')}</span>
                                     <div className="flex flex-wrap gap-2">
                                         {lead.associated_entities.map((ent, i) => (
-                                            <span key={i} className="px-2.5 py-1 bg-white border border-amber-200 text-amber-700 rounded-lg text-xs font-bold flex items-center gap-1.5">
-                                                <Building className="w-3 h-3 opacity-50" /> {ent}
+                                            <span key={i} className="px-3 py-1.5 bg-white dark:bg-white/5 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-black flex items-center gap-2 transition-all">
+                                                <Building className="w-3.5 h-3.5 opacity-50" /> {ent}
                                             </span>
                                         ))}
                                     </div>
@@ -264,12 +266,12 @@ export default function LeadDetailPage() {
                         if (!hasData) return null;
 
                         return (
-                            <section key={section.id} className="space-y-3">
-                                <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
-                                    <Layers className="w-4 h-4 text-primary" />
+                            <section key={section.id} className="space-y-4">
+                                <h3 className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                     {section.title}
                                 </h3>
-                                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                                <div className="bg-white dark:bg-white/5 p-6 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm space-y-6 transition-all duration-300">
                                     {section.fields.map(field => {
                                         const raw = lead[field.name];
                                         if (raw === undefined || raw === null || raw === "") return null;
@@ -279,17 +281,17 @@ export default function LeadDetailPage() {
 
                                         return (
                                             <div key={field.name}>
-                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1 px-1">{field.label}</p>
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black mb-1.5 px-1 tracking-widest">{field.label}</p>
                                                 {isArray ? (
                                                     <div className="flex flex-wrap gap-2">
                                                         {(Array.isArray(raw) ? raw : [raw]).map((v: string) => (
-                                                            <span key={v} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold ring-1 ring-blue-100">
+                                                            <span key={v} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-black border border-indigo-100 dark:border-indigo-500/20 transition-colors">
                                                                 {v}
                                                             </span>
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <p className="text-sm font-semibold text-gray-800 break-words whitespace-pre-wrap">{String(raw)}</p>
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 break-words whitespace-pre-wrap px-1 leading-relaxed">{String(raw)}</p>
                                                 )}
                                             </div>
                                         );
@@ -301,36 +303,38 @@ export default function LeadDetailPage() {
                 )}
 
                 {isGoldenRecord && lead._lineage && lead._lineage.length > 0 && (
-                    <section className="space-y-3 pt-6 animate-in fade-in slide-in-from-bottom-4 relative z-10">
-                        <h3 className="font-bold text-gray-900 text-sm ml-2 flex items-center gap-2">
+                    <section className="space-y-4 pt-6 animate-in fade-in slide-in-from-bottom-4 relative z-10">
+                        <h3 className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
                             <GitBranch className="w-4 h-4 text-indigo-500" />
                             {t('intelligence.consolidatedHistory')}
                         </h3>
-                        <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-16 -mt-16 pointer-events-none" />
+                        <div className="bg-white dark:bg-white/5 p-8 rounded-[40px] border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden transition-colors">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-full -mr-24 -mt-24 pointer-events-none" />
                             
                             {/* The Golden Head */}
-                            <div className="flex items-center gap-4 mb-8 relative z-10">
-                                <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                                    <ShieldCheck className="w-5 h-5" />
+                            <div className="flex items-center gap-4 mb-10 relative z-10">
+                                <div className="w-12 h-12 bg-indigo-600 dark:bg-indigo-500 text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none">
+                                    <ShieldCheck className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-0.5">{t('intelligence.goldenRecord')} • Head</p>
-                                    <p className="font-bold text-slate-800 text-sm">{lead.contact} • Active</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-0.5">{t('intelligence.goldenRecord')} • Head</p>
+                                    <p className="font-black text-slate-800 dark:text-white text-base leading-none">{lead.contact} • Active</p>
                                 </div>
                             </div>
 
                             {/* Intelligence Logs */}
                             {lead._logs && lead._logs.length > 0 && (
-                                <div className="mb-8 ml-5 pl-8 border-l-2 border-dashed border-indigo-100 relative z-10">
-                                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-sm font-semibold text-indigo-800 shadow-inner">
-                                        <p className="text-[10px] uppercase tracking-widest font-black text-indigo-400 mb-2">{t('intelligence.intelligenceStory')}</p>
-                                        {lead._logs.map((log: any, idx: number) => (
-                                            <p key={idx} className="flex items-start gap-2 mb-2 last:mb-0">
-                                                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                                <span>{log.message}</span>
-                                            </p>
-                                        ))}
+                                <div className="mb-10 ml-6 pl-10 border-l-2 border-dashed border-indigo-100 dark:border-indigo-500/20 relative z-10">
+                                    <div className="bg-indigo-50 dark:bg-indigo-500/10 p-5 rounded-[24px] border border-indigo-100 dark:border-indigo-500/20 text-sm font-bold text-indigo-800 dark:text-indigo-300 shadow-inner">
+                                        <p className="text-[10px] uppercase tracking-[0.2em] font-black text-indigo-400 dark:text-indigo-500/60 mb-3">{t('intelligence.intelligenceStory')}</p>
+                                        <div className="space-y-3">
+                                            {lead._logs.map((log: any, idx: number) => (
+                                                <p key={idx} className="flex items-start gap-3">
+                                                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-indigo-400" />
+                                                    <span className="leading-relaxed">{log.message}</span>
+                                                </p>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -338,18 +342,18 @@ export default function LeadDetailPage() {
                             {/* Lineage Tree */}
                             <div className="space-y-6 relative z-10">
                                 {lead._lineage.map((parent: any, idx: number) => (
-                                    <div key={idx} className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center border border-slate-200 shadow-sm">
-                                            <History className="w-5 h-5" />
+                                    <div key={idx} className="flex items-center gap-4 group">
+                                        <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-600 rounded-[18px] flex items-center justify-center border border-slate-200 dark:border-white/10 shadow-sm transition-all group-hover:scale-110">
+                                            <History className="w-6 h-6" />
                                         </div>
-                                        <div className="flex-1 bg-slate-50 border border-slate-100 p-3 rounded-2xl flex justify-between items-center group hover:bg-white hover:border-slate-200 transition-colors shadow-sm">
+                                        <div className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 p-4 rounded-[24px] flex justify-between items-center group-hover:bg-white dark:group-hover:bg-white/10 group-hover:border-slate-200 dark:group-hover:border-white/10 transition-all shadow-sm">
                                             <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{t('intelligence.identityLineage')} • Parent {idx+1}</p>
-                                                <p className="font-bold text-slate-700 text-xs">
-                                                    {parent.name} • {parent.company || '—'} 
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600 mb-0.5">{t('intelligence.identityLineage')} • Parent {idx+1}</p>
+                                                <p className="font-black text-slate-700 dark:text-slate-300 text-sm">
+                                                    {parent.name} <span className="mx-2 text-slate-300 dark:text-slate-700">|</span> {parent.company || '—'} 
                                                 </p>
                                             </div>
-                                            <span className="text-[9px] font-black bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-widest shadow-inner">Archived</span>
+                                            <span className="text-[9px] font-black bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full uppercase tracking-widest shadow-inner">Archived</span>
                                         </div>
                                     </div>
                                 ))}
@@ -358,8 +362,8 @@ export default function LeadDetailPage() {
                     </section>
                 )}
 
-                <div className="pt-6 text-center">
-                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                <div className="pt-10 text-center pb-10">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-600 uppercase font-black tracking-[0.3em] bg-white dark:bg-white/5 py-3 px-6 rounded-full border border-slate-100 dark:border-white/5 inline-block">
                         Saisie le {new Date(lead.created_at).toLocaleString('fr-FR')} • Source: {lead.source}
                     </p>
                 </div>

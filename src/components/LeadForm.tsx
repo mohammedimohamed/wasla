@@ -30,13 +30,13 @@ function FieldWidget({ field, register, control, errors }: {
 }) {
     if (!register) return null;
     const hasError = !!errors[field.name];
-    const baseInput = `w-full bg-slate-50 border-2 ${hasError ? 'border-red-300' : 'border-slate-100'} px-4 py-3.5 rounded-2xl font-medium text-slate-900 outline-none focus:border-primary focus:bg-white transition-all placeholder:text-slate-300`;
+    const baseInput = `w-full bg-slate-50 dark:bg-white/5 border-2 ${hasError ? 'border-red-300 dark:border-rose-500/50' : 'border-slate-100 dark:border-white/10'} px-4 py-3.5 rounded-2xl font-bold text-slate-900 dark:text-white outline-none focus:border-indigo-600 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-white/10 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600`;
 
     return (
         <div className={`flex flex-col gap-1.5 ${field.colSpan === 2 ? 'col-span-2' : 'col-span-2 md:col-span-1'}`}>
-            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest pl-1">
+            <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">
                 {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
+                {field.required && <span className="text-rose-500 ml-1">*</span>}
             </label>
 
             {(field.type === 'text' || field.type === 'email' || field.type === 'tel') && (
@@ -69,7 +69,9 @@ function FieldWidget({ field, register, control, errors }: {
                                     key={opt.value}
                                     type="button"
                                     onClick={() => onChange(opt.value)}
-                                    className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all ${value === opt.value ? 'bg-primary border-primary text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all ${value === opt.value 
+                                        ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white shadow-md shadow-indigo-200 dark:shadow-none' 
+                                        : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/30'}`}
                                 >
                                     {opt.label}
                                 </button>
@@ -104,7 +106,9 @@ function FieldWidget({ field, register, control, errors }: {
                                             key={opt.value}
                                             type="button"
                                             onClick={() => toggle(opt.value)}
-                                            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all flex items-center gap-1.5 ${active ? 'bg-primary border-primary text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                                            className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all flex items-center gap-1.5 ${active 
+                                                ? 'bg-indigo-600 dark:bg-indigo-500 border-indigo-600 dark:border-indigo-500 text-white shadow-md shadow-indigo-200 dark:shadow-none' 
+                                                : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/30'}`}
                                         >
                                             {opt.icon && <span>{opt.icon}</span>}
                                             {opt.label}
@@ -118,7 +122,7 @@ function FieldWidget({ field, register, control, errors }: {
             )}
 
             {hasError && (
-                <span className="text-red-500 text-xs font-bold flex items-center gap-1 pl-1">
+                <span className="text-rose-500 dark:text-rose-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 pl-1 mt-1">
                     <AlertCircle className="w-3 h-3" />
                     {(errors[field.name]?.message as string) || 'Champ requis'}
                 </span>
@@ -276,20 +280,20 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-16">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400 opacity-50" />
             </div>
         );
     }
 
     if (!config) {
-        return <p className="text-center text-slate-400 text-sm font-medium py-8">Formulaire non configuré.</p>;
+        return <p className="text-center text-slate-400 dark:text-slate-600 text-[10px] font-black uppercase tracking-widest py-8">Formulaire non configuré.</p>;
     }
 
     return (
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(onFormSubmit)(e); }} className="space-y-10">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(onFormSubmit)(e); }} className="space-y-12 transition-all duration-300">
             {/* Offline status banner */}
             {typeof window !== 'undefined' && !navigator.onLine && (
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl px-4 py-3 text-sm font-bold">
+                <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 rounded-[20px] px-5 py-4 text-xs font-black uppercase tracking-widest shadow-sm">
                     <WifiOff className="w-4 h-4 shrink-0 text-amber-500" />
                     <span>{t('offline.workingOffline')}</span>
                 </div>
@@ -297,10 +301,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({
 
             {/* Render all sections from all pages — agent form is single-scroll */}
             {config.pages.flatMap(page => page.sections).map((section, sIdx) => (
-                <div key={section.id || sIdx} className="space-y-5">
-                    <div className="border-b border-slate-100 pb-3">
-                        <h4 className="font-black text-slate-800 text-sm uppercase tracking-widest">{section.title}</h4>
-                        {section.description && <p className="text-xs text-slate-400 mt-0.5">{section.description}</p>}
+                <div key={section.id || sIdx} className="space-y-6">
+                    <div className="border-b border-slate-100 dark:border-white/5 pb-3">
+                        <h4 className="font-black text-slate-800 dark:text-white text-[11px] uppercase tracking-[0.2em]">{section.title}</h4>
+                        {section.description && <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-bold uppercase tracking-widest">{section.description}</p>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {section.fields.map(field => (
@@ -319,12 +323,12 @@ export const LeadForm: React.FC<LeadFormProps> = ({
             <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70"
+                className="w-full bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white py-5 rounded-[24px] font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-100 dark:shadow-none flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
             >
                 {isSubmitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> {t('common.saving')}</>
+                    <><Loader2 className="w-5 h-5 animate-spin" /> {t('common.saving')}</>
                 ) : (
-                    <><Save className="w-4 h-4" /> {t('common.save')}</>
+                    <><Save className="w-5 h-5" /> {t('common.save')}</>
                 )}
             </button>
         </form>

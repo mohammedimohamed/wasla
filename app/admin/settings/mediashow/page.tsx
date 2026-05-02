@@ -155,42 +155,38 @@ export default function MediashowAdminPage() {
     if (isLoading) return <div className="p-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-300" /></div>;
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
-                        <ArrowLeft className="w-5 h-5 text-slate-500" />
-                    </button>
-                    <div>
-                        <h1 className="font-black text-slate-900 uppercase tracking-tight text-sm">Mediashow (Attract Mode)</h1>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                            Gérer le contenu du carrousel publicitaire
-                            {isOfflineMode && <span className="ml-2 bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded text-[8px]">SIMULATEUR HORS-LIGNE</span>}
+        <div className="flex-1 selection:bg-indigo-500/30 font-sans">
+            <main className="p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-10">
+                
+                {/* ── SUB-HEADER ── */}
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Mediashow <span className="text-primary">Attract Mode</span></h2>
+                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase flex items-center gap-2">
+                            Digital Signage Playlist
+                            {isOfflineMode && <span className="bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded text-[8px]">OFFLINE SIMULATOR</span>}
                         </p>
                     </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={syncOfflineCache}
+                            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Sync Cache
+                        </button>
+                        <button
+                            type="button"
+                            onClick={saveSettings}
+                            disabled={isSavingSettings}
+                            className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                        >
+                            {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Sauvegarder
+                        </button>
+                    </div>
                 </div>
-
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        onClick={syncOfflineCache}
-                        className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all"
-                    >
-                        <RefreshCw className="w-4 h-4" /> Sync Offline
-                    </button>
-                    <button
-                        type="button"
-                        onClick={saveSettings}
-                        disabled={isSavingSettings}
-                        className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
-                    >
-                        {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Sauvegarder
-                    </button>
-                </div>
-            </header>
-
-            <main className="p-6 max-w-5xl mx-auto w-full space-y-6">
 
                 {/* 🔧 SETTINGS PANEL */}
                 <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -272,41 +268,41 @@ export default function MediashowAdminPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Array.isArray(assets) && assets.map((asset, index) => (
-                            <div key={asset.id} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-                                <div className="aspect-video bg-slate-100 relative overflow-hidden">
+                            <div key={asset.id} className="group bg-white dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden flex flex-col transition-colors duration-300">
+                                <div className="aspect-video bg-slate-100 dark:bg-slate-950 relative overflow-hidden">
                                     {asset.type === 'video' ? (
                                         <video src={asset.url} className="w-full h-full object-cover" muted />
                                     ) : (
                                         <img src={asset.url} className="w-full h-full object-cover" alt="" />
                                     )}
-                                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded-lg text-[10px] font-black text-white uppercase tracking-tighter flex items-center gap-1">
+                                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 dark:bg-black/70 backdrop-blur-md rounded-lg text-[10px] font-black text-white uppercase tracking-tighter flex items-center gap-1">
                                         {asset.type === 'video' ? <Film className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
                                         {asset.type}
                                     </div>
-                                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <button onClick={() => window.open(asset.url, '_blank')} className="p-2 bg-white rounded-full text-primary shadow-xl hover:scale-110 transition-all"><Eye className="w-4 h-4" /></button>
-                                        <button onClick={() => deleteAsset(asset.id, asset.url)} className="p-2 bg-white rounded-full text-red-500 shadow-xl hover:scale-110 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                    <div className="absolute inset-0 bg-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <button onClick={() => window.open(asset.url, '_blank')} className="p-2 bg-white dark:bg-slate-900 rounded-full text-indigo-600 dark:text-indigo-400 shadow-xl hover:scale-110 transition-all"><Eye className="w-4 h-4" /></button>
+                                        <button onClick={() => deleteAsset(asset.id, asset.url)} className="p-2 bg-white dark:bg-slate-900 rounded-full text-red-500 dark:text-red-400 shadow-xl hover:scale-110 transition-all"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                                 <div className="p-4 flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-xs font-black text-slate-400">
+                                        <div className="w-8 h-8 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 dark:text-slate-500">
                                             #{index + 1}
                                         </div>
-                                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[100px]">{asset.url.split('/').pop()}</span>
+                                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate max-w-[100px]">{asset.url.split('/').pop()}</span>
                                     </div>
                                     <div className="flex gap-1">
                                         <button
                                             disabled={index === 0}
                                             onClick={() => moveAsset(index, 'up')}
-                                            className="p-1.5 bg-slate-50 text-slate-400 hover:text-primary rounded-lg disabled:opacity-30"
+                                            className="p-1.5 bg-slate-50 dark:bg-white/5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg disabled:opacity-30 transition-all"
                                         >
                                             <MoveUp className="w-4 h-4" />
                                         </button>
                                         <button
                                             disabled={index === assets.length - 1}
                                             onClick={() => moveAsset(index, 'down')}
-                                            className="p-1.5 bg-slate-50 text-slate-400 hover:text-primary rounded-lg disabled:opacity-30"
+                                            className="p-1.5 bg-slate-50 dark:bg-white/5 text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg disabled:opacity-30 transition-all"
                                         >
                                             <MoveDown className="w-4 h-4" />
                                         </button>
@@ -316,7 +312,7 @@ export default function MediashowAdminPage() {
                         ))}
 
                         {assets.length === 0 && !isUploading && (
-                            <div className="col-span-full py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 font-bold uppercase tracking-widest">
+                            <div className="col-span-full py-20 bg-slate-50 dark:bg-white/5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest transition-colors">
                                 <ImageIcon className="w-12 h-12 mb-4 opacity-20" />
                                 Aucune média dans la playliste
                             </div>

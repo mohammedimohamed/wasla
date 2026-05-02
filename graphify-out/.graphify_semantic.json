@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    { "id": "readme_waslaleadcollector", "label": "Wasla Lead Collector", "file_type": "document", "source_file": "README.md" },
+    { "id": "readme_rewardsengine", "label": "Rewards Engine", "file_type": "document", "source_file": "README.md" },
+    { "id": "readme_nfcprofile", "label": "NFC Digital Profile", "file_type": "document", "source_file": "README.md" },
+    { "id": "spec_kioskmode", "label": "Kiosk Mode", "file_type": "document", "source_file": "SPEC_AGENT_LeadCollector.md" },
+    { "id": "spec_backgroundsync", "label": "Background Sync", "file_type": "document", "source_file": "SPEC_AGENT_LeadCollector.md" },
+    { "id": "spec_leadcapture", "label": "Lead Capture Flow", "file_type": "document", "source_file": "SPEC_AGENT_LeadCollector.md" },
+    { "id": "guide_goldenrecord", "label": "Golden Record", "file_type": "document", "source_file": "app/admin/intelligence/guide.md" },
+    { "id": "guide_datasafety", "label": "Data Safety & Snapshots", "file_type": "document", "source_file": "app/admin/intelligence/guide.md" },
+    { "id": "guide_qcdashboard", "label": "QC Dashboard", "file_type": "document", "source_file": "app/admin/intelligence/guide.md" }
+  ],
+  "edges": [
+    { "source": "readme_waslaleadcollector", "target": "readme_rewardsengine", "relation": "features", "confidence": "EXTRACTED", "confidence_score": 1.0 },
+    { "source": "readme_waslaleadcollector", "target": "readme_nfcprofile", "relation": "features", "confidence": "EXTRACTED", "confidence_score": 1.0 },
+    { "source": "spec_kioskmode", "target": "readme_rewardsengine", "relation": "triggers", "confidence": "EXTRACTED", "confidence_score": 1.0 },
+    { "source": "spec_leadcapture", "target": "spec_backgroundsync", "relation": "uses", "confidence": "EXTRACTED", "confidence_score": 1.0 },
+    { "source": "guide_goldenrecord", "target": "guide_datasafety", "relation": "derived_from", "confidence": "INFERRED", "confidence_score": 0.95 },
+    { "source": "guide_qcdashboard", "target": "guide_goldenrecord", "relation": "manages", "confidence": "EXTRACTED", "confidence_score": 1.0 }
+  ],
+  "hyperedges": [],
+  "input_tokens": 1200,
+  "output_tokens": 450
+}

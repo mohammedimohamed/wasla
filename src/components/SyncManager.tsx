@@ -201,8 +201,8 @@ export function SyncManager() {
                     flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-black uppercase tracking-widest
                     shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
                     ${isOnline
-                        ? 'bg-slate-900 text-white shadow-slate-900/30'
-                        : 'bg-slate-600 text-slate-300 shadow-slate-600/20'
+                        ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-slate-900/30 dark:shadow-indigo-500/20'
+                        : 'bg-slate-600 dark:bg-slate-800 text-slate-300 dark:text-slate-500 shadow-slate-600/20 dark:shadow-none'
                     }
                 `}
             >
@@ -211,7 +211,7 @@ export function SyncManager() {
                 ) : isOnline ? (
                     <CloudUpload className="w-3.5 h-3.5" />
                 ) : (
-                    <CloudOff className="w-3.5 h-3.5 text-red-400" />
+                    <CloudOff className="w-3.5 h-3.5 text-red-400 dark:text-rose-500" />
                 )}
 
                 {isOnline ? (
@@ -219,12 +219,12 @@ export function SyncManager() {
                         {isSyncing ? 'Sync...' : `${pendingCount} en attente`}
                     </span>
                 ) : (
-                    <span className="text-red-400">Hors ligne</span>
+                    <span className="text-red-400 dark:text-rose-500">Hors ligne</span>
                 )}
 
                 {/* Badge bubble */}
                 {pendingCount > 0 && !isSyncing && (
-                    <span className="ml-0.5 w-5 h-5 bg-amber-400 text-slate-900 rounded-full text-[10px] font-black flex items-center justify-center">
+                    <span className="ml-0.5 w-5 h-5 bg-amber-400 dark:bg-amber-500 text-slate-900 dark:text-slate-950 rounded-full text-[10px] font-black flex items-center justify-center">
                         {pendingCount > 99 ? '99+' : pendingCount}
                     </span>
                 )}

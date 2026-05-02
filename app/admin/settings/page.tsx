@@ -346,32 +346,15 @@ export default function AdminSettingsPage() {
 
     // ── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-            {/* Header */}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => router.push("/admin/dashboard")}
-                        className="p-2 -ml-2 hover:bg-slate-100 rounded-xl transition-all"
-                    >
-                        <ChevronLeft className="w-6 h-6 text-slate-700" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                            Identité &amp; Sécurité
-                        </h1>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">
-                            Configuration Globale SaaS
-                        </p>
-                    </div>
+        <div className="flex-1 selection:bg-indigo-500/30 font-sans transition-colors duration-300">
+            <main className="p-6 lg:p-8 max-w-7xl mx-auto w-full">
+                <div className="space-y-1 mb-10">
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Identity & <span className="text-indigo-600 dark:text-indigo-400">Security</span></h2>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Global SaaS Configuration & Vault Settings</p>
                 </div>
-            </header>
-
-            {/* Content */}
-            <div className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
                 {loading ? (
                     <div className="flex items-center justify-center p-40">
-                        <Loader2 className="w-10 h-10 animate-spin text-slate-300" />
+                        <Loader2 className="w-10 h-10 animate-spin text-slate-300 dark:text-slate-700" />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -382,64 +365,64 @@ export default function AdminSettingsPage() {
                             <form id="settings-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                                 {/* General Info */}
-                                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
+                                <div className="bg-white dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm p-8 transition-colors">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center">
                                             <Globe className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
                                                 Informations Générales
                                             </h2>
-                                            <p className="text-xs font-medium text-slate-400">
+                                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
                                                 Nom et visuel du salon ou de l&apos;événement.
                                             </p>
                                         </div>
                                     </div>
                                     <div className="space-y-5">
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">
                                                 Nom de l&apos;Événement <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 {...register("event_name")}
-                                                className="w-full bg-slate-50 border border-slate-200 px-5 py-4 rounded-2xl text-sm font-black text-slate-900 focus:border-indigo-400 outline-none transition-all placeholder:text-slate-300"
+                                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 px-5 py-4 rounded-2xl text-sm font-black text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                             />
                                             {errors.event_name && (
                                                 <p className="text-red-500 text-xs mt-2 font-bold pl-2">{errors.event_name.message}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">
                                                 Texte d&apos;Accueil Kiosk <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 {...register("kiosk_welcome_text")}
-                                                className="w-full bg-slate-50 border border-slate-200 px-5 py-4 rounded-2xl text-sm font-medium focus:border-indigo-400 outline-none transition-all placeholder:text-slate-300"
+                                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 px-5 py-4 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                             />
                                             {errors.kiosk_welcome_text && (
                                                 <p className="text-red-500 text-xs mt-2 font-bold pl-2">{errors.kiosk_welcome_text.message}</p>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">
                                                 Logo de l'Événement
                                             </label>
-                                            <div className="flex items-center gap-6 p-6 bg-slate-50 border border-slate-200 rounded-2xl group/logo relative overflow-hidden">
-                                                <div className="w-20 h-20 bg-white rounded-2xl shadow-inner border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                            <div className="flex items-center gap-6 p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl group/logo relative overflow-hidden transition-colors">
+                                                <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-2xl shadow-inner border border-slate-100 dark:border-white/5 flex items-center justify-center overflow-hidden shrink-0">
                                                     {watch("logo_url") ? (
                                                         <img src={watch("logo_url")} alt="Preview" className="w-full h-full object-contain p-2" />
                                                     ) : (
-                                                        <ImageIcon className="w-8 h-8 text-slate-200" />
+                                                        <ImageIcon className="w-8 h-8 text-slate-200 dark:text-slate-700" />
                                                     )}
                                                 </div>
                                                 <div className="flex-1 space-y-3">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Format conseillé</span>
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">PNG, SVG (Max 2MB)</span>
+                                                        <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Format conseillé</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">PNG, SVG (Max 2MB)</span>
                                                     </div>
                                                     <div className="relative">
-                                                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-400 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm">
+                                                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm">
                                                             {isUploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                                                             {watch("logo_url") ? "Remplacer le Logo" : "Sélectionner un Logo"}
                                                             <input type="file" className="sr-only" accept="image/*" onChange={handleLogoUpload} disabled={isUploadingLogo} />
@@ -453,22 +436,22 @@ export default function AdminSettingsPage() {
                                 </div>
 
                                 {/* Visual Identity */}
-                                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8">
+                                <div className="bg-white dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm p-8 transition-colors">
                                     <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-10 h-10 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 rounded-2xl flex items-center justify-center">
                                             <PaintBucket className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                                            <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
                                                 Identité Visuelle
                                             </h2>
-                                            <p className="text-xs font-medium text-slate-400">
+                                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
                                                 Injection dynamique de charte graphique CSS.
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-sm shrink-0 border border-slate-200">
+                                        <div className="relative w-14 h-14 rounded-2xl overflow-hidden shadow-sm shrink-0 border border-slate-200 dark:border-white/10">
                                             <input
                                                 type="color"
                                                 {...register("primary_color")}
@@ -477,7 +460,7 @@ export default function AdminSettingsPage() {
                                         </div>
                                         <input
                                             {...register("primary_color")}
-                                            className="w-full bg-slate-50 border border-slate-200 px-5 py-4 rounded-2xl text-lg font-mono font-black tracking-widest text-slate-900 outline-none transition-all uppercase"
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 px-5 py-4 rounded-2xl text-lg font-mono font-black tracking-widest text-slate-900 dark:text-white outline-none transition-all uppercase"
                                         />
                                     </div>
                                     <div className="mt-4 flex flex-wrap gap-2">
@@ -487,7 +470,7 @@ export default function AdminSettingsPage() {
                                                 type="button"
                                                 onClick={() => reset({ ...form.getValues(), primary_color: color })}
                                                 className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                                                    currentColor === color ? "border-slate-900 scale-110 shadow-md" : "border-transparent"
+                                                    currentColor === color ? "border-slate-900 dark:border-white scale-110 shadow-md" : "border-transparent"
                                                 }`}
                                                 style={{ backgroundColor: color }}
                                             />
@@ -498,17 +481,17 @@ export default function AdminSettingsPage() {
                                 {/* Mediashow Link */}
                                 <div
                                     onClick={() => router.push("/admin/settings/mediashow")}
-                                    className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[32px] p-8 text-white shadow-xl flex items-center justify-between cursor-pointer group"
+                                    className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900 rounded-[32px] p-8 text-white shadow-xl flex items-center justify-between cursor-pointer group border border-white/5 dark:border-white/10 transition-all"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <div className="w-12 h-12 bg-white/10 dark:bg-white/5 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                             <Monitor className="w-6 h-6 text-rose-400" />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-black uppercase tracking-widest">
                                                 Mediashow (Attract Mode)
                                             </h3>
-                                            <p className="text-xs font-medium text-slate-400">
+                                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500">
                                                 Configurez l&apos;écran de veille publicitaire offline.
                                             </p>
                                         </div>
@@ -523,7 +506,7 @@ export default function AdminSettingsPage() {
                                     form="settings-form"
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full bg-slate-900 hover:bg-black text-white rounded-[24px] shadow-xl py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-black dark:hover:bg-indigo-500 text-white rounded-[24px] shadow-xl py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     {isSubmitting ? (
                                         <><Loader2 className="w-5 h-5 animate-spin" /> Déploiement...</>
@@ -531,7 +514,7 @@ export default function AdminSettingsPage() {
                                         <><CheckCircle2 className="w-5 h-5" /> Enregistrer &amp; Publier</>
                                     )}
                                 </button>
-                                <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4 italic">
+                                <p className="text-center text-[10px] text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest mt-4 italic">
                                     Injection en direct sur tous les kiosques
                                 </p>
                             </div>
@@ -552,25 +535,25 @@ export default function AdminSettingsPage() {
                         {/* ── RIGHT COLUMN: Live Preview ── */}
                         <div className="hidden xl:block xl:col-span-5 relative">
                             <div className="sticky top-24">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <MonitorSmartphone className="w-4 h-4 text-indigo-400" /> Aperçu Client
+                                <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <MonitorSmartphone className="w-4 h-4 text-indigo-400 dark:text-indigo-500" /> Aperçu Client
                                 </h3>
-                                <div className="bg-slate-900 p-3 rounded-[40px] shadow-2xl aspect-[3/4] flex flex-col items-center">
-                                    <div className="w-full h-full bg-slate-50 rounded-[32px] overflow-hidden flex flex-col relative">
+                                <div className="bg-slate-900 dark:bg-black p-3 rounded-[40px] shadow-2xl aspect-[3/4] flex flex-col items-center border dark:border-white/5 transition-colors">
+                                    <div className="w-full h-full bg-slate-50 dark:bg-slate-900 rounded-[32px] overflow-hidden flex flex-col relative transition-colors">
                                         <div
                                             className="absolute top-0 inset-x-0 h-40 opacity-20"
                                             style={{ backgroundImage: `linear-gradient(to bottom, ${currentColor}, transparent)` }}
                                         />
                                         <div className="flex-1 p-6 flex flex-col items-center justify-center text-center z-10 relative mt-10">
                                             <div
-                                                className="w-16 h-16 rounded-3xl shadow-lg mb-6 flex items-center justify-center overflow-hidden bg-white"
+                                                className="w-16 h-16 rounded-3xl shadow-lg mb-6 flex items-center justify-center overflow-hidden bg-white dark:bg-slate-950"
                                                 style={{ borderBottom: `4px solid ${currentColor}` }}
                                             >
                                                 {watch("logo_url") ? (
                                                     // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={watch("logo_url")} className="w-full h-full object-contain p-2" alt="logo" />
                                                 ) : (
-                                                    <span className="font-black text-xl text-slate-300">W</span>
+                                                    <span className="font-black text-xl text-slate-300 dark:text-slate-700">W</span>
                                                 )}
                                             </div>
                                             <h4
@@ -579,11 +562,11 @@ export default function AdminSettingsPage() {
                                             >
                                                 {currentEventName}
                                             </h4>
-                                            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-8">
+                                            <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-8">
                                                 {currentWelcomeText}
                                             </h1>
                                             <div className="w-full max-w-[80%] space-y-3 opacity-50">
-                                                <div className="h-10 bg-white border border-slate-200 rounded-xl" />
+                                                <div className="h-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 rounded-xl" />
                                                 <div
                                                     className="h-10 text-white rounded-xl flex items-center justify-center text-[10px] font-black uppercase tracking-widest"
                                                     style={{ backgroundColor: currentColor }}
@@ -599,7 +582,7 @@ export default function AdminSettingsPage() {
 
                     </div>
                 )}
-            </div>
+            </main>
         </div>
     );
 }

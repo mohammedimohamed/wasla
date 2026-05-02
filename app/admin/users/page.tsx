@@ -333,59 +333,53 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-            {/* ── HEADER ─────────────────────────────────────────────────────── */}
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => router.push("/admin/dashboard")}
-                        className="p-2 -ml-2 hover:bg-slate-100 rounded-xl transition-all"
-                    >
-                        <ChevronLeft className="w-6 h-6 text-slate-700" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Utilisateurs</h1>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">RBAC & Équipes</p>
+        <div className="flex-1 bg-slate-50 dark:bg-slate-950 selection:bg-indigo-500/30 font-sans transition-colors duration-300 min-h-screen">
+
+            <main className="p-6 lg:p-8 max-w-7xl mx-auto w-full">
+                
+                <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Identity <span className="text-indigo-600 dark:text-indigo-400">Access</span></h2>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-[0.2em] uppercase italic">RBAC & Team Management</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+                        >
+                            <ImageIcon className="w-4 h-4" />
+                            Importer
+                        </button>
+                        <button
+                            onClick={() => { reset({ role: 'SALES_AGENT', team_id: '' }); setIsModalOpen(true); }}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-200 dark:shadow-none"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Ajouter Compte
+                        </button>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
-                    >
-                        <ImageIcon className="w-4 h-4" />
-                        Importer (Excel)
-                    </button>
-                    <button
-                        onClick={() => { reset({ role: 'SALES_AGENT', team_id: '' }); setIsModalOpen(true); }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-200"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Ajouter Compte
-                    </button>
-                </div>
-            </header>
-
-            <div className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+                
                 {/* ── DASHBOARD GRID ────────────────────────────────────────────── */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <div className="bg-white dark:bg-white/5 p-6 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-5 transition-colors">
+                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                             <Users className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-2xl font-black text-slate-900">{users.filter(u => u.active).length}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Comptes Actifs</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white">{users.filter(u => u.active).length}</p>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Comptes Actifs</p>
                         </div>
                     </div>
                     {/* Admins vs Agents breakdown */}
-                    <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center">
+                    <div className="bg-white dark:bg-white/5 p-6 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-5 transition-colors">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
                             <Shield className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-2xl font-black text-slate-900">{users.filter(u => u.role === 'ADMINISTRATOR' && u.active).length}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Administrateurs</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white">{users.filter(u => u.role === 'ADMINISTRATOR' && u.active).length}</p>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Administrateurs</p>
                         </div>
                     </div>
                 </div>
@@ -396,24 +390,24 @@ export default function AdminUsersPage() {
                         <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
                     </div>
                 ) : (
-                    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="bg-white dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50 border-b border-slate-100">
+                                <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-white/5">
                                     <tr>
                                         <th className="px-8 py-5 w-10">
                                             <input 
                                                 type="checkbox" 
-                                                className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer transition-colors"
                                                 checked={users.length > 0 && selectedUsers.length === users.length}
                                                 onChange={toggleSelectAll}
                                             />
                                         </th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateur</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rôle & Équipe</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sécurité</th>
-                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Utilisateur</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contact</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Rôle & Équipe</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sécurité</th>
+                                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -421,18 +415,18 @@ export default function AdminUsersPage() {
                                         const RMap = roleMap[u.role] || roleMap['SALES_AGENT'];
                                         const RIcon = RMap.icon;
                                         return (
-                                            <tr key={u.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${!u.active ? 'opacity-50' : ''} ${selectedUsers.includes(u.id) ? 'bg-indigo-50/30' : ''}`}>
+                                            <tr key={u.id} className={`border-b border-slate-50 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors ${!u.active ? 'opacity-50' : ''} ${selectedUsers.includes(u.id) ? 'bg-indigo-50/30 dark:bg-indigo-500/10' : ''}`}>
                                                 <td className="px-8 py-5">
                                                     <input 
                                                         type="checkbox" 
-                                                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                        className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                                         checked={selectedUsers.includes(u.id)}
                                                         onChange={() => toggleSelectUser(u.id)}
                                                     />
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${RMap.bg} ${RMap.color}`}>
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ${RMap.bg} dark:bg-white/5 ${RMap.color}`}>
                                                             {u.image_url && u.image_url !== 'null' ? (
                                                                 <img src={`${u.image_url}?v=${new Date(u.updated_at).getTime()}`} alt={u.name} className="w-full h-full object-cover" />
                                                             ) : (
@@ -441,35 +435,35 @@ export default function AdminUsersPage() {
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <p className="font-black text-slate-900">{u.name}</p>
+                                                                <p className="font-black text-slate-900 dark:text-white">{u.name}</p>
                                                                 {u.is_enterprise_default === 1 && (
                                                                     <span className="text-[8px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Corporate</span>
                                                                 )}
                                                             </div>
-                                                            {!u.active && <span className="text-[9px] font-black bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full uppercase ml-1">Inactif</span>}
+                                                            {!u.active && <span className="text-[9px] font-black bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full uppercase ml-1">Inactif</span>}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <p className="text-sm font-medium text-slate-600">{u.email}</p>
+                                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{u.email}</p>
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <p className={`text-xs font-bold ${RMap.color} mb-1`}>{RMap.label}</p>
+                                                    <p className={`text-xs font-bold ${RMap.color} dark:text-opacity-80 mb-1`}>{RMap.label}</p>
                                                     {u.team_name ? (
-                                                        <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg uppercase border border-indigo-100">
+                                                        <span className="text-[10px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg uppercase border border-indigo-100 dark:border-indigo-500/20">
                                                             {u.team_name}
                                                         </span>
                                                     ) : (
-                                                        <p className="text-xs text-slate-400 font-medium italic">Sans Équipe</p>
+                                                        <p className="text-xs text-slate-400 dark:text-slate-600 font-medium italic">Sans Équipe</p>
                                                     )}
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     {u.quick_pin ? (
-                                                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl w-max">
+                                                        <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl w-max border dark:border-emerald-500/20">
                                                             <CheckCircle2 className="w-4 h-4" /> PIN Défini
                                                         </span>
                                                     ) : (
-                                                        <span className="flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl w-max">
+                                                        <span className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-xl w-max border dark:border-amber-500/20">
                                                             <AlertCircle className="w-4 h-4" /> En Attente
                                                         </span>
                                                     )}
@@ -484,7 +478,7 @@ export default function AdminUsersPage() {
                                                                         setPhotoPreview(u.image_url ? `${u.image_url}?v=${new Date(u.updated_at).getTime()}` : null);
                                                                     }}
                                                                     title="Modifier l'utilisateur"
-                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                                                                 >
                                                                     <Pencil className="w-4 h-4" />
                                                                 </button>
@@ -494,7 +488,7 @@ export default function AdminUsersPage() {
                                                                             <button
                                                                                 onClick={() => setAssignModal({ isOpen: true, userId: u.id, userName: u.name, currentTeamId: u.team_id })}
                                                                                 title="Affecter à une équipe"
-                                                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                                                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                                                             >
                                                                                 <Users className="w-4 h-4" />
                                                                             </button>
@@ -502,14 +496,14 @@ export default function AdminUsersPage() {
                                                                         <button
                                                                             onClick={() => handleResetPin(u.id, u.name)}
                                                                             title="Réinitialiser le PIN de session"
-                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                                                                         >
                                                                             <KeyRound className="w-4 h-4" />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDelete(u.id, u.email)}
                                                                             title="Désactiver l'utilisateur"
-                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                                                                         >
                                                                             <Trash2 className="w-4 h-4" />
                                                                         </button>
@@ -523,32 +517,31 @@ export default function AdminUsersPage() {
                                         );
                                     })}
                                 </tbody>
-            </table>
+                            </table>
                             {users.length === 0 && !loading && (
-                                <div className="p-20 text-center text-slate-400 font-medium">
+                                <div className="p-20 text-center text-slate-400 dark:text-slate-600 font-medium">
                                     Aucun utilisateur trouvé.
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
-            </div>
 
             {/* ── MODAL: CREATE USER ───────────────────────────────────────────────── */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-8 relative">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-8 relative border dark:border-white/5 transition-colors duration-300">
+                        <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
                             <XCircle className="w-7 h-7" />
                         </button>
 
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                            <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center">
                                 <Plus className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-none">Nouvel Utilisateur</h2>
-                                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Création de compte sécurisé</p>
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">Nouvel Utilisateur</h2>
+                                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Création de compte sécurisé</p>
                             </div>
                         </div>
 
@@ -556,7 +549,7 @@ export default function AdminUsersPage() {
 
                             {/* Role Selection */}
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Rôle & Permissions</label>
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Rôle & Permissions</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {(Object.keys(roleMap) as Array<keyof typeof roleMap>).map(r => {
                                         const RMap = roleMap[r];
@@ -566,10 +559,10 @@ export default function AdminUsersPage() {
                                             <button
                                                 key={r} type="button"
                                                 onClick={() => reset({ ...watch(), role: r })}
-                                                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-2 h-24 ${selected ? `border-${RMap.color.split('-')[1]}-500 ${RMap.bg} shadow-inner` : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'}`}
+                                                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-2 h-24 ${selected ? `border-indigo-500 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-inner` : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 hover:border-slate-300 dark:hover:border-white/20 shadow-sm'}`}
                                             >
-                                                <Icon className={`w-6 h-6 ${selected ? RMap.color : 'text-slate-400'}`} />
-                                                <span className={`text-[9px] font-black uppercase tracking-tight block ${selected ? RMap.color.replace('text', 'text').replace('500', '900') : 'text-slate-500'}`}>{RMap.label}</span>
+                                                <Icon className={`w-6 h-6 ${selected ? RMap.color : 'text-slate-400 dark:text-slate-600'}`} />
+                                                <span className={`text-[9px] font-black uppercase tracking-tight block ${selected ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>{RMap.label}</span>
                                             </button>
                                         );
                                     })}
@@ -579,13 +572,13 @@ export default function AdminUsersPage() {
                             {/* Identity */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Nom Complet</label>
-                                    <input {...register('name')} placeholder="Ahmed Salah" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Nom Complet</label>
+                                    <input {...register('name')} placeholder="Ahmed Salah" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 text-slate-900 dark:text-white" />
                                     {errors.name && <p className="text-red-500 text-xs mt-1 pl-2 font-bold">{errors.name.message}</p>}
                                 </div>
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Email (Identifiant)</label>
-                                    <input {...register('email')} type="email" placeholder="agent@wasla.app" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Email (Identifiant)</label>
+                                    <input {...register('email')} type="email" placeholder="agent@wasla.app" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 text-slate-900 dark:text-white" />
                                     {errors.email && <p className="text-red-500 text-xs mt-1 pl-2 font-bold">{errors.email.message}</p>}
                                 </div>
                             </div>
@@ -593,8 +586,8 @@ export default function AdminUsersPage() {
                             {/* Team Switcher (Only visible for non-admins if teams exist) */}
                             {currentRole !== 'ADMINISTRATOR' && (
                                 <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Affectation d'Équipe (Optionnel)</label>
-                                    <select {...register('team_id')} className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer">
+                                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Affectation d'Équipe (Optionnel)</label>
+                                    <select {...register('team_id')} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all appearance-none cursor-pointer text-slate-900 dark:text-white">
                                         <option value="">Aucune équipe / Non assigné</option>
                                         {teams.map(t => (
                                             <option key={t.id} value={t.id}>{t.name}</option>
@@ -604,14 +597,14 @@ export default function AdminUsersPage() {
                             )}
 
                             {/* Password Setup */}
-                            <div className="bg-slate-50 p-4 rounded-[24px] border border-slate-100">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Mot de passe initial / Setup</label>
-                                <input {...register('password')} type="password" placeholder="••••••••" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all tracking-widest" />
+                            <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-[24px] border border-slate-100 dark:border-white/5 transition-colors">
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Mot de passe initial / Setup</label>
+                                <input {...register('password')} type="password" placeholder="••••••••" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all tracking-widest text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700" />
                                 {errors.password && <p className="text-red-500 text-xs mt-1 pl-2 font-bold">{errors.password.message}</p>}
-                                <p className="text-[10px] font-medium text-slate-500 mt-3 flex gap-2"><KeyRound className="w-3.5 h-3.5 shrink-0" /> Le PIN (Code Session) sera demandé à l'utilisateur lors de sa première connexion au portail agent.</p>
+                                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-500 mt-3 flex gap-2"><KeyRound className="w-3.5 h-3.5 shrink-0" /> Le PIN (Code Session) sera demandé à l'utilisateur lors de sa première connexion au portail agent.</p>
                             </div>
 
-                            <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] shadow-xl shadow-indigo-200/50 mt-8 py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] shadow-xl shadow-indigo-200/50 dark:shadow-none mt-8 py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                                 {isSubmitting ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Traitement en cours...</>
                                 ) : (
@@ -625,31 +618,31 @@ export default function AdminUsersPage() {
 
             {/* ── MODAL: EDIT USER ─────────────────────────────────────────────────── */}
             {editModal.isOpen && editModal.user && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-5xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-10 relative">
-                        <button onClick={() => setEditModal({ isOpen: false, user: null })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-5xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-10 relative border dark:border-white/5 transition-colors duration-300">
+                        <button onClick={() => setEditModal({ isOpen: false, user: null })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
                             <XCircle className="w-7 h-7" />
                         </button>
 
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-[24px] flex items-center justify-center shadow-sm">
+                                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-[24px] flex items-center justify-center shadow-sm">
                                     <Pencil className="w-7 h-7" />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Modifier le Profil</h2>
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">Modifier le Profil</h2>
                                     <div className="flex items-center gap-2 mt-1.5">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Management Identity</p>
+                                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Management Identity</p>
                                         {editModal.user.team_name ? (
-                                            <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full uppercase border border-indigo-100">
+                                            <span className="text-[10px] font-black bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full uppercase border border-indigo-100 dark:border-indigo-500/20">
                                                 Équipe: {editModal.user.team_name}
                                             </span>
                                         ) : editModal.user.team_id ? (
-                                            <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase border border-slate-200">
+                                            <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1 rounded-full uppercase border border-slate-200 dark:border-white/5">
                                                 Team ID: {editModal.user.team_id}
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-3 py-1 rounded-full uppercase border border-amber-100">
+                                            <span className="text-[10px] font-black bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full uppercase border border-amber-100 dark:border-amber-500/20">
                                                 Sans Équipe
                                             </span>
                                         )}
@@ -658,16 +651,16 @@ export default function AdminUsersPage() {
                             </div>
 
                             {/* Tab Switcher */}
-                            <div className="bg-slate-50 p-1.5 rounded-[22px] flex gap-1 border border-slate-100">
+                            <div className="bg-slate-50 dark:bg-white/5 p-1.5 rounded-[22px] flex gap-1 border border-slate-100 dark:border-white/5">
                                 <button 
                                     onClick={() => setEditTab('info')}
-                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'info' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'info' ? 'bg-white dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                 >
                                     Informations
                                 </button>
                                 <button 
                                     onClick={() => setEditTab('nfc')}
-                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'nfc' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`px-6 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${editTab === 'nfc' ? 'bg-white dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                 >
                                     Profil NFC
                                 </button>
@@ -681,13 +674,13 @@ export default function AdminUsersPage() {
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                                 {/* Profile Photo Upload */}
                                 <div className="md:col-span-3 flex flex-col items-center">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 w-full text-center">Photo de Profil</label>
+                                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 w-full text-center">Photo de Profil</label>
                                     <div className="relative group cursor-pointer">
-                                        <div className="w-32 h-32 rounded-[40px] bg-slate-50 border-2 border-dashed border-slate-200 overflow-hidden flex items-center justify-center transition-all group-hover:border-indigo-300">
+                                        <div className="w-32 h-32 rounded-[40px] bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-white/10 overflow-hidden flex items-center justify-center transition-all group-hover:border-indigo-300 dark:group-hover:border-indigo-500">
                                             {photoPreview ? (
                                                 <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
                                             ) : (
-                                                <div className="flex flex-col items-center gap-2 text-slate-300 group-hover:text-indigo-400">
+                                                <div className="flex flex-col items-center gap-2 text-slate-300 dark:text-slate-700 group-hover:text-indigo-400 dark:group-hover:text-indigo-500">
                                                     <Camera className="w-8 h-8" />
                                                     <span className="text-[10px] font-black uppercase">Upload</span>
                                                 </div>
@@ -703,33 +696,33 @@ export default function AdminUsersPage() {
                                                 if (file) setPhotoPreview(URL.createObjectURL(file));
                                             }}
                                         />
-                                        <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-slate-100 rounded-2xl shadow-lg flex items-center justify-center text-indigo-600">
+                                        <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/10 rounded-2xl shadow-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                             <ImageIcon className="w-5 h-5" />
                                         </div>
                                     </div>
-                                    <p className="text-[9px] text-slate-400 font-bold uppercase mt-4 tracking-widest">JPEG, PNG, WEBP (Max 2MB)</p>
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-4 tracking-widest">JPEG, PNG, WEBP (Max 2MB)</p>
                                 </div>
 
                                 <div className="md:col-span-9 space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Nom Complet</label>
-                                            <input name="name" defaultValue={editModal.user.name} required className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Nom Complet</label>
+                                            <input name="name" defaultValue={editModal.user.name} required className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Email Professionnel</label>
-                                            <input name="email" defaultValue={editModal.user.email} required type="email" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Email Professionnel</label>
+                                            <input name="email" defaultValue={editModal.user.email} required type="email" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Rôle</label>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Rôle</label>
                                             <select 
                                                 name="role" 
                                                 defaultValue={editModal.user.role} 
                                                 disabled={editModal.user.is_enterprise_default === 1}
-                                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                                                className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
                                             >
                                                 <option value="SALES_AGENT">Agent Commercial</option>
                                                 <option value="TEAM_LEADER">Chef d'Équipe</option>
@@ -738,12 +731,12 @@ export default function AdminUsersPage() {
                                             {editModal.user.is_enterprise_default === 1 && <input type="hidden" name="role" value={editModal.user.role} />}
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Statut Compte</label>
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Statut Compte</label>
                                             <select 
                                                 name="active" 
                                                 defaultValue={editModal.user.active} 
                                                 disabled={editModal.user.is_enterprise_default === 1}
-                                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                                                className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
                                             >
                                                 <option value="1">Actif (Accès total)</option>
                                                 <option value="0">Désactivé (Banni)</option>
@@ -754,46 +747,46 @@ export default function AdminUsersPage() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Numéro de Téléphone</label>
-                                            <input name="phone_number" defaultValue={editModal.user.phone_number || ""} placeholder="+213..." className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Numéro de Téléphone</label>
+                                            <input name="phone_number" defaultValue={editModal.user.phone_number || ""} placeholder="+213..." className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Poste / Titre</label>
-                                            <input name="job_title" defaultValue={editModal.user.job_title || ""} placeholder="Ingénieur Commercial" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Poste / Titre</label>
+                                            <input name="job_title" defaultValue={editModal.user.job_title || ""} placeholder="Ingénieur Commercial" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Entreprise</label>
-                                            <input name="company_name" defaultValue={editModal.user.company_name || ""} placeholder="Wasla Soft" className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Entreprise</label>
+                                            <input name="company_name" defaultValue={editModal.user.company_name || ""} placeholder="Wasla Soft" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                         <div className="col-span-2 lg:col-span-1">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Profil LinkedIn (URL)</label>
-                                            <input name="linkedin_url" defaultValue={editModal.user.linkedin_url || ""} placeholder="https://linkedin.com/in/..." className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Profil LinkedIn (URL)</label>
+                                            <input name="linkedin_url" defaultValue={editModal.user.linkedin_url || ""} placeholder="https://linkedin.com/in/..." className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-50 rounded-[32px] p-6 border border-slate-100 space-y-6">
+                            <div className="bg-slate-50 dark:bg-white/5 rounded-[32px] p-6 border border-slate-100 dark:border-white/5 space-y-6 transition-colors">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <Shield className="w-5 h-5 text-indigo-600" />
-                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Overrides de Sécurité</h3>
+                                    <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Overrides de Sécurité</h3>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Réinitialiser Mot de Passe</label>
+                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Réinitialiser Mot de Passe</label>
                                         <div className="flex gap-2">
-                                            <input name="password" type="password" placeholder="••••••••" className="flex-1 bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-red-400 focus:ring-4 focus:ring-red-50 outline-none transition-all tracking-widest" />
+                                            <input name="password" type="password" placeholder="••••••••" className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-black focus:border-red-400 dark:focus:border-red-500 dark:text-white focus:ring-4 focus:ring-red-50 dark:focus:ring-red-500/10 outline-none transition-all tracking-widest placeholder:text-slate-300 dark:placeholder:text-slate-700" />
                                             <button 
                                                 type="button" 
                                                 disabled={editModal.user!.is_enterprise_default === 1}
                                                 onClick={() => onResetPassword(editModal.user!.id, editModal.user!.name)}
-                                                className="px-4 bg-red-50 text-red-600 hover:bg-red-100 rounded-2xl text-[10px] font-black uppercase transition-all whitespace-nowrap disabled:opacity-50"
+                                                className="px-4 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-2xl text-[10px] font-black uppercase transition-all whitespace-nowrap disabled:opacity-50"
                                             >
                                                 Générer Code
                                             </button>
                                         </div>
-                                        <p className="text-[9px] text-slate-400 mt-2 font-medium italic">Laissez vide pour conserver le mot de passe actuel ou générez un code temporaire.</p>
+                                        <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-2 font-medium italic">Laissez vide pour conserver le mot de passe actuel ou générez un code temporaire.</p>
                                     </div>
                                     <div className="flex flex-col justify-center">
                                         <label className="flex items-center gap-3 cursor-pointer group">
@@ -805,11 +798,11 @@ export default function AdminUsersPage() {
                                                     disabled={editModal.user.is_enterprise_default === 1}
                                                     className="sr-only peer" 
                                                 />
-                                                <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
+                                                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-black uppercase text-slate-900 tracking-wider">Réinitialiser le PIN Session</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase">Forcer Setup au prochain Login</span>
+                                                <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-wider">Réinitialiser le PIN Session</span>
+                                                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Forcer Setup au prochain Login</span>
                                             </div>
                                         </label>
                                     </div>
@@ -817,7 +810,7 @@ export default function AdminUsersPage() {
                             </div>
 
                             <div className="flex items-center gap-4 pt-4">
-                                <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="flex-1 px-6 py-5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-[24px] text-sm font-black uppercase tracking-widest transition-all">
+                                <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="flex-1 px-6 py-5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 rounded-[24px] text-sm font-black uppercase tracking-widest transition-all">
                                     Annuler
                                 </button>
                                 <button type="submit" disabled={isSubmitting} className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] shadow-xl shadow-indigo-200/50 py-5 text-sm font-black uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2">
@@ -850,13 +843,13 @@ export default function AdminUsersPage() {
                                         profile_config: freshData.profile_config,
                                         profile_slug: freshData.profile_slug,
                                         profile_is_active: freshData.profile_is_active,
-                                        updated_at: freshData.updated_at, // Changes the key → forces builder remount
+                                        updated_at: freshData.updated_at, // Changes the key forces builder remount
                                     };
 
                                     // 2. Update the users list (no flicker, no round-trip)
                                     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
 
-                                    // 3. Update the modal with fresh data (changes key → clean remount)
+                                    // 3. Update the modal with fresh data (changes key clean remount)
                                     setEditModal(prev => ({ ...prev, user: updatedUser }));
 
                                     // 4. Background: invalidate Next.js cache + sync list from server
@@ -869,31 +862,31 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
-            {/* ── MODAL: RESET CODE SUCCESS ────────────────────────────────────────── */}
+            {/* MODAL: RESET CODE SUCCESS */}
             {resetCodeModal?.isOpen && (
                 <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[60] animate-in fade-in zoom-in duration-300">
-                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-10 text-center relative overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-md shadow-2xl p-10 text-center relative overflow-hidden border dark:border-white/5">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
                         
-                        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[30px] flex items-center justify-center mx-auto mb-6 shadow-sm">
+                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-[30px] flex items-center justify-center mx-auto mb-6 shadow-sm">
                             <KeyRound className="w-10 h-10" />
                         </div>
 
-                        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Code Temporaire</h2>
-                        <p className="text-sm text-slate-500 font-medium mb-8">
-                            Remettez ce code à <span className="font-bold text-slate-900">{resetCodeModal.userName}</span>. <br/>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Code Temporaire</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-8">
+                            Remettez ce code à <span className="font-bold text-slate-900 dark:text-white">{resetCodeModal.userName}</span>. <br/>
                             Il sera forcé de changer son mot de passe au prochain login.
                         </p>
 
-                        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-6 mb-8 group">
-                            <span className="text-4xl font-black text-emerald-600 tracking-[0.2em] font-mono select-all">
+                        <div className="bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl p-6 mb-8 group transition-colors">
+                            <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-[0.2em] font-mono select-all">
                                 {resetCodeModal.code}
                             </span>
                         </div>
 
                         <button 
                             onClick={() => setResetCodeModal(null)}
-                            className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-[24px] py-5 text-sm font-black uppercase tracking-widest transition-all shadow-xl"
+                            className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 text-white rounded-[24px] py-5 text-sm font-black uppercase tracking-widest transition-all shadow-xl dark:shadow-none"
                         >
                             Fermer & Effacer
                         </button>
@@ -901,28 +894,28 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
-            {/* ── MODAL: ASSIGN TEAM ───────────────────────────────────────────────── */}
+            {/* MODAL: ASSIGN TEAM */}
             {assignModal.isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
-                        <button onClick={() => setAssignModal({ ...assignModal, isOpen: false })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-md shadow-2xl p-8 relative border dark:border-white/5 transition-colors">
+                        <button onClick={() => setAssignModal({ ...assignModal, isOpen: false })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
                             <XCircle className="w-7 h-7" />
                         </button>
 
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                            <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center">
                                 <Users className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Affectation</h2>
-                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{assignModal.userName}</p>
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">Affectation</h2>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">{assignModal.userName}</p>
                             </div>
                         </div>
 
                         <form onSubmit={handleAssignTeam} className="space-y-6">
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Sélectionner une équipe</label>
-                                <select name="team_id" defaultValue={assignModal.currentTeamId || ""} className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-blue-400 focus:ring-4 focus:ring-blue-50 outline-none transition-all appearance-none cursor-pointer">
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 pl-2">Sélectionner une équipe</label>
+                                <select name="team_id" defaultValue={assignModal.currentTeamId || ""} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-medium focus:border-blue-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-blue-50 dark:focus:ring-indigo-500/10 outline-none transition-all appearance-none cursor-pointer text-slate-900 dark:text-white">
                                     <option value="">Aucune équipe / Non assigné</option>
                                     {teams.map(t => (
                                         <option key={t.id} value={t.id}>{t.name}</option>
@@ -941,9 +934,10 @@ export default function AdminUsersPage() {
                     </div>
                 </div>
             )}
-            {/* ── STICKY BULK BAR ─────────────────────────────────────────────────── */}
+            
+            {/* STICKY BULK BAR */}
             {selectedUsers.length > 0 && (
-                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-[32px] shadow-2xl flex items-center gap-8 z-50 animate-in slide-in-from-bottom-10">
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-800 text-white px-8 py-4 rounded-[32px] shadow-2xl flex items-center gap-8 z-50 animate-in slide-in-from-bottom-10 border dark:border-white/5 transition-colors">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-500 text-white rounded-2xl flex items-center justify-center font-black">
                             {selectedUsers.length}
@@ -970,33 +964,33 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
-            {/* ── MODAL: IMPORT EXCEL ─────────────────────────────────────────────── */}
+            {/* MODAL: IMPORT EXCEL */}
             {isImportModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
-                        <button onClick={() => setIsImportModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-md shadow-2xl p-8 relative border dark:border-white/5 transition-colors">
+                        <button onClick={() => setIsImportModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center">
                             <XCircle className="w-7 h-7" />
                         </button>
 
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
                                 <ImageIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Importation Excel</h2>
-                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Déploiement Rapide</p>
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">Importation Excel</h2>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Déploiement Rapide</p>
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-10 text-center relative group hover:border-indigo-400 transition-all">
+                            <div className="bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[32px] p-10 text-center relative group hover:border-indigo-400 transition-all">
                                 <div className="flex flex-col items-center gap-4">
-                                    <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all">
+                                    <div className="w-16 h-16 bg-white dark:bg-slate-950 rounded-3xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:scale-110 transition-all">
                                         {isImporting ? <Loader2 className="w-8 h-8 animate-spin" /> : <Plus className="w-8 h-8" />}
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-sm font-black text-slate-900 uppercase">Choisir un fichier</p>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format .xlsx uniquement</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white uppercase">Choisir un fichier</p>
+                                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Format .xlsx uniquement</p>
                                     </div>
                                 </div>
                                 <input 
@@ -1008,9 +1002,9 @@ export default function AdminUsersPage() {
                                 />
                             </div>
 
-                            <div className="bg-indigo-50/50 rounded-2xl p-4 flex gap-3">
-                                <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0" />
-                                <p className="text-[10px] font-bold text-indigo-900/60 leading-relaxed uppercase tracking-tight">
+                            <div className="bg-indigo-50/50 dark:bg-indigo-500/10 rounded-2xl p-4 flex gap-3 transition-colors">
+                                <AlertCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                <p className="text-[10px] font-bold text-indigo-900/60 dark:text-indigo-200/60 leading-relaxed uppercase tracking-tight">
                                     Assurez-vous d'utiliser notre modèle officiel. <br/>
                                     Tous les comptes importés devront réinitialiser leur mot de passe.
                                 </p>
@@ -1026,6 +1020,7 @@ export default function AdminUsersPage() {
                     </div>
                 </div>
             )}
+            </main>
         </div>
     );
 }

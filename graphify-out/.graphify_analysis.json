@@ -1,0 +1,732 @@
+{
+  "communities": {
+    "0": [
+      "actions_auth_finalizepasswordresetaction",
+      "admin_page_adminpage",
+      "app_actions_auth_ts",
+      "app_admin_page_tsx",
+      "app_api_admin_golden_records_route_ts",
+      "app_api_admin_intelligence_guide_route_ts",
+      "app_api_admin_intelligence_route_ts",
+      "app_api_admin_mediashow_route_ts",
+      "app_api_admin_qr_locations_route_ts",
+      "app_api_admin_qr_stats_route_ts",
+      "app_api_admin_recalculate_scores_route_ts",
+      "app_api_backup_route_ts",
+      "app_api_dashboard_stats_route_ts",
+      "app_api_export_route_ts",
+      "app_api_leads_route_ts",
+      "app_api_maintenance_restore_route_ts",
+      "app_api_mediashow_route_ts",
+      "app_api_profile_route_ts",
+      "app_api_restore_route_ts",
+      "app_api_settings_form_route_ts",
+      "app_api_settings_route_ts",
+      "app_api_teams_id_leader_route_ts",
+      "app_api_teams_route_ts",
+      "app_api_upload_file_route_ts",
+      "backup_route_get",
+      "export_route_delete",
+      "export_route_get",
+      "file_route_post",
+      "form_route_get",
+      "form_route_put",
+      "golden_records_route_get",
+      "golden_records_route_post",
+      "guide_route_get",
+      "intelligence_route_get",
+      "intelligence_route_post",
+      "intelligence_route_requireadmin",
+      "leader_route_put",
+      "leads_route_get",
+      "leads_route_post",
+      "lib_auth_getsession",
+      "lib_storage_deletefile",
+      "lib_storage_getpublicuploaddir",
+      "lib_storage_ts",
+      "mediashow_route_delete",
+      "mediashow_route_get",
+      "mediashow_route_patch",
+      "mediashow_route_post",
+      "profile_route_get",
+      "profile_route_put",
+      "qr_locations_route_post",
+      "qr_stats_route_get",
+      "recalculate_scores_route_post",
+      "recalculate_scores_route_requireadmin",
+      "restore_route_post",
+      "restore_route_requireadmin",
+      "settings_route_get",
+      "settings_route_put",
+      "settings_route_requireadmin",
+      "stats_route_get",
+      "teams_route_get",
+      "teams_route_post"
+    ],
+    "1": [
+      "app_admin_golden_records_page_tsx",
+      "app_admin_rewards_page_tsx",
+      "app_kiosk_mediashowoverlay_tsx",
+      "app_leads_id_page_tsx",
+      "app_leads_list_page_tsx",
+      "app_page_tsx",
+      "app_sync_page_tsx",
+      "components_syncstatusicon_issyncing",
+      "components_syncstatusicon_syncstatusicon",
+      "context_languagecontext_usetranslation",
+      "db_client_getlead",
+      "golden_records_page_fetchgoldenleads",
+      "golden_records_page_fetchlineage",
+      "golden_records_page_getcellvalue",
+      "golden_records_page_handleexport",
+      "hooks_useformconfig_getallfields",
+      "hooks_useformconfig_getarrayfieldnames",
+      "hooks_useformconfig_getrequiredfieldnames",
+      "hooks_useformconfig_gettablefields",
+      "hooks_useformconfig_useformconfig",
+      "hooks_usesyncstatus_usesyncstatus",
+      "id_page_checkauth",
+      "id_page_fetchlead",
+      "id_page_handlerevertmerge",
+      "kiosk_mediashowoverlay_handleactivity",
+      "kiosk_mediashowoverlay_handleesc",
+      "kiosk_mediashowoverlay_handlefschange",
+      "kiosk_mediashowoverlay_next",
+      "list_page_getcellvalue",
+      "list_page_getsourcebadge",
+      "list_page_getstatusicon",
+      "list_page_leadslistpage",
+      "list_page_resolvemeta",
+      "rewards_page_fetchrewards",
+      "rewards_page_geticoninfo",
+      "rewards_page_handledelete",
+      "rewards_page_onsubmit",
+      "src_components_consentmodal_tsx",
+      "src_components_syncstatusicon_tsx",
+      "src_context_languagecontext_tsx",
+      "src_hooks_useformconfig_ts",
+      "sync_page_handlesync"
+    ],
+    "2": [
+      "app_admin_users_actions_ts",
+      "app_admin_users_page_tsx",
+      "components_digitalprofilebuilder_addblock",
+      "components_digitalprofilebuilder_applytemplate",
+      "components_digitalprofilebuilder_copylink",
+      "components_digitalprofilebuilder_generateslug",
+      "components_digitalprofilebuilder_handlefileupload",
+      "components_digitalprofilebuilder_handlemediaupload",
+      "components_digitalprofilebuilder_handlesave",
+      "components_digitalprofilebuilder_handlesavetemplate",
+      "components_digitalprofilebuilder_loadtemplates",
+      "components_digitalprofilebuilder_ondragend",
+      "components_digitalprofilebuilder_removeblock",
+      "components_digitalprofilebuilder_updateblock",
+      "src_components_digitalprofilebuilder_tsx",
+      "users_actions_bulkcreateusersaction",
+      "users_actions_bulkdeactivateusersaction",
+      "users_actions_deleteuseraction",
+      "users_actions_listnfctemplatesaction",
+      "users_actions_resetuserpasswordaction",
+      "users_actions_savenfctemplateaction",
+      "users_actions_toggleuserstatusaction",
+      "users_actions_updatedigitalprofileaction",
+      "users_actions_updateuseraction",
+      "users_page_fetchbranding",
+      "users_page_fetchdata",
+      "users_page_handleassignteam",
+      "users_page_handlebulkdeactivate",
+      "users_page_handledelete",
+      "users_page_handlefileupload",
+      "users_page_handleresetpin",
+      "users_page_init",
+      "users_page_oneditsubmit",
+      "users_page_onresetpassword",
+      "users_page_onsubmit",
+      "users_page_toggleselectall",
+      "users_page_toggleselectuser"
+    ],
+    "3": [
+      "app_kiosk_page_tsx",
+      "components_leadform_handlebeforeunload",
+      "components_leadform_onformsubmit",
+      "components_leadform_toggle",
+      "components_syncmanager_onoffline",
+      "components_syncmanager_ononline",
+      "kiosk_page_enterfullscreen",
+      "kiosk_page_handlefschange",
+      "kiosk_page_handlemarketingmode",
+      "kiosk_page_handlenext",
+      "kiosk_page_handlestartkiosk",
+      "kiosk_page_loadsettings",
+      "kiosk_page_onsubmit",
+      "kiosk_page_resetform",
+      "kiosk_page_toggle",
+      "lib_offlinequeue_clearofflineleads",
+      "lib_offlinequeue_getdb",
+      "lib_offlinequeue_getofflineleads",
+      "lib_offlinequeue_getpendingcount",
+      "lib_offlinequeue_markleadfailed",
+      "lib_offlinequeue_markleadsynced",
+      "lib_offlinequeue_migratelegacyqueue",
+      "lib_offlinequeue_retryfailedleads",
+      "lib_offlinequeue_saveleadoffline",
+      "lib_offlinequeue_ts",
+      "src_components_leadform_tsx",
+      "src_components_syncmanager_tsx",
+      "src_hooks_usesyncstatus_ts"
+    ],
+    "4": [
+      "app_api_admin_vault_route_ts",
+      "app_api_leads_id_route_ts",
+      "app_api_rewards_id_route_ts",
+      "app_api_sync_route_ts",
+      "id_route_delete",
+      "id_route_get",
+      "id_route_put",
+      "lib_crypto_applytofield",
+      "lib_crypto_decrypt",
+      "lib_crypto_decryptmetadata",
+      "lib_crypto_encrypt",
+      "lib_crypto_encryptmetadata",
+      "lib_crypto_forceencryptmetadata",
+      "lib_crypto_getsensitivefields",
+      "lib_crypto_isactuallyencrypted",
+      "lib_crypto_iscipherformat",
+      "lib_crypto_isencrypted",
+      "lib_crypto_trydecrypt",
+      "lib_db_ensuredir",
+      "lib_db_getdb",
+      "lib_db_getdbpath",
+      "lib_db_initdb",
+      "lib_db_ts",
+      "src_lib_crypto_ts",
+      "sync_route_post",
+      "vault_route_get",
+      "vault_route_post",
+      "vault_route_requireadmin"
+    ],
+    "5": [
+      "actions_analytics_getanalyticsdashboardaction",
+      "actions_analytics_getresourceanalyticsaction",
+      "actions_analytics_logvisitaction",
+      "analytics_page_deviceicon",
+      "analytics_page_handleexport",
+      "analytics_page_statcard",
+      "app_actions_analytics_ts",
+      "app_admin_analytics_page_tsx",
+      "app_p_layout_tsx",
+      "app_p_profile_slug_page_tsx",
+      "components_analyticstracker_analyticstracker",
+      "components_analyticstracker_getorcreatesession",
+      "components_analyticstracker_parsebrowser",
+      "components_analyticstracker_parsedevice",
+      "components_analyticstracker_resolvesource",
+      "components_analyticstracker_usetrackdownload",
+      "components_filedownloadblock_filedownloadblock",
+      "p_layout_publicprofilelayout",
+      "profile_slug_page_generatemetadata",
+      "src_components_analyticstracker_tsx",
+      "src_components_filedownloadblock_tsx"
+    ],
+    "6": [
+      "agentid_route_get",
+      "app_admin_dashboard_page_tsx",
+      "app_api_v_agentid_route_ts",
+      "app_api_vcard_profile_slug_route_ts",
+      "app_dashboard_page_tsx",
+      "dashboard_page_handlebackup",
+      "dashboard_page_handlelogout",
+      "dashboard_page_handleoffline",
+      "dashboard_page_handleonline",
+      "dashboard_page_handlesaveprofile",
+      "dashboard_page_handlesharecard",
+      "dashboard_page_init",
+      "dashboard_page_loaddashboard",
+      "dashboard_page_loadsettings",
+      "lib_vcard_generatevcard",
+      "lib_vcard_getvcardfilename",
+      "lib_vcard_ts",
+      "lib_vcard_vcescape",
+      "profile_slug_route_get"
+    ],
+    "7": [
+      "app_admin_login_page_tsx",
+      "app_login_page_tsx",
+      "lib_offlineauthcache_buftohex",
+      "lib_offlineauthcache_cacheauthsession",
+      "lib_offlineauthcache_clearcachedauth",
+      "lib_offlineauthcache_derivekey",
+      "lib_offlineauthcache_generatesalt",
+      "lib_offlineauthcache_getcachedsession",
+      "lib_offlineauthcache_getdb",
+      "lib_offlineauthcache_hextobuf",
+      "lib_offlineauthcache_needsfullreauth",
+      "lib_offlineauthcache_ts",
+      "lib_offlineauthcache_validateofflinepin",
+      "login_page_checkauth",
+      "login_page_checksession",
+      "login_page_fetchbranding",
+      "login_page_handlebacktopassword",
+      "login_page_handlepasswordlogin",
+      "login_page_handlepinaction"
+    ],
+    "8": [
+      "app_admin_settings_form_builder_page_tsx",
+      "form_builder_page_addfield",
+      "form_builder_page_addoption",
+      "form_builder_page_addpage",
+      "form_builder_page_addsection",
+      "form_builder_page_deletefield",
+      "form_builder_page_deletepage",
+      "form_builder_page_deletesection",
+      "form_builder_page_load",
+      "form_builder_page_newfield",
+      "form_builder_page_newpage",
+      "form_builder_page_newsection",
+      "form_builder_page_save",
+      "form_builder_page_set",
+      "form_builder_page_uid",
+      "form_builder_page_updatefield",
+      "form_builder_page_updatesection"
+    ],
+    "9": [
+      "components_appshell_navigate",
+      "components_appshell_update",
+      "db_client_createlead",
+      "db_client_getdeviceid",
+      "db_client_getleads",
+      "db_client_getpendingcount",
+      "db_client_getpendingleads",
+      "db_client_markleadfailed",
+      "db_client_markleadsynced",
+      "db_client_matchreward",
+      "db_client_refreshrewards",
+      "db_client_retryfailedleads",
+      "db_client_updatelead",
+      "db_client_wasladb",
+      "db_client_wasladb_constructor",
+      "src_components_appshell_tsx",
+      "src_db_client_ts"
+    ],
+    "10": [
+      "app_admin_intelligence_page_tsx",
+      "intelligence_page_buildpayload",
+      "intelligence_page_collectall",
+      "intelligence_page_executemerge",
+      "intelligence_page_fetchdata",
+      "intelligence_page_flatten",
+      "intelligence_page_flushlist",
+      "intelligence_page_getdisplayname",
+      "intelligence_page_handlerecalculate",
+      "intelligence_page_handlereleasereward",
+      "intelligence_page_handlerevertmerge",
+      "intelligence_page_parsemeta",
+      "intelligence_page_togglemulti"
+    ],
+    "11": [
+      "app_api_auth_route_ts",
+      "auth_route_delete",
+      "auth_route_get",
+      "auth_route_post",
+      "auth_route_put",
+      "lib_auth_createsession",
+      "lib_auth_deletesession",
+      "lib_auth_ts"
+    ],
+    "12": [
+      "app_layout_generatemetadata",
+      "app_layout_tsx",
+      "components_secureaccountmodal_secureaccountmodal",
+      "components_sessionguard_sessionguard",
+      "components_swregistrar_swregistrar",
+      "src_components_secureaccountmodal_tsx",
+      "src_components_sessionguard_tsx",
+      "src_components_swregistrar_tsx"
+    ],
+    "13": [
+      "app_admin_settings_page_tsx",
+      "settings_page_fetchsettings",
+      "settings_page_handlelogoupload",
+      "settings_page_handlemigrate",
+      "settings_page_handlerestore",
+      "settings_page_handletoggleencryption",
+      "settings_page_onsubmit"
+    ],
+    "14": [
+      "app_admin_settings_mediashow_page_tsx",
+      "mediashow_page_deleteasset",
+      "mediashow_page_handleupload",
+      "mediashow_page_loaddata",
+      "mediashow_page_moveasset",
+      "mediashow_page_savesettings",
+      "mediashow_page_syncofflinecache"
+    ],
+    "15": [
+      "app_admin_qr_page_tsx",
+      "qr_page_fetchstats",
+      "qr_page_handledownload",
+      "qr_page_handlelogout",
+      "qr_page_handleprintgenerator",
+      "qr_page_handleprintlist"
+    ],
+    "16": [
+      "app_api_rewards_route_ts",
+      "rewards_route_delete",
+      "rewards_route_get",
+      "rewards_route_post",
+      "rewards_route_put",
+      "rewards_route_requireadmin"
+    ],
+    "17": [
+      "app_api_users_route_ts",
+      "users_route_delete",
+      "users_route_get",
+      "users_route_post",
+      "users_route_put",
+      "users_route_requireadmin"
+    ],
+    "18": [
+      "app_admin_teams_page_tsx",
+      "teams_page_fetchteams",
+      "teams_page_handleaddmember",
+      "teams_page_handleassignleader",
+      "teams_page_handlecreateteam"
+    ],
+    "19": [
+      "app_admin_maintenance_page_tsx",
+      "maintenance_page_handlebackup",
+      "maintenance_page_handlerestore",
+      "maintenance_page_loadpage"
+    ],
+    "20": [
+      "app_admin_rewards_id_edit_page_tsx",
+      "edit_page_fetchreward",
+      "edit_page_handledelete",
+      "edit_page_onsubmit"
+    ],
+    "21": [
+      "public_sw_fetchwith206fix",
+      "public_sw_js",
+      "public_sw_matchcache",
+      "public_sw_stripvary"
+    ],
+    "22": [
+      "readme_nfcprofile",
+      "readme_rewardsengine",
+      "readme_waslaleadcollector",
+      "spec_kioskmode"
+    ],
+    "23": [
+      "guide_datasafety",
+      "guide_goldenrecord",
+      "guide_qcdashboard"
+    ],
+    "24": [
+      "middleware_ts",
+      "smofe_middleware_middleware"
+    ],
+    "25": [
+      "app_admin_export_page_tsx",
+      "export_page_exportpage"
+    ],
+    "26": [
+      "app_api_health_route_ts",
+      "health_route_get"
+    ],
+    "27": [
+      "app_api_kiosk_submit_route_ts",
+      "submit_route_post"
+    ],
+    "28": [
+      "app_api_sync_status_route_ts",
+      "status_route_get"
+    ],
+    "29": [
+      "app_api_users_template_route_ts",
+      "template_route_get"
+    ],
+    "30": [
+      "app_kiosk_success_page_tsx",
+      "success_page_handlecopy"
+    ],
+    "31": [
+      "app_leads_new_page_tsx",
+      "new_page_newleadpage"
+    ],
+    "32": [
+      "app_leads_id_edit_page_tsx",
+      "edit_page_editleadpage"
+    ],
+    "33": [
+      "agentid_page_handlesavecontact",
+      "app_v_agentid_page_tsx"
+    ],
+    "34": [
+      "lib_rewards_matchreward",
+      "lib_rewards_ts"
+    ],
+    "35": [
+      "scripts_seed_seed",
+      "scripts_seed_ts"
+    ],
+    "36": [
+      "components_idletracker_idletracker",
+      "src_components_idletracker_tsx"
+    ],
+    "37": [
+      "spec_backgroundsync",
+      "spec_leadcapture"
+    ],
+    "38": [
+      "check_all_icons_mjs"
+    ],
+    "39": [
+      "check_icons_admin_mjs"
+    ],
+    "40": [
+      "check_icons_mjs"
+    ],
+    "41": [
+      "next_env_d_ts"
+    ],
+    "42": [
+      "next_config_js"
+    ],
+    "43": [
+      "postcss_config_js"
+    ],
+    "44": [
+      "tailwind_config_js"
+    ],
+    "45": [
+      "test_db_js"
+    ],
+    "46": [
+      "app_admin_rewards_new_page_tsx"
+    ],
+    "47": [
+      "lib_schemas_ts"
+    ],
+    "48": [
+      "scripts_post_build_ts"
+    ],
+    "49": [
+      "scripts_pre_build_ts"
+    ],
+    "50": [
+      "scripts_reset_db_ts"
+    ],
+    "51": [
+      "src_components_slideshow_tsx"
+    ],
+    "52": [
+      "src_config_dynamic_ts"
+    ],
+    "53": [
+      "src_config_tenant_ts"
+    ]
+  },
+  "cohesion": {
+    "0": 0.06,
+    "1": 0.07,
+    "2": 0.09,
+    "3": 0.13,
+    "4": 0.15,
+    "5": 0.12,
+    "6": 0.15,
+    "7": 0.21,
+    "8": 0.21,
+    "9": 0.12,
+    "10": 0.21,
+    "11": 0.32,
+    "12": 0.25,
+    "13": 0.29,
+    "14": 0.33,
+    "15": 0.4,
+    "16": 0.67,
+    "17": 0.67,
+    "18": 0.7,
+    "19": 0.5,
+    "20": 0.5,
+    "21": 0.5,
+    "22": 0.5,
+    "23": 0.67,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0
+  },
+  "gods": [
+    {
+      "id": "lib_auth_getsession",
+      "label": "getSession()",
+      "degree": 73
+    },
+    {
+      "id": "context_languagecontext_usetranslation",
+      "label": "useTranslation()",
+      "degree": 15
+    },
+    {
+      "id": "lib_crypto_decryptmetadata",
+      "label": "decryptMetadata()",
+      "degree": 9
+    },
+    {
+      "id": "users_page_fetchdata",
+      "label": "fetchData()",
+      "degree": 8
+    },
+    {
+      "id": "lib_offlinequeue_getdb",
+      "label": "getDb()",
+      "degree": 8
+    },
+    {
+      "id": "hooks_useformconfig_useformconfig",
+      "label": "useFormConfig()",
+      "degree": 8
+    },
+    {
+      "id": "lib_crypto_encryptmetadata",
+      "label": "encryptMetadata()",
+      "degree": 8
+    },
+    {
+      "id": "lib_offlinequeue_markleadsynced",
+      "label": "markLeadSynced()",
+      "degree": 7
+    },
+    {
+      "id": "lib_vcard_generatevcard",
+      "label": "generateVCard()",
+      "degree": 7
+    },
+    {
+      "id": "components_analyticstracker_usetrackdownload",
+      "label": "useTrackDownload()",
+      "degree": 7
+    }
+  ],
+  "surprises": [
+    {
+      "source": "GET()",
+      "target": "getSession()",
+      "source_files": [
+        "app\\api\\auth\\route.ts",
+        "lib\\auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `GET()` unexpectedly reaches hub `getSession()`"
+    },
+    {
+      "source": "AdminPage()",
+      "target": "getSession()",
+      "source_files": [
+        "app\\admin\\page.tsx",
+        "lib\\auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `AdminPage()` unexpectedly reaches hub `getSession()`"
+    },
+    {
+      "source": "updateUserAction()",
+      "target": "getSession()",
+      "source_files": [
+        "app\\admin\\users\\actions.ts",
+        "lib\\auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "updateUserAction()",
+      "target": "getPublicUploadDir()",
+      "source_files": [
+        "app\\admin\\users\\actions.ts",
+        "lib\\storage.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "resetUserPasswordAction()",
+      "target": "getSession()",
+      "source_files": [
+        "app\\admin\\users\\actions.ts",
+        "lib\\auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `getSession()` connect `Community 0` to `Community 2`, `Community 4`, `Community 11`, `Community 16`, `Community 17`?",
+      "why": "High betweenness centrality (0.119) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `useTranslation()` connect `Community 1` to `Community 10`, `Community 3`, `Community 6`, `Community 7`?",
+      "why": "High betweenness centrality (0.093) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `AnalyticsTracker()` connect `Community 5` to `Community 3`?",
+      "why": "High betweenness centrality (0.032) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 44 inferred relationships involving `getSession()` (e.g. with `finalizePasswordResetAction()` and `AdminPage()`) actually correct?",
+      "why": "`getSession()` has 44 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `useTranslation()` (e.g. with `LeadsListPage()` and `SyncStatusIcon()`) actually correct?",
+      "why": "`useTranslation()` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `decryptMetadata()` (e.g. with `GET()` and `PUT()`) actually correct?",
+      "why": "`decryptMetadata()` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `NFC Digital Profile`, `Kiosk Mode`, `Background Sync` to the rest of the system?",
+      "why": "6 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

@@ -54,23 +54,23 @@ export default function NewLeadPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col pt-4 min-h-screen bg-slate-50">
-            <header className="px-6 mb-6 flex items-center gap-4 sticky top-0 bg-slate-50 z-10 py-4 shadow-sm border-b border-slate-200">
+        <div className="flex-1 flex flex-col pt-4 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+            <header className="px-6 mb-6 flex items-center gap-4 sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md z-10 py-4 shadow-sm border-b border-slate-200 dark:border-white/10">
                 <button
                     onClick={handleBack}
-                    className="p-2 -ml-2 hover:bg-white border text-slate-500 border-transparent hover:border-slate-200 hover:shadow-sm rounded-xl transition-all"
+                    className="p-2 -ml-2 hover:bg-white dark:hover:bg-white/10 border text-slate-500 dark:text-slate-400 border-transparent hover:border-slate-200 dark:hover:border-white/10 hover:shadow-sm rounded-xl transition-all"
                 >
                     <ChevronLeft className="w-6 h-6" />
                 </button>
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Nouvelle Fiche Prospect</h1>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Saisie Manuelle</p>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Nouvelle Fiche Prospect</h1>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mt-1">Saisie Manuelle</p>
                 </div>
             </header>
 
             <div className="px-6 pb-28 space-y-8 max-w-3xl mx-auto w-full">
-                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                <div className="bg-white dark:bg-white/5 p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-white/5 relative overflow-hidden transition-colors">
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600 dark:bg-indigo-500 opacity-[0.03] dark:opacity-[0.07] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                     
                     <LeadForm
                         source="commercial"

@@ -118,5 +118,18 @@
     "offline": {
         "savedLocally": "Enregistré localement. La synchronisation se fera automatiquement.",
         "workingOffline": "Mode hors ligne — les captures sont sauvegardées en sécurité sur cet appareil."
+    },
+    "dashboard": {
+        "periods": {
+            "today": "Aujourd'hui",
+            "salon": "Salon",
+            "global": "Global"
+        },
+        "stats": {
+            "captured": "Leads Capturés",
+            "traffic": "Trafic Digital",
+            "scans": "Interactions Live",
+            "rewards": "Récompenses"
+        }
     }
 }

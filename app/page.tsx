@@ -22,7 +22,7 @@ function HomeContent() {
     const { t, locale, setLocale } = useTranslation();
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white relative overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-950 relative overflow-hidden transition-colors duration-300">
             {/* Decorative Gradient using branding colors */}
             <div
                 className="absolute top-[-20%] left-[-20%] w-[80%] aspect-square rounded-full blur-[150px] opacity-10"
@@ -39,48 +39,48 @@ function HomeContent() {
                         <Sparkles className="w-14 h-14 text-white" />
                     </div>
                     <div className="space-y-2">
-                        <h1 className="text-5xl font-black tracking-tight text-slate-900">{tenantConfig.name}</h1>
-                        <p className="text-xl text-slate-500 font-medium">{t('home.description')}</p>
+                        <h1 className="text-5xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">Wasla <span className="text-primary">CRM</span></h1>
+                        <p className="text-xl text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">{t('home.description')}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 text-left">
                     <Link
                         href="/kiosk"
-                        className="group flex items-center gap-6 p-8 bg-white border-2 border-slate-100 rounded-[32px] hover:border-primary hover:shadow-2xl hover:shadow-primary/10 transition-all active:scale-95"
+                        className="group flex items-center gap-6 p-8 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-[32px] hover:border-primary dark:hover:border-indigo-500 hover:shadow-2xl transition-all active:scale-95"
                     >
-                        <div className="w-16 h-16 bg-slate-50 group-hover:bg-blue-50 rounded-2xl flex items-center justify-center transition-colors">
+                        <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 group-hover:bg-blue-50 dark:group-hover:bg-indigo-500/20 rounded-2xl flex items-center justify-center transition-colors">
                             <QrCode className="w-8 h-8 text-primary" />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-slate-900">{t('home.kioskMode')}</h3>
-                            <p className="text-slate-500 font-medium">{t('home.kioskDesc')}</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('home.kioskMode')}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-xs tracking-widest">{t('home.kioskDesc')}</p>
                         </div>
                     </Link>
 
                     <Link
                         href="/dashboard"
-                        className="group flex items-center gap-6 p-8 bg-white border-2 border-slate-100 rounded-[32px] hover:border-primary hover:shadow-2xl hover:shadow-primary/10 transition-all active:scale-95"
+                        className="group flex items-center gap-6 p-8 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-[32px] hover:border-primary dark:hover:border-indigo-500 hover:shadow-2xl transition-all active:scale-95"
                     >
-                        <div className="w-16 h-16 bg-slate-50 group-hover:bg-blue-50 rounded-2xl flex items-center justify-center transition-colors">
+                        <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 group-hover:bg-blue-50 dark:group-hover:bg-indigo-500/20 rounded-2xl flex items-center justify-center transition-colors">
                             <UserCheck className="w-8 h-8 text-primary" />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-slate-900">{t('home.commercialPortal')}</h3>
-                            <p className="text-slate-500 font-medium">{t('home.commercialDesc')}</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('home.commercialPortal')}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-xs tracking-widest">{t('home.commercialDesc')}</p>
                         </div>
                     </Link>
 
                     <Link
                         href="/admin"
-                        className="group flex items-center gap-6 p-8 bg-slate-900 rounded-[32px] hover:shadow-2xl transition-all active:scale-95"
+                        className="group flex items-center gap-6 p-8 bg-slate-900 dark:bg-indigo-600 rounded-[32px] hover:shadow-2xl transition-all active:scale-95 border-2 border-transparent"
                     >
-                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
+                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
                             <ShieldCheck className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-white">{t('home.adminSpace')}</h3>
-                            <p className="text-slate-400 font-medium">{t('home.adminDesc')}</p>
+                            <h3 className="text-2xl font-black text-white uppercase tracking-tight">{t('home.adminSpace')}</h3>
+                            <p className="text-slate-400 dark:text-indigo-100 font-bold uppercase text-xs tracking-widest">{t('home.adminDesc')}</p>
                         </div>
                     </Link>
                 </div>

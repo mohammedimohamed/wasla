@@ -1,0 +1,4 @@
+D:\source\nexjs\wasla-project\smofe\README.md
+D:\source\nexjs\wasla-project\smofe\SPEC_AGENT_LeadCollector.md
+D:\source\nexjs\wasla-project\smofe\app\admin\intelligence\guide.md
+D:\source\nexjs\wasla-project\smofe\public\offline.html

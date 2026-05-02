@@ -166,29 +166,29 @@ export default function AdminLoginPage() {
     if (isChecking) return null;
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 relative overflow-hidden transition-colors duration-300">
 
             {/* Admin Decorative Background */}
-            <div className="absolute top-0 right-0 w-full h-1 bg-slate-900 shadow-xl" />
+            <div className="absolute top-0 right-0 w-full h-1 bg-slate-900 dark:bg-indigo-600 shadow-xl" />
 
             <div className="w-full max-w-md flex flex-col items-center gap-8 relative z-10 transition-all duration-500">
                 <button
                     onClick={() => router.push("/")}
-                    className="self-start flex items-center gap-2 text-gray-400 font-bold text-xs uppercase hover:text-gray-600 transition-colors"
+                    className="self-start flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     {t('common.cancel')}
                 </button>
 
                 <div className="text-center">
-                    <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-2xl border-2 border-slate-100 overflow-hidden p-2">
-                        {branding.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" /> : <div className="font-black text-2xl text-slate-800">{branding.event_name.charAt(0)}</div>}
+                    <div className="w-20 h-20 bg-white dark:bg-white/5 rounded-[32px] flex items-center justify-center mx-auto mb-6 shadow-2xl border-2 border-slate-100 dark:border-white/10 overflow-hidden p-2">
+                        {branding.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" /> : <div className="font-black text-2xl text-slate-800 dark:text-white">{branding.event_name.charAt(0)}</div>}
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{branding.event_name}</h1>
-                    <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-widest">Admin Control Panel</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">{branding.event_name} <span className="text-indigo-600 dark:text-indigo-400">ADMIN</span></h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 font-black uppercase text-[10px] tracking-[0.2em]">Wasla Control Center</p>
                 </div>
 
-                <div className="w-full space-y-5 bg-white p-10 rounded-[48px] shadow-2xl shadow-slate-200/50 border border-slate-100">
+                <div className="w-full space-y-5 bg-white dark:bg-white/5 p-10 rounded-[48px] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5 transition-colors">
                     {(!isAuthenticated || !isUnlocked) && (
                         authStep === 'PASSWORD' ? (
                             <form onSubmit={handlePasswordLogin} className="space-y-6">
@@ -201,7 +201,7 @@ export default function AdminLoginPage() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="admin@wasla.dz"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white transition-all font-medium text-slate-900"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent dark:border-white/5 rounded-2xl outline-none focus:border-indigo-600 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                             required
                                         />
                                     </div>
@@ -216,7 +216,7 @@ export default function AdminLoginPage() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="********"
-                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary focus:bg-white transition-all font-medium text-slate-900"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent dark:border-white/5 rounded-2xl outline-none focus:border-indigo-600 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 transition-all font-medium text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                             required
                                         />
                                     </div>
@@ -225,15 +225,15 @@ export default function AdminLoginPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200"
+                                    className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200 dark:shadow-none uppercase tracking-widest"
                                 >
-                                    {isLoading ? t('common.loading') : "Accéder à la gestion"}
+                                    {isLoading ? t('common.loading') : "Ouvrir la Console"}
                                 </button>
                             </form>
                         ) : (
                             <div className="space-y-6">
-                                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center">
-                                    <p className="text-sm font-medium text-slate-600">
+                                <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl text-center">
+                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                                         {authStep === 'PIN_SETUP'
                                             ? "Définissez un PIN de 6 chiffres pour sécuriser l'accès à cette console d'administration."
                                             : "Veuillez entrer votre PIN administrateur à 6 chiffres."}
@@ -246,7 +246,7 @@ export default function AdminLoginPage() {
                                         onChange={(e) => setPin(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handlePinAction()}
                                         placeholder="------"
-                                        className="w-full text-center text-5xl font-black py-4 bg-slate-50 border-2 border-transparent rounded-2xl outline-none focus:border-primary transition-all tracking-[0.5em] text-slate-900"
+                                        className="w-full text-center text-5xl font-black py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent dark:border-white/5 rounded-2xl outline-none focus:border-indigo-600 dark:focus:border-indigo-500 transition-all tracking-[0.5em] text-slate-900 dark:text-white"
                                         maxLength={6}
                                         autoFocus
                                     />
@@ -254,7 +254,7 @@ export default function AdminLoginPage() {
                                 <button
                                     onClick={handlePinAction}
                                     disabled={isLoading || pin.length !== 6}
-                                    className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200"
+                                    className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-xl shadow-slate-200 dark:shadow-none uppercase tracking-widest"
                                 >
                                     {isLoading ? t('common.loading') : 'Confirmer le PIN'}
                                 </button>

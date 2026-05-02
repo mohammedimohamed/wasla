@@ -1,0 +1,8 @@
+# .graphifyignore
+vendor/
+node_modules/
+dist/
+.next/
+.wasla_db_backup/
+uploads/
+*.generated.*

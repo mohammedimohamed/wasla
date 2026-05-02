@@ -90,36 +90,28 @@ export default function MaintenancePage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-            <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.push("/admin/dashboard")} className="p-2 -ml-2 hover:bg-slate-100 rounded-xl transition-all">
-                        <ChevronLeft className="w-6 h-6 text-slate-700" />
-                    </button>
-                    <div>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Maintenance</h1>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Base de données & Sauvegardes</p>
-                    </div>
+        <div className="flex-1 selection:bg-indigo-500/30 font-sans transition-colors duration-300">
+            <main className="p-6 lg:p-8 max-w-4xl mx-auto w-full space-y-10">
+                <div className="space-y-1">
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">System <span className="text-rose-600 dark:text-rose-500">Maintenance</span></h2>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase">Database Backup & Recovery Center</p>
                 </div>
-            </header>
-
-            <div className="p-6 md:p-10 max-w-4xl mx-auto w-full space-y-10">
                 {/* Download Section */}
-                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 opacity-50" />
+                <div className="bg-white dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden relative transition-colors duration-300">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 dark:bg-emerald-500/10 rounded-full -mr-16 -mt-16 opacity-50 transition-colors" />
                     
                     <div className="p-8 relative z-10">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm">
+                            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-sm">
                                 <Download className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="font-black text-slate-900 uppercase tracking-tight text-lg">Exporter la base de données</h3>
-                                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Télécharger un snapshot SQLite .db</p>
+                                <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg">Exporter la base de données</h3>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase">Télécharger un snapshot SQLite .db</p>
                             </div>
                         </div>
 
-                        <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed max-w-2xl">
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8 leading-relaxed max-w-2xl">
                             Téléchargez la base de données de production incluant tous les leads, récompenses, et configurations. 
                             Recommandé en fin de journée pour conservation hors ligne.
                         </p>
@@ -127,7 +119,7 @@ export default function MaintenancePage() {
                         <button
                             onClick={handleBackup}
                             disabled={isBackingUp}
-                            className="flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-emerald-200 transition-all disabled:opacity-50"
+                            className="flex items-center gap-3 px-8 py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none transition-all disabled:opacity-50"
                         >
                             {isBackingUp ? <Loader2 className="w-5 h-5 animate-spin" /> : <HardDrive className="w-5 h-5" />}
                             {isBackingUp ? "Création du Backup..." : "Télécharger la Base de données"}
@@ -136,22 +128,22 @@ export default function MaintenancePage() {
                 </div>
 
                 {/* Upload Section */}
-                <div className="bg-white rounded-[32px] border border-rose-100 shadow-sm overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-rose-50 rounded-full -mr-20 -mt-20 opacity-50 pointer-events-none" />
+                <div className="bg-white dark:bg-white/5 rounded-[32px] border border-rose-100 dark:border-rose-500/20 shadow-sm overflow-hidden relative transition-colors duration-300">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-rose-50 dark:bg-rose-500/10 rounded-full -mr-20 -mt-20 opacity-50 pointer-events-none transition-colors" />
                     
                     <div className="p-8 relative z-10">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm">
+                            <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center shadow-sm">
                                 <ShieldAlert className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="font-black text-rose-900 uppercase tracking-tight text-lg">Restaurer la base de données</h3>
-                                <p className="text-[10px] font-bold text-rose-500 tracking-widest uppercase">Écrasement du fichier de production</p>
+                                 <h3 className="font-black text-rose-900 dark:text-rose-400 uppercase tracking-tight text-lg">Restaurer la base de données</h3>
+                                <p className="text-[10px] font-bold text-rose-500 dark:text-rose-400/60 tracking-widest uppercase">Écrasement du fichier de production</p>
                             </div>
                         </div>
 
-                        <div className="bg-rose-50 rounded-2xl p-6 mb-8 border border-rose-200">
-                            <p className="text-sm font-bold text-rose-800 leading-relaxed mb-4">
+                        <div className="bg-rose-50 dark:bg-rose-500/10 rounded-2xl p-6 mb-8 border border-rose-200 dark:border-rose-500/30 transition-colors">
+                            <p className="text-sm font-bold text-rose-800 dark:text-rose-400 leading-relaxed mb-4">
                                 ⚠️ Attention : L'importation d'un fichier `.sqlite` remplacera instantanément l'intégralité des données présentes sur le serveur.
                                 Cette opération forcera le redémarrage du système.
                             </p>
@@ -160,12 +152,12 @@ export default function MaintenancePage() {
                                     type="file" 
                                     accept=".db,.sqlite,.sqlite3"
                                     onChange={(e) => setFileToRestore(e.target.files?.[0] || null)}
-                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-widest file:bg-white file:text-rose-600 hover:file:bg-rose-100 hover:file:cursor-pointer transition-all border-dashed border-2 border-rose-200 rounded-2xl p-4 bg-white/50"
+                                    className="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-widest file:bg-white dark:file:bg-slate-800 file:text-rose-600 dark:file:text-rose-400 hover:file:bg-rose-100 dark:hover:file:bg-slate-700 hover:file:cursor-pointer transition-all border-dashed border-2 border-rose-200 dark:border-rose-500/30 rounded-2xl p-4 bg-white/50 dark:bg-white/5"
                                 />
                                 {fileToRestore && (
-                                    <div className="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-rose-100 shadow-sm">
-                                        <span className="text-sm font-black text-slate-700 truncate">{fileToRestore.name}</span>
-                                        <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                                    <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-rose-100 dark:border-rose-500/30 shadow-sm">
+                                        <span className="text-sm font-black text-slate-700 dark:text-slate-200 truncate">{fileToRestore.name}</span>
+                                        <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">
                                             {(fileToRestore.size / 1024 / 1024).toFixed(2)} MB
                                         </span>
                                     </div>
@@ -176,14 +168,14 @@ export default function MaintenancePage() {
                         <button
                             onClick={handleRestore}
                             disabled={isRestoring || !fileToRestore}
-                            className="flex items-center gap-3 px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-rose-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-3 px-8 py-4 bg-rose-600 dark:bg-rose-500 hover:bg-rose-700 dark:hover:bg-rose-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-rose-200 dark:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isRestoring ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
                             {isRestoring ? "Reboot du Serveur en cours..." : "Lancer la Restauration Totale"}
                         </button>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

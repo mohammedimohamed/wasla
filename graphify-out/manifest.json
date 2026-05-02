@@ -1,0 +1,514 @@
+{
+  "D:\\source\\nexjs\\wasla-project\\smofe\\check-all-icons.mjs": {
+    "mtime": 1775333683.5788443,
+    "hash": "72ba08370b2a707b12fe57f2385bfc43"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\check-icons-admin.mjs": {
+    "mtime": 1775333683.5788443,
+    "hash": "a60eba862726110dfa87b90f29a167eb"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\check-icons.mjs": {
+    "mtime": 1775333683.5788443,
+    "hash": "74a4488940c1a615187438f9f41f430a"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\middleware.ts": {
+    "mtime": 1777399684.8303986,
+    "hash": "292f823448b22c0f8944ca7102148014"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\next-env.d.ts": {
+    "mtime": 1775333683.5888407,
+    "hash": "187b4b5b507c358a018aeeadd81abe57"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\next.config.js": {
+    "mtime": 1777229031.2118046,
+    "hash": "f3237481bf4c4bf345cb3f5301085468"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\postcss.config.js": {
+    "mtime": 1775333683.5938437,
+    "hash": "2d155dbe139fe252932d7794fec71f55"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\tailwind.config.js": {
+    "mtime": 1777760184.2177777,
+    "hash": "671997a26a1adda50194b577e55e2bfb"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\test-db.js": {
+    "mtime": 1775333683.6088421,
+    "hash": "4dc17577cfcc322faf6a209b7ac240fa"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\layout.tsx": {
+    "mtime": 1777760193.5131438,
+    "hash": "3e15382e1528c3b5a3194e06d8210202"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\page.tsx": {
+    "mtime": 1777761497.798303,
+    "hash": "f879ae20d92a7bb7db84e78ba3c824d0"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\actions\\analytics.ts": {
+    "mtime": 1777717695.5950415,
+    "hash": "37e96ea5441b3aedd39aabfa531a2c25"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\actions\\auth.ts": {
+    "mtime": 1777399684.8147964,
+    "hash": "bdf9f302140267c9d974b55d5f35482f"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\actions\\dashboard.ts": {
+    "mtime": 1777754948.2422855,
+    "hash": "f179c91cc34a692ab33e9bdd25ca3150"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\layout.tsx": {
+    "mtime": 1777762251.3923967,
+    "hash": "80e673b1b244b8c9d992f2502a2e2288"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\page.tsx": {
+    "mtime": 1775333683.538846,
+    "hash": "b24d486f2d074b1f0d1042c0700e83ef"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\analytics\\page.tsx": {
+    "mtime": 1777761161.330143,
+    "hash": "11e4d1e9708e6af48aa53f0502a67126"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\dashboard\\page.tsx": {
+    "mtime": 1777761412.1090467,
+    "hash": "cb24e4df1d8d46b7089fdf2a76987457"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\export\\page.tsx": {
+    "mtime": 1777761080.898829,
+    "hash": "94b4df71e667e17ea7a2f41b43701a77"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\golden-records\\page.tsx": {
+    "mtime": 1777761196.667763,
+    "hash": "5ee8b9015c88d124c6056e2c125d0e04"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\intelligence\\page.tsx": {
+    "mtime": 1777761104.178453,
+    "hash": "26036fe38602d754b40331a8f97461f7"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\login\\page.tsx": {
+    "mtime": 1777761539.9067752,
+    "hash": "440f893a1a7dca04f8db93072dac1c13"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\maintenance\\page.tsx": {
+    "mtime": 1777761880.640421,
+    "hash": "b95063c7a60346d66bc1e75d9ad00746"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\qr\\page.tsx": {
+    "mtime": 1777761433.888409,
+    "hash": "336b8dbbb85d8d551cf39588f9f8329e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\rewards\\page.tsx": {
+    "mtime": 1777761461.1699114,
+    "hash": "c2974369b1cb7824356914aadf187567"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\rewards\\new\\page.tsx": {
+    "mtime": 1775333683.538846,
+    "hash": "0c1d3feb1687220a989e02cc91928883"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\rewards\\[id]\\edit\\page.tsx": {
+    "mtime": 1775333683.538846,
+    "hash": "fe7ea4c3054c38077a4b850007a96213"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\settings\\page.tsx": {
+    "mtime": 1777761138.3737967,
+    "hash": "6f84598f18e3bd2bddb8ab9cf18d88ad"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\settings\\form-builder\\page.tsx": {
+    "mtime": 1777760963.3361464,
+    "hash": "00efa5c4757a267f036aa63306bb29c7"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\settings\\mediashow\\page.tsx": {
+    "mtime": 1777760981.5134525,
+    "hash": "33acac1b935363d0cf2c980c01f819f8"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\teams\\page.tsx": {
+    "mtime": 1777762282.6024528,
+    "hash": "1ec21285c23a04bc3d7f4bb2ddaccd83"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\users\\actions.ts": {
+    "mtime": 1777575323.2358356,
+    "hash": "0c1171ee5fd1fc839eea2744c8e52a3f"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\users\\page.tsx": {
+    "mtime": 1777761780.4334848,
+    "hash": "c61a521cb3d9c937fb09827e70427d7e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\golden-records\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "8f04dfe221734447701121064f166aa5"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\intelligence\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "1027b1f67c76b56882e79cb84a5f47b0"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\intelligence\\guide\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "501f3e61a63fcce4a18556c2d54b78e2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\mediashow\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "cbf3d793fa6a92b754b79f3cb235afb4"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\qr-locations\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "08e107c8bed40211e4eb17fbab0f034d"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\qr-stats\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "0ffb0a78589abf36769d8680294da237"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\recalculate-scores\\route.ts": {
+    "mtime": 1775333683.5488443,
+    "hash": "05de72191f0f8b600b0b4cb518ffb9fc"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\admin\\vault\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "9081fbf3170b3467d9b1f06ecd04e5b8"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\auth\\route.ts": {
+    "mtime": 1777399684.8147964,
+    "hash": "46e214dd1ea4e99c9fbcdea78fc32274"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\backup\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "2abd1bf7504806ba12de221ff44d2132"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\dashboard\\stats\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "cd5bf4d3c1b36a98df2f710873380a92"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\export\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "8b03b5cd0258125d9b8b85f29a456d34"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\health\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "b3a91dbde2f9bedf309f4d6e2c0b1e9b"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\kiosk\\submit\\route.ts": {
+    "mtime": 1775333683.5538456,
+    "hash": "8eead3e2318250e6bb5ec79f2e0dd34e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\leads\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "c6482f8870af058b0d2d7f3bca6e9fc8"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\leads\\[id]\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "b89c4394c07e4c6c98a545b99a3da07e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\maintenance\\restore\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "6419b15116f79cfb60209092a8c65963"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\mediashow\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "8045e32ce20ee2c39357c61d9f836da7"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\profile\\route.ts": {
+    "mtime": 1777399684.8147964,
+    "hash": "e66ad76b54bd22dfcdd248fbb2d21da3"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\restore\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "a158ef9aba7ddf864f34dacfbdacf8cc"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\rewards\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "0e58efc0651e109b161863b04f20e0cc"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\rewards\\[id]\\route.ts": {
+    "mtime": 1775333683.558845,
+    "hash": "3bd3847bf45e73e25a46751f370cac76"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\settings\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "8649735d0dc45998a67c50a9e3a53b24"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\settings\\form\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "776c52c72d1c9b4e493e2a21bfeafd8e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\sync\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "0c6e8a55b46e31e892ff0b0335c7f8ea"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\sync\\status\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "03be6c9a095ec363b4e0abc8eb590ee2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\teams\\route.ts": {
+    "mtime": 1777575323.2384741,
+    "hash": "cde8b55abfb49766ed9a69e4443bb684"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\teams\\[id]\\leader\\route.ts": {
+    "mtime": 1775333683.5638425,
+    "hash": "767265c2e5f6979c031c43208d59daba"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\upload\\file\\route.ts": {
+    "mtime": 1777575323.240478,
+    "hash": "a51244d7ac52a97538d78582840dc90b"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\users\\route.ts": {
+    "mtime": 1777575323.2410574,
+    "hash": "3f79c082a6e87c49bdd4e4f8a2949654"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\users\\template\\route.ts": {
+    "mtime": 1777575323.2410574,
+    "hash": "30d0d21de82082cd9dcffe4592f584fb"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\v\\[agentId]\\route.ts": {
+    "mtime": 1775333683.5688424,
+    "hash": "6642f515bce9c1b5111ac50acf5ceeea"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\api\\vcard\\[profile_slug]\\route.ts": {
+    "mtime": 1777399684.8147964,
+    "hash": "c3fdd7947a422dbced013df6b391ddd8"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\dashboard\\page.tsx": {
+    "mtime": 1777575323.2410574,
+    "hash": "28b7eeea38c7d96e3b913f636bc83fdb"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\kiosk\\MediashowOverlay.tsx": {
+    "mtime": 1775333683.5688424,
+    "hash": "2e0822b850f738ca1172de66799b74d2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\kiosk\\page.tsx": {
+    "mtime": 1777717879.7931457,
+    "hash": "17409eb2606d2d4e243be67959a2c1b4"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\kiosk\\success\\page.tsx": {
+    "mtime": 1775333683.5688424,
+    "hash": "8d2b2b17a21cbbbb512edfe4ef98a694"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\leads\\list\\page.tsx": {
+    "mtime": 1777761300.505484,
+    "hash": "ba8da28a45a307e2936a97d2492d7fb6"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\leads\\new\\page.tsx": {
+    "mtime": 1777761363.3886526,
+    "hash": "d44d9b6c49a17ff48b55b89eb1088135"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\leads\\[id]\\page.tsx": {
+    "mtime": 1777761349.4024258,
+    "hash": "1adf1392d310ea346bbae19dd0361460"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\leads\\[id]\\edit\\page.tsx": {
+    "mtime": 1777229031.2118046,
+    "hash": "84dabadd9395bfcae546810db4f3dcdd"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\login\\page.tsx": {
+    "mtime": 1777761515.912423,
+    "hash": "2aed8297d2aceeb070a35db6afbfa225"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\p\\layout.tsx": {
+    "mtime": 1777717734.306239,
+    "hash": "f37fc76f02902392a432af2c4c4d0f07"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\p\\[profile_slug]\\page.tsx": {
+    "mtime": 1777718339.9645305,
+    "hash": "232f89d23b9c6a77ee33d5aca22c0d90"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\sync\\page.tsx": {
+    "mtime": 1777229031.2118046,
+    "hash": "015118e4d0f95b6894733b1a7909cb1d"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\v\\[agentId]\\page.tsx": {
+    "mtime": 1775333683.5788443,
+    "hash": "6e4b0305bf9976637fa2074a78a5552e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\auth.ts": {
+    "mtime": 1777399684.8303986,
+    "hash": "d38e445d6d7f3040ff4072569f8678b2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\db.ts": {
+    "mtime": 1777758968.118912,
+    "hash": "b8a4f85ed54c6412d2e243b7d9140f2b"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\offlineAuthCache.ts": {
+    "mtime": 1775333683.5838437,
+    "hash": "09d78032330837dcc916dbd143773508"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\offlineQueue.ts": {
+    "mtime": 1777229031.2118046,
+    "hash": "961cf36bf88d49fedb6345c215b0bf12"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\rewards.ts": {
+    "mtime": 1775333683.5838437,
+    "hash": "35f99991ca0b2050533c00bad02227e9"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\schemas.ts": {
+    "mtime": 1777712493.8584363,
+    "hash": "05c0a5e3018e8af683a6497b280d0493"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\storage.ts": {
+    "mtime": 1777399684.8303986,
+    "hash": "39c6c8fcb93dd699532e0dee6cfb5500"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\lib\\vcard.ts": {
+    "mtime": 1775333683.5838437,
+    "hash": "07d80372d66531d4635542f588cd04e3"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\001_init.sql": {
+    "mtime": 1775333683.5838437,
+    "hash": "0eee1fd6636267238fc1a4c037b24c43"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\002_seed.sql": {
+    "mtime": 1775333683.5838437,
+    "hash": "7142a0816293ba5b913e15845a00fcc0"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\003_rewards_engine.sql": {
+    "mtime": 1775333683.5838437,
+    "hash": "ed0bb30108425bd7627e28fa008fbda6"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\004_settings.sql": {
+    "mtime": 1775333683.5838437,
+    "hash": "d08207cb887630564a8f73dc761f7907"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\005_form_builder.sql": {
+    "mtime": 1775333683.5838437,
+    "hash": "ccfd5abfba1f6eaca5598492db7f2905"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\006_vcard.sql": {
+    "mtime": 1777399684.8303986,
+    "hash": "ca5608276be538be66dfd6a956e72b14"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\007_multi_tenancy.sql": {
+    "mtime": 1775333683.5888407,
+    "hash": "9051dd9544868c9d63f167012ac17c07"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\migrations\\008_nfc_templates.sql": {
+    "mtime": 1777575323.2517881,
+    "hash": "6124b2dab90c2fb0f03d99158ad42dd2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\public\\sw.js": {
+    "mtime": 1777575323.2558167,
+    "hash": "59c64c0762489a30c6d1de56d938e733"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\scripts\\post-build.ts": {
+    "mtime": 1777229031.222648,
+    "hash": "83c577c973589b6b54b3530f23267cbe"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\scripts\\pre-build.ts": {
+    "mtime": 1777229031.222648,
+    "hash": "d44dfb7c7337805214e063292c438006"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\scripts\\reset-db.ts": {
+    "mtime": 1775333683.5988429,
+    "hash": "ce29e53bee9305369509b0c2ab2467c4"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\scripts\\seed.ts": {
+    "mtime": 1775333683.5988429,
+    "hash": "76a4caa2a80ffb7aa7bf9f1d0d3c0d09"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\AnalyticsTracker.tsx": {
+    "mtime": 1777717722.4377196,
+    "hash": "5786e63c959e8fa931ad8925acaa9898"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\AppShell.tsx": {
+    "mtime": 1777229031.222648,
+    "hash": "728af7fe32b055ee95c7d8aecf8c5164"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\ConsentModal.tsx": {
+    "mtime": 1775333683.6038427,
+    "hash": "ab3df2452cb4fb864feabc15bfc63810"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\DigitalProfileBuilder.tsx": {
+    "mtime": 1777761929.0843346,
+    "hash": "7665e7a79bc38a33b81e828afb25b2aa"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\FileDownloadBlock.tsx": {
+    "mtime": 1777717755.8697314,
+    "hash": "e744f17190c99f708d3e079682d63304"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\IdleTracker.tsx": {
+    "mtime": 1775333683.6038427,
+    "hash": "0f23cdf30f4ab895e0e1859b87bd9317"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\LeadForm.tsx": {
+    "mtime": 1777761387.322897,
+    "hash": "3f627e8ff96e335c38c307c70ac9d20c"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\SecureAccountModal.tsx": {
+    "mtime": 1777761857.8001819,
+    "hash": "671ca78b2b9cbddbb48f792874568bb2"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\SessionGuard.tsx": {
+    "mtime": 1777399684.8303986,
+    "hash": "47dcdb61e8099272d4286e1340cfe321"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\Slideshow.tsx": {
+    "mtime": 1777575323.2600126,
+    "hash": "ca5dbb280b85a282568aab0d45c09165"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\SwRegistrar.tsx": {
+    "mtime": 1777229031.222648,
+    "hash": "bd1cba6ef0ec15179446b8fb96b987fb"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\SyncManager.tsx": {
+    "mtime": 1777761873.7674274,
+    "hash": "3463ad563b1288c286c2f4d1cb969bef"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\SyncStatusIcon.tsx": {
+    "mtime": 1775333683.6038427,
+    "hash": "bb24496c64a6722d78914d1189f3636f"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\ThemeProvider.tsx": {
+    "mtime": 1777762519.2087655,
+    "hash": "bd9fffb64fdc7ab0b20fbd5cafaa6629"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\components\\admin\\Sidebar.tsx": {
+    "mtime": 1777760879.2908642,
+    "hash": "c4fc6d4fa288040bdb3345b4821605f1"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\config\\dynamic.ts": {
+    "mtime": 1775333683.6038427,
+    "hash": "1cfc2c609412f5fd332befc2c65b3717"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\config\\tenant.ts": {
+    "mtime": 1775333683.6038427,
+    "hash": "974ab43c00cf478ec45fc5544b5417f1"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\context\\LanguageContext.tsx": {
+    "mtime": 1775333683.6038427,
+    "hash": "2bf9dff386d536f89ec0210ceb855f26"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\db\\client.ts": {
+    "mtime": 1777229031.222648,
+    "hash": "b0cf592d6f2ac189675ae4ff9103d33c"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\hooks\\useFormConfig.ts": {
+    "mtime": 1777229031.222648,
+    "hash": "01afff6cac5c2ce6cf591bdaf368a34d"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\hooks\\useSyncStatus.ts": {
+    "mtime": 1775333683.6038427,
+    "hash": "1b8c63f38498d15b426200bc87408bad"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\src\\lib\\crypto.ts": {
+    "mtime": 1775333683.6088421,
+    "hash": "1d82a3ce35cdbbe62ea941981419e5d8"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\README.md": {
+    "mtime": 1775333683.528844,
+    "hash": "640883c1535fffb8e3119eba0d277294"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\SPEC_AGENT_LeadCollector.md": {
+    "mtime": 1775333683.528844,
+    "hash": "e9ac7790a347e2bea62087ffd06c1db5"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\app\\admin\\intelligence\\guide.md": {
+    "mtime": 1775333683.5338447,
+    "hash": "fc6f24211796954b586a7addde27a9da"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\public\\offline.html": {
+    "mtime": 1777229031.222648,
+    "hash": "18f863bc46b4a8fdc4d28af82627b28e"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\public\\icons\\icon-192x192.png": {
+    "mtime": 1775333683.5938437,
+    "hash": "e4d8ec71f6de032694aa68fe2882c13d"
+  },
+  "D:\\source\\nexjs\\wasla-project\\smofe\\public\\icons\\icon-512x512.png": {
+    "mtime": 1775333683.5988429,
+    "hash": "e4d8ec71f6de032694aa68fe2882c13d"
+  }
+}

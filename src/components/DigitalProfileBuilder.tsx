@@ -273,15 +273,15 @@ export function DigitalProfileBuilder({
             <div className="lg:col-span-7 space-y-8">
                 
                 {/* Status & Slug */}
-                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100">
+                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[32px] border border-slate-100 dark:border-white/5 transition-colors">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex-1">
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Titre du Profil (Poste)</label>
-                            <input 
+                             <input 
                                 value={config.job_title || ''}
                                 onChange={(e) => setConfig({ ...config, job_title: e.target.value })}
                                 placeholder={userJob || "Expert Solutions"}
-                                className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all dark:text-white"
                             />
                         </div>
                     </div>
@@ -292,13 +292,13 @@ export function DigitalProfileBuilder({
                                 <Globe className="w-5 h-5" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Visibilité Publique</h4>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{domain ? `${domain}/p/${slug || '...'}` : `/p/${slug || '...'}`}</p>
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Visibilité Publique</h4>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">{domain ? `${domain}/p/${slug || '...'}` : `/p/${slug || '...'}`}</p>
                             </div>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="sr-only peer" />
-                            <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <div className="w-14 h-7 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
                     </div>
 
@@ -309,12 +309,12 @@ export function DigitalProfileBuilder({
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                     <Icons.Globe className="w-4 h-4" />
                                 </div>
-                                <input 
+                                 <input 
                                     value={slug}
                                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                                     disabled={isEnterpriseDefault}
                                     placeholder="nom-prenom"
-                                    className={`w-full bg-white border ${slugError ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-200'} pl-11 pr-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all ${isEnterpriseDefault ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                                    className={`w-full bg-white dark:bg-slate-950 border ${slugError ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-200 dark:border-white/10'} pl-11 pr-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all dark:text-white ${isEnterpriseDefault ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-900' : ''}`}
                                 />
                                 {isEnterpriseDefault && (
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-500">
@@ -325,25 +325,25 @@ export function DigitalProfileBuilder({
                             {isEnterpriseDefault && <p className="text-[9px] font-black text-indigo-500 uppercase mt-2 ml-2 tracking-widest">Le lien Corporate est verrouillé.</p>}
                             {slugError && <p className="text-red-500 text-[10px] font-bold mt-1 ml-2">{slugError}</p>}
                         </div>
-                        <button onClick={generateSlug} disabled={isEnterpriseDefault} className="px-4 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                         <button onClick={generateSlug} disabled={isEnterpriseDefault} className="px-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
                             Générer
                         </button>
-                        <button onClick={copyLink} title="Copier le lien" className="px-4 bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 rounded-2xl transition-all flex items-center justify-center">
+                        <button onClick={copyLink} title="Copier le lien" className="px-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-500/20 rounded-2xl transition-all flex items-center justify-center">
                             <Copy className="w-4 h-4" />
                         </button>
                     </div>
                     {slugError && <p className="text-red-500 text-[10px] font-bold mt-2 pl-2 uppercase tracking-tight">{slugError}</p>}
                 </div>
 
-                {/* Templates Manager */}
-                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100">
+                 {/* Templates Manager */}
+                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[32px] border border-slate-100 dark:border-white/5 transition-colors">
                     <div className="flex items-center justify-between mb-6">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                         <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
                             <Icons.Copy className="w-4 h-4 text-indigo-500" /> Modèles NFC
                         </h4>
                         <button 
                             onClick={() => setShowTemplateModal(true)}
-                            className="text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                            className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
                         >
                             <Icons.Save className="w-3 h-3" /> Enregistrer comme modèle
                         </button>
@@ -351,20 +351,20 @@ export function DigitalProfileBuilder({
                     <div className="flex gap-2">
                         <select 
                             onChange={(e) => applyTemplate(e.target.value)}
-                            className="flex-1 bg-white border border-slate-200 px-4 py-3 rounded-2xl text-xs font-black outline-none appearance-none cursor-pointer"
+                            className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3 rounded-2xl text-xs font-black outline-none appearance-none cursor-pointer dark:text-white"
                             defaultValue=""
                         >
-                            <option value="" disabled>Charger un modèle...</option>
+                            <option value="" disabled className="dark:text-slate-500">Charger un modèle...</option>
                             {templates.map(t => (
-                                <option key={t.id} value={t.id}>{t.name} {t.is_default ? '(Défaut)' : ''}</option>
+                                <option key={t.id} value={t.id} className="dark:text-white">{t.name} {t.is_default ? '(Défaut)' : ''}</option>
                             ))}
                         </select>
                     </div>
                 </div>
 
-                {/* Theme Selector */}
-                <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-2">
+                 {/* Theme Selector */}
+                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[32px] border border-slate-100 dark:border-white/5 transition-colors">
+                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <Palette className="w-4 h-4 text-indigo-500" /> Thème Visuel
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -388,7 +388,7 @@ export function DigitalProfileBuilder({
                 {/* Blocks Editor */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                         <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
                             <Layout className="w-4 h-4 text-indigo-500" /> Structure de la page
                         </h4>
                         <div className="flex gap-2">
@@ -397,17 +397,17 @@ export function DigitalProfileBuilder({
                     </div>
 
                     {/* 🚀 PROMINENT SOCIAL GRID TRIGGER */}
-                    <button 
+                     <button 
                         onClick={() => addBlock('social_grid')}
-                        className="w-full group relative overflow-hidden bg-white border-2 border-indigo-100 hover:border-indigo-500 p-6 rounded-[32px] transition-all duration-300 shadow-sm hover:shadow-xl flex items-center justify-between"
+                        className="w-full group relative overflow-hidden bg-white dark:bg-white/5 border-2 border-indigo-100 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-400 p-6 rounded-[32px] transition-all duration-300 shadow-sm hover:shadow-xl flex items-center justify-between"
                     >
                         <div className="flex items-center gap-5">
                             <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-100">
                                 <MessageCircle className="w-7 h-7" />
                             </div>
-                            <div className="text-left">
-                                <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Configurer ma grille de liens sociaux</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">LinkedIn, Twitter, Facebook...</p>
+                             <div className="text-left">
+                                <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Configurer ma grille de liens sociaux</p>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">LinkedIn, Twitter, Facebook...</p>
                             </div>
                         </div>
                         <Plus className="w-6 h-6 text-slate-300 group-hover:text-indigo-600 group-hover:rotate-90 transition-all" />
@@ -419,7 +419,7 @@ export function DigitalProfileBuilder({
                             {(provided) => (
                                 <div 
                                     {...provided.droppableProps} 
-                                    ref={provided.innerRef} 
+                    ref={provided.innerRef} 
                                     className="space-y-4"
                                 >
                                     {config.blocks.map((block, idx) => (
@@ -428,11 +428,11 @@ export function DigitalProfileBuilder({
                                                 <div 
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm relative group"
+                                                    className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm relative group transition-colors"
                                                 >
                                                     <button 
                                                         onClick={() => removeBlock(idx)}
-                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white z-10"
+                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white dark:hover:bg-red-500 z-10"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -463,27 +463,27 @@ export function DigitalProfileBuilder({
                                                 <div className="space-y-3">
                                                     {block.items.map((item, i) => (
                                                         <div key={i} className="flex gap-2 items-center">
-                                                            <select 
-                                                                value={item.icon} 
-                                                                onChange={e => {
-                                                                    const items = [...block.items];
-                                                                    items[i].icon = e.target.value;
-                                                                    updateBlock(idx, { items });
-                                                                }}
-                                                                className="w-12 h-10 bg-slate-50 border border-slate-100 rounded-xl text-center flex items-center justify-center text-slate-600"
-                                                            >
-                                                                {COMMON_ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
-                                                            </select>
-                                                            <input 
-                                                                value={item.url} 
-                                                                onChange={e => {
-                                                                    const items = [...block.items];
-                                                                    items[i].url = e.target.value;
-                                                                    updateBlock(idx, { items });
-                                                                }}
-                                                                placeholder="https://..."
-                                                                className="flex-1 bg-slate-50 border border-slate-100 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-300"
-                                                            />
+                                                             <select 
+                                                                 value={item.icon} 
+                                                                 onChange={e => {
+                                                                     const items = [...block.items];
+                                                                     items[i].icon = e.target.value;
+                                                                     updateBlock(idx, { items });
+                                                                 }}
+                                                                 className="w-12 h-10 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 rounded-xl text-center flex items-center justify-center text-slate-600 dark:text-slate-400"
+                                                             >
+                                                                 {COMMON_ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
+                                                             </select>
+                                                             <input 
+                                                                 value={item.url} 
+                                                                 onChange={e => {
+                                                                     const items = [...block.items];
+                                                                     items[i].url = e.target.value;
+                                                                     updateBlock(idx, { items });
+                                                                 }}
+                                                                 placeholder="https://..."
+                                                                 className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                             />
                                                             <button 
                                                                 onClick={() => {
                                                                     const items = [...block.items];
@@ -504,18 +504,18 @@ export function DigitalProfileBuilder({
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="col-span-2">
                                                     <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Label du bouton</label>
-                                                    <input 
+                                                     <input 
                                                         value={block.label} 
                                                         onChange={e => updateBlock(idx, { label: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300"
+                                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Type d'action</label>
-                                                    <select 
+                                                     <select 
                                                         value={block.action} 
                                                         onChange={e => updateBlock(idx, { action: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none"
+                                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none dark:text-white"
                                                     >
                                                         <option value="link">Lien externe</option>
                                                         <option value="call">Appel (tel:)</option>
@@ -525,11 +525,11 @@ export function DigitalProfileBuilder({
                                                 </div>
                                                 <div>
                                                     <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Valeur (URL, Numéro...)</label>
-                                                    <input 
+                                                     <input 
                                                         value={block.value} 
                                                         onChange={e => updateBlock(idx, { value: e.target.value })}
                                                         disabled={block.action === 'save_vcard'}
-                                                        className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 disabled:opacity-50"
+                                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white disabled:opacity-50"
                                                     />
                                                 </div>
                                             </div>
@@ -538,10 +538,10 @@ export function DigitalProfileBuilder({
                                         {block.type === 'free_text' && (
                                             <div>
                                                 <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Contenu texte (Simple)</label>
-                                                <textarea 
+                                                 <textarea 
                                                     value={block.content} 
                                                     onChange={e => updateBlock(idx, { content: e.target.value })}
-                                                    className="w-full bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl text-sm font-medium outline-none focus:border-indigo-300 h-24 no-scrollbar"
+                                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-3 rounded-xl text-sm font-medium outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white h-24 no-scrollbar"
                                                 />
                                             </div>
                                         )}
@@ -556,10 +556,10 @@ export function DigitalProfileBuilder({
                                                         <button onClick={() => updateBlock(idx, { content: block.content + '\n- ' })} className="text-[10px] p-1 hover:text-indigo-600">List</button>
                                                     </div>
                                                 </div>
-                                                <textarea 
+                                                 <textarea 
                                                     value={block.content} 
                                                     onChange={e => updateBlock(idx, { content: e.target.value })}
-                                                    className="w-full bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl text-sm font-medium outline-none focus:border-indigo-300 h-32 no-scrollbar font-mono"
+                                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-3 rounded-xl text-sm font-medium outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white h-32 no-scrollbar font-mono"
                                                     placeholder="Utilisez le Markdown pour formater..."
                                                 />
                                             </div>
@@ -717,35 +717,35 @@ export function DigitalProfileBuilder({
     </Droppable>
 </DragDropContext>
 
-                    <div className="grid grid-cols-2 gap-3 mt-6">
-                        <button onClick={() => addBlock('action_button')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                     <div className="grid grid-cols-2 gap-3 mt-6">
+                        <button onClick={() => addBlock('action_button')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Bouton Action
                         </button>
-                        <button onClick={() => addBlock('social_grid')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('social_grid')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Grille Sociale
                         </button>
-                        <button onClick={() => addBlock('free_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('free_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Texte Simple
                         </button>
-                        <button onClick={() => addBlock('rich_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('rich_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Texte Enrichi
                         </button>
-                        <button onClick={() => addBlock('media')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('media')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Média / Slideshow
                         </button>
-                        <button onClick={() => addBlock('separator')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('separator')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Séparateur
                         </button>
-                        <button onClick={() => addBlock('file')} className="col-span-2 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                        <button onClick={() => addBlock('file')} className="col-span-2 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Bloc Fichier (Catalogue)
                         </button>
                     </div>
                 </div>
 
-                <button 
+                 <button 
                     onClick={handleSave} 
                     disabled={isSaving}
-                    className="w-full bg-slate-900 text-white py-5 rounded-[28px] font-black uppercase tracking-widest text-sm shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="w-full bg-slate-900 dark:bg-indigo-600 text-white py-5 rounded-[28px] font-black uppercase tracking-widest text-sm shadow-xl hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                     {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
                     Enregistrer les modifications
@@ -759,7 +759,7 @@ export function DigitalProfileBuilder({
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Preview</span>
                 </div>
 
-                <div className={`w-[320px] h-[640px] rounded-[50px] border-[8px] border-slate-900 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col transition-colors duration-500 ${config.theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+                <div className={`w-[320px] h-[640px] rounded-[50px] border-[8px] border-slate-900 dark:border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col transition-colors duration-500 ${config.theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
                     <div className="flex-1 overflow-y-auto no-scrollbar p-6">
                         {/* Mock Header */}
                         <div className="flex justify-center mb-8">
@@ -904,9 +904,9 @@ export function DigitalProfileBuilder({
             </div>
 
             {/* ── MODAL: SAVE TEMPLATE ────────────────────────────────────────────── */}
-            {showTemplateModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8 relative">
+             {showTemplateModal && (
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-md shadow-2xl p-8 relative border dark:border-white/5 transition-colors">
                         <button onClick={() => setShowTemplateModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
                             <Icons.XCircle className="w-7 h-7" />
                         </button>
@@ -915,20 +915,20 @@ export function DigitalProfileBuilder({
                             <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
                                 <Icons.Save className="w-5 h-5" />
                             </div>
-                            <div>
-                                <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">Nouveau Modèle</h2>
-                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Automation Engine</p>
+                             <div>
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none">Nouveau Modèle</h2>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Automation Engine</p>
                             </div>
                         </div>
 
                         <div className="space-y-6">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">Nom du modèle</label>
-                                <input 
+                                 <input 
                                     value={templateName} 
                                     onChange={e => setTemplateName(e.target.value)}
                                     placeholder="Ex: Template Commercial 2026"
-                                    className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 px-4 py-3.5 rounded-2xl text-sm font-bold focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/10 outline-none transition-all dark:text-white"
                                 />
                             </div>
 
@@ -937,20 +937,20 @@ export function DigitalProfileBuilder({
                                     <input 
                                         type="checkbox" 
                                         checked={isDefaultTemplate}
-                                        onChange={e => setIsDefaultTemplate(e.target.checked)}
+                                         onChange={e => setIsDefaultTemplate(e.target.checked)}
                                         className="sr-only peer" 
                                     />
-                                    <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
+                                    <div className="w-12 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6 shadow-inner"></div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase text-slate-900 tracking-wider">Modèle par défaut</span>
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase">Appliqué aux nouveaux agents</span>
+                                 <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-wider">Modèle par défaut</span>
+                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">Appliqué aux nouveaux agents</span>
                                 </div>
                             </label>
 
-                            <button 
+                             <button 
                                 onClick={handleSaveTemplate}
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-[24px] py-5 text-sm font-black uppercase tracking-widest transition-all shadow-xl"
+                                className="w-full bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 text-white rounded-[24px] py-5 text-sm font-black uppercase tracking-widest transition-all shadow-xl dark:shadow-none"
                             >
                                 Enregistrer le modèle
                             </button>

@@ -45,6 +45,8 @@ export const viewport: Viewport = {
     userScalable: false,
 };
 
+import { ThemeProvider } from "@/src/components/ThemeProvider";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -58,21 +60,28 @@ export default function RootLayout({
     } as React.CSSProperties;
 
     return (
-        <html lang="fr" style={themeStyles}>
+        <html lang="fr" style={themeStyles} suppressHydrationWarning>
             <body className={inter.className}>
-                <LanguageProvider>
-                    <SwRegistrar />
-                    <SyncManager />
-                    <main className="min-h-screen bg-slate-50 flex flex-col relative pb-4">
-                        <SessionGuard>
-                            {children}
-                        </SessionGuard>
-                        <div className="fixed bottom-1.5 left-2.5 text-[10px] font-black tracking-widest text-slate-300 opacity-60 pointer-events-none z-50">
-                            v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
-                        </div>
-                    </main>
-                    <Toaster position="bottom-center" />
-                </LanguageProvider>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="light"
+                    enableSystem={false}
+                    disableTransitionOnChange
+                >
+                    <LanguageProvider>
+                        <SwRegistrar />
+                        <SyncManager />
+                        <main className="min-h-screen bg-slate-50 dark:bg-[#0b0b14] flex flex-col relative pb-4 transition-colors duration-300">
+                            <SessionGuard>
+                                {children}
+                            </SessionGuard>
+                            <div className="fixed bottom-1.5 left-2.5 text-[10px] font-black tracking-widest text-slate-300 dark:text-slate-700 opacity-60 pointer-events-none z-50">
+                                v{process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+                            </div>
+                        </main>
+                        <Toaster position="bottom-center" />
+                    </LanguageProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

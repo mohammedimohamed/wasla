@@ -202,7 +202,7 @@ export default function LoginPage() {
     const isSetupStep = authStep !== 'PASSWORD';
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-white overflow-hidden relative min-h-screen">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white overflow-hidden relative min-h-screen transition-colors duration-300">
             {/* Accent bar */}
             <div className="absolute top-0 left-0 w-full h-1" style={{ background: `linear-gradient(to right, ${branding.primary_color}80, ${branding.primary_color}, ${branding.primary_color}80)` }} />
 
@@ -233,12 +233,12 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-black tracking-tight">
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
                         {authStep === 'PASSWORD' && branding.event_name}
                         {authStep === 'PIN_SETUP' && 'Créer votre PIN'}
                         {authStep === 'PIN_VERIFY' && (cachedUserName ? `Bonjour, ${cachedUserName}` : 'Entrer votre PIN')}
                     </h1>
-                    <p className="text-slate-400 font-semibold uppercase tracking-widest text-xs">
+                    <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                         {authStep === 'PASSWORD' && 'Portail Agent Commercial'}
                         {authStep === 'PIN_SETUP' && 'Premier accès — sécurisez votre session'}
                         {authStep === 'PIN_VERIFY' && 'Authentification de session rapide'}
@@ -252,14 +252,14 @@ export default function LoginPage() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Email</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="agent@wasla.dz"
                                         autoComplete="email"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none transition-all font-medium text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                         style={{ borderColor: email ? branding.primary_color + '40' : undefined }}
                                         required
                                     />
@@ -268,14 +268,14 @@ export default function LoginPage() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Mot de Passe</label>
                                 <div className="relative">
-                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
                                         autoComplete="current-password"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none transition-all font-medium text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                         style={{ borderColor: password ? branding.primary_color + '40' : undefined }}
                                         required
                                     />
@@ -316,7 +316,7 @@ export default function LoginPage() {
                                     pattern="\d{4}"
                                     maxLength={4}
                                     autoFocus
-                                    className="w-full text-center text-5xl font-black py-5 bg-slate-900 border-2 border-slate-800 rounded-2xl outline-none transition-all tracking-[0.8em]"
+                                    className="w-full text-center text-5xl font-black py-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none transition-all tracking-[0.8em] text-slate-900 dark:text-white"
                                     style={{ borderColor: pin ? branding.primary_color : undefined }}
                                     required
                                 />
@@ -327,7 +327,7 @@ export default function LoginPage() {
                                             key={i}
                                             className={`w-3 h-3 rounded-full transition-all duration-200`}
                                             style={{ 
-                                                backgroundColor: pin.length > i ? branding.primary_color : '#334155',
+                                                backgroundColor: pin.length > i ? branding.primary_color : (typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#1e293b' : '#e2e8f0'),
                                                 boxShadow: pin.length > i ? `0 0 10px ${branding.primary_color}` : 'none'
                                             }}
                                         />

@@ -303,7 +303,7 @@ export function initDb() {
                     VALUES (?, ?, ?, ?, 1, 'Active', ?, 1, ?, ?, ?, ?)
                 `).run(
                     'SYSTEM_ENTERPRISE',
-                    'WASLA Corporate',
+                    'SMOFE',
                     encrypt('corporate@wasla.app'),
                     'ADMINISTRATOR',
                     'entreprise',
@@ -375,6 +375,24 @@ export const auditTrail = {
         } catch (error) {
             console.error('[Audit Error] Failed to log action:', error);
         }
+    }
+};
+
+/**
+ * 📅 Period Filtering Helper
+ * Translates human-friendly periods to SQL filters.
+ */
+const getPeriodFilter = (period: string, col: string) => {
+    switch(period) {
+        case 'today':
+            return `date(${col}) = date('now')`;
+        case 'salon':
+            // Batimatec 2026 context: starts May 2026. 
+            // Using >= '2026-05-01' to cover the whole event month.
+            return `date(${col}) >= '2026-05-01'`;
+        case 'global':
+        default:
+            return '1=1';
     }
 };
 
@@ -481,14 +499,35 @@ export const leadsDb = {
     },
 
     /**
-     * 📊 Enterprise Dashboard Statistics
-     * Calculates real-time metrics based on RBAC ownership.
+     * 📈 Activity Trends: 7-day velocity for Leads & Views
      */
-    getStats: (userId: string) => {
+    getActivityTrends: () => {
+        return db.prepare(`
+            WITH RECURSIVE days(date) AS (
+                SELECT date('now', '-6 days')
+                UNION ALL
+                SELECT date(date, '+1 day')
+                FROM days
+                WHERE date < date('now')
+            )
+            SELECT 
+                d.date,
+                (SELECT COUNT(*) FROM leads l WHERE date(l.created_at) = d.date) as leads,
+                (SELECT COUNT(*) FROM analytics_logs al WHERE date(al.timestamp) = d.date AND al.event_type = 'PAGE_VIEW') as views
+            FROM days d
+        `).all() as any[];
+    },
+
+    /**
+     * 📊 Enterprise Dashboard Statistics
+     * Calculates real-time metrics based on RBAC ownership and period.
+     */
+    getStats: (userId: string, period: string = 'global') => {
         const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
         if (!user) return { totalLeads: 0, leadsToday: 0, syncedLeads: 0, recentLeads: [] };
 
-        let filter = " WHERE tenant_id = ?";
+        const periodFilter = getPeriodFilter(period, 'created_at');
+        let filter = ` WHERE tenant_id = ? AND ${periodFilter}`;
         const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
 
         if (user.role === 'SALES_AGENT') {
@@ -501,6 +540,8 @@ export const leadsDb = {
 
         const totalLeads = db.prepare(`SELECT COUNT(*) as count FROM leads ${filter}`).get(params) as { count: number };
 
+        // For trend indicators, we also need "yesterday" or "previous period"
+        // For simplicity, we keep leadsToday but based on the requested period
         const todayFilter = `${filter} AND date(created_at) = date('now')`;
         const leadsToday = db.prepare(`SELECT COUNT(*) as count FROM leads ${todayFilter}`).get(params) as { count: number };
 
@@ -559,6 +600,37 @@ export const leadsDb = {
             rewardsDistributed, // Sum of claimed_count
             recentLeads
         };
+    },
+
+    getTopAgents: (period: string = 'global') => {
+        const periodFilter = getPeriodFilter(period, 'l.created_at');
+        return db.prepare(`
+            SELECT u.name, COUNT(l.id) as count
+            FROM leads l
+            JOIN users u ON l.created_by = u.id
+            WHERE u.role != 'ADMINISTRATOR' AND ${periodFilter}
+            GROUP BY l.created_by
+            ORDER BY count DESC
+            LIMIT 5
+        `).all() as any[];
+    },
+
+    /**
+     * 🎢 Tunnel Analytics: Visits -> Scans -> Qualified Leads
+     */
+    getConversionStats: (period: string = 'global') => {
+        const pFilterLogs = getPeriodFilter(period, 'timestamp');
+        const pFilterLeads = getPeriodFilter(period, 'created_at');
+
+        const visits = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'PAGE_VIEW' AND ${pFilterLogs}`).get() as any).c;
+        const scans = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'NFC_SCAN' AND ${pFilterLogs}`).get() as any).c;
+        const qualified = (db.prepare(`SELECT COUNT(*) as c FROM leads WHERE quality_score >= 80 AND ${pFilterLeads}`).get() as any).c;
+
+        return [
+            { name: 'Visites', value: visits, fill: '#6366f1' },
+            { name: 'Scans NFC', value: scans, fill: '#8b5cf6' },
+            { name: 'Qualifiés', value: qualified, fill: '#ec4899' }
+        ];
     },
 
     /**
@@ -1621,10 +1693,6 @@ export const nfcTemplatesDb = {
     }
 };
 
-// Initialize database
-initDb();
-
-export default db;
 // ─────────────────────────────────────────────────────────────────────────────
 // 📊 ANALYTICS ENGINE — Module 17 (analytics_logs v2)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1664,17 +1732,20 @@ export const analyticsLogsDb = {
     },
 
     /** 📈 Global stats for the admin dashboard. */
-    getGlobalStats: () => {
-        const totalEvents    = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs`).get() as any).c as number;
-        const totalPageViews = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'PAGE_VIEW'`).get() as any).c as number;
-        const totalNfcScans  = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'NFC_SCAN'`).get() as any).c as number;
-        const totalDownloads = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'FILE_DOWNLOAD'`).get() as any).c as number;
+    getGlobalStats: (period: string = 'global') => {
+        const pFilter = getPeriodFilter(period, 'timestamp');
+        const baseFilter = ` WHERE ${pFilter}`;
+
+        const totalEvents    = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs ${baseFilter}`).get() as any).c as number;
+        const totalPageViews = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs ${baseFilter} AND event_type = 'PAGE_VIEW'`).get() as any).c as number;
+        const totalNfcScans  = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs ${baseFilter} AND event_type = 'NFC_SCAN'`).get() as any).c as number;
+        const totalDownloads = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs ${baseFilter} AND event_type = 'FILE_DOWNLOAD'`).get() as any).c as number;
 
         const topProfiles = db.prepare(`
             SELECT l.resource_id, u.name, u.profile_slug AS slug, COUNT(l.id) AS visits
             FROM analytics_logs l
             LEFT JOIN users u ON l.resource_id = u.id
-            WHERE l.event_type IN ('PAGE_VIEW', 'NFC_SCAN') AND l.path LIKE '/p/%'
+            WHERE l.event_type IN ('PAGE_VIEW', 'NFC_SCAN') AND l.path LIKE '/p/%' AND ${pFilter}
             GROUP BY l.resource_id
             ORDER BY visits DESC
             LIMIT 10
@@ -1682,20 +1753,37 @@ export const analyticsLogsDb = {
 
         const deviceBreakdown = db.prepare(`
             SELECT device_type AS device, COUNT(*) AS count
-            FROM analytics_logs GROUP BY device_type ORDER BY count DESC
+            FROM analytics_logs ${baseFilter} GROUP BY device_type ORDER BY count DESC
         `).all() as any[];
 
         const browserBreakdown = db.prepare(`
             SELECT browser, COUNT(*) AS count
-            FROM analytics_logs GROUP BY browser ORDER BY count DESC LIMIT 6
+            FROM analytics_logs ${baseFilter} GROUP BY browser ORDER BY count DESC LIMIT 6
         `).all() as any[];
 
         const recentEvents = db.prepare(`
             SELECT id, event_type, path, resource_id, device_type, browser, timestamp
-            FROM analytics_logs ORDER BY timestamp DESC LIMIT 20
+            FROM analytics_logs ${baseFilter} ORDER BY timestamp DESC LIMIT 20
         `).all() as any[];
 
         return { totalEvents, totalPageViews, totalNfcScans, totalDownloads, topProfiles, deviceBreakdown, browserBreakdown, recentEvents };
+    },
+
+    /** 🚀 Dashboard Activity Trends (Last 7 days) */
+    getActivityTrends: () => {
+        const trends = db.prepare(`
+            WITH RECURSIVE days(d) AS (
+                SELECT date('now', '-6 days')
+                UNION ALL
+                SELECT date(d, '+1 day') FROM days WHERE d < date('now')
+            )
+            SELECT 
+                d as date,
+                (SELECT COUNT(*) FROM leads WHERE date(created_at) = d) as leads,
+                (SELECT COUNT(*) FROM analytics_logs WHERE date(timestamp) = d AND event_type = 'PAGE_VIEW') as views
+            FROM days
+        `).all() as any[];
+        return trends;
     },
 
     /** 📊 Per-resource stats (single profile or kiosk). */
@@ -1706,3 +1794,24 @@ export const analyticsLogsDb = {
         return { total, deviceBreakdown, browserBreakdown };
     }
 };
+
+export const systemDb = {
+    getHealth: () => {
+        try {
+            const syncQueueCount = (db.prepare("SELECT COUNT(*) as c FROM sync_queue WHERE status = 'pending'").get() as any).c;
+            const dbSize = (db.prepare("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()").get() as any).size;
+            return {
+                syncQueueCount,
+                dbSize: Math.round(dbSize / 1024 / 1024 * 100) / 100, // MB
+                status: 'online'
+            };
+        } catch (e) {
+            return { syncQueueCount: 0, dbSize: 0, status: 'degraded' };
+        }
+    }
+};
+
+// Initialize database
+initDb();
+
+export default db;

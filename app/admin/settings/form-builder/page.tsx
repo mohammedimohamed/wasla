@@ -69,16 +69,16 @@ function FieldEditor({
     };
 
     return (
-        <div className="space-y-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <div className="space-y-4 p-6 bg-white dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm transition-colors duration-300">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                    <div className="w-8 h-8 bg-indigo-600/10 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                         <IconComp className="w-4 h-4" />
                     </div>
-                    <span className="font-black text-slate-800 text-sm uppercase tracking-wide">{field.label}</span>
+                    <span className="font-black text-slate-800 dark:text-white text-sm uppercase tracking-wide">{field.label}</span>
                 </div>
-                <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                <button onClick={onDelete} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
@@ -86,30 +86,30 @@ function FieldEditor({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Label */}
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Label</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Label</label>
                     <input value={field.label} onChange={e => set('label', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary transition-all" />
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-slate-900 dark:text-white" />
                 </div>
 
                 {/* Metadata Key */}
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clé Metadata</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Clé Metadata</label>
                     <input value={field.name} onChange={e => set('name', e.target.value.replace(/\s+/g, '_').toLowerCase())}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-primary transition-all text-primary" />
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-indigo-600 dark:text-indigo-400" />
                 </div>
 
                 {/* Placeholder */}
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Placeholder</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Placeholder</label>
                     <input value={field.placeholder || ''} onChange={e => set('placeholder', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary transition-all" />
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-slate-900 dark:text-white" />
                 </div>
 
                 {/* Field Type */}
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Type de champ</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Type de champ</label>
                     <select value={field.type} onChange={e => set('type', e.target.value as FormFieldType)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary transition-all">
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-slate-900 dark:text-white">
                         {ALL_FIELD_TYPES.map(t => (
                             <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
                         ))}
@@ -118,9 +118,9 @@ function FieldEditor({
                 
                 {/* Weight/Score */}
                 <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Poids (Score)</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Poids (Score)</label>
                     <input type="number" min="0" max="100" value={field.weight || 0} onChange={e => set('weight', Number(e.target.value))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary transition-all text-emerald-600 font-bold" />
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-emerald-600 dark:text-emerald-400 font-bold" />
                 </div>
             </div>
 
@@ -135,7 +135,7 @@ function FieldEditor({
                         key={key}
                         type="button"
                         onClick={() => set(key, !field[key])}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all ${field[key] ? 'bg-primary border-primary text-white' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all ${field[key] ? 'bg-indigo-600 border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500 text-white' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20'}`}
                     >
                         <Icon className="w-3 h-3" />
                         {label}
@@ -144,14 +144,14 @@ function FieldEditor({
 
                 {/* ColSpan */}
                 <select value={field.colSpan ?? 1} onChange={e => set('colSpan', Number(e.target.value) as 1 | 2)}
-                    className="text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border-2 border-slate-200 bg-white outline-none focus:border-primary text-slate-600">
+                    className="text-xs font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 outline-none focus:border-indigo-400 dark:focus:border-indigo-500 text-slate-600 dark:text-slate-300 transition-all">
                     <option value={1}>Demi-largeur</option>
                     <option value={2}>Pleine largeur</option>
                 </select>
             </div>
 
             {field.isSensitive && (
-                <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest mt-2 border border-amber-200">
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest mt-2 border border-amber-200 dark:border-amber-500/20 transition-colors">
                     <AlertCircle className="w-3 h-3 shrink-0" />
                     Le chiffrement empêche la recherche sur ce champ.
                 </div>
@@ -160,14 +160,14 @@ function FieldEditor({
             {/* Options editor — only for select/multiselect/chip-group */}
             {hasOptions && (
                 <div className="space-y-2 mt-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</label>
-                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Options</label>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
                         {(field.options || []).map((opt, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
-                                <span className="flex-1 text-xs font-bold text-slate-700">{opt.label}</span>
-                                <span className="text-[10px] font-mono text-slate-400">{opt.value}</span>
+                            <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-white/5 rounded-xl px-3 py-2 border dark:border-white/5">
+                                <span className="flex-1 text-xs font-bold text-slate-700 dark:text-slate-300">{opt.label}</span>
+                                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{opt.value}</span>
                                 <button type="button" onClick={() => set('options', (field.options || []).filter((_, i) => i !== idx))}
-                                    className="text-slate-400 hover:text-red-500 transition-colors">
+                                    className="text-slate-400 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                                     <Trash2 className="w-3 h-3" />
                                 </button>
                             </div>
@@ -179,10 +179,10 @@ function FieldEditor({
                             onChange={e => setOptionInput(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addOption())}
                             placeholder="Ajouter une option..."
-                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary transition-all"
+                            className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
                         />
                         <button type="button" onClick={addOption}
-                            className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-black hover:bg-primary/90 transition-all">
+                            className="px-3 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl text-xs font-black hover:bg-indigo-500 dark:hover:bg-indigo-400 transition-all shadow-md shadow-indigo-600/20 dark:shadow-none">
                             <Plus className="w-4 h-4" />
                         </button>
                     </div>

@@ -109,67 +109,44 @@ export default function AdminQRGenerator() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
-            {/* ── HEADER (Admin Standard) ─────────────────────────── */}
-            <header className="bg-white border-b border-slate-100 sticky top-0 z-40 print:hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => router.push('/admin/dashboard')}
-                            className="p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-slate-600 transition-all border border-transparent hover:border-slate-200"
-                            title="Retour au Dashboard"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
-                                    <QrCode className="w-4 h-4 text-white" />
-                                </div>
-                                <h1 className="text-xl font-black text-slate-800 tracking-tight">QR Management</h1>
-                            </div>
-                        </div>
+        <div className="flex-1 selection:bg-indigo-500/30 font-sans print:bg-white transition-colors duration-300 bg-slate-50 dark:bg-slate-950 min-h-screen">
+            <main className="p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-12 print:hidden">
+                
+                {/* ── SUB-HEADER ── */}
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">QR <span className="text-indigo-600 dark:text-indigo-400">Commander</span></h2>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-widest uppercase mt-1">Physical Access Points & Deployment</p>
                     </div>
-
-                    <div className="flex items-center gap-4">
+                    
+                    <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
-                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Session Active</p>
-                            <p className="text-[10px] font-bold text-slate-500 capitalize">Administrateur</p>
+                            <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-600 tracking-widest">Tracking Status</p>
+                            <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">Active Monitoring</p>
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="p-3 hover:bg-red-50 rounded-2xl text-slate-400 hover:text-red-500 transition-all active:scale-95 border border-transparent hover:border-red-100"
-                            title="Déconnexion"
-                        >
-                            <LogOut className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
-            </header>
-
-            {/* ── MAIN CONTENT ────────────────────────────────────── */}
-            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-12">
 
                 {/* 1. Generator Section */}
                 <section>
                     <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                         <div>
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
                                 Générateur Rapide
                             </h2>
-                            <p className="text-slate-500 text-sm font-medium mt-1">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">
                                 Créez un point de capture de lead identifié physiquement
                             </p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 print:hidden relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                    <div className="bg-white dark:bg-white/5 rounded-[32px] p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5 print:hidden relative overflow-hidden transition-colors duration-300">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/5 dark:bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
                         <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
                             <div className="flex-1 w-full space-y-6">
                                 <div>
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                         <MapPin className="w-3.5 h-3.5" />
                                         Nom de l&apos;emplacement
                                     </label>
@@ -179,9 +156,9 @@ export default function AdminQRGenerator() {
                                         value={locationName}
                                         onChange={(e) => setLocationName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
                                         maxLength={50}
-                                        className="w-full bg-slate-50 border-2 border-slate-100 px-5 py-4 rounded-2xl font-medium text-slate-800 outline-none focus:border-primary focus:bg-white transition-all placeholder:text-slate-300 text-lg"
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-white/10 px-5 py-4 rounded-2xl font-medium text-slate-800 dark:text-white outline-none focus:border-indigo-500 dark:focus:border-indigo-400 focus:bg-white dark:focus:bg-slate-900 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 text-lg shadow-inner"
                                     />
-                                    <p className="text-xs text-slate-400 mt-2 flex gap-1.5 items-start">
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 flex gap-1.5 items-start">
                                         <Info className="w-3.5 h-3.5 shrink-0" />
                                         <span>
                                             Ce nom sera enregistré comme <b>device_id</b>. Laissez vide pour utiliser <b>Generic_QR</b>.
@@ -189,32 +166,32 @@ export default function AdminQRGenerator() {
                                     </p>
                                 </div>
 
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+                                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-white/10">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2">
                                         <Share2 className="w-3.5 h-3.5" />
                                         Lien généré
                                     </label>
-                                    <code className="text-sm font-mono text-primary break-all bg-primary/10 px-3 py-1.5 rounded-lg inline-block w-full">
+                                    <code className="text-sm font-mono text-indigo-600 dark:text-indigo-400 break-all bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg inline-block w-full border border-indigo-100 dark:border-indigo-500/20">
                                         {qrValue || 'En attente...'}
                                     </code>
                                 </div>
 
                                 <button
                                     onClick={handlePrintGenerator}
-                                    className="w-full bg-slate-900 border border-slate-800 text-white hover:bg-slate-800 focus:ring-4 focus:ring-slate-900/20 active:bg-slate-900 transition-all px-8 py-4 rounded-2xl font-black uppercase text-sm tracking-widest flex justify-center items-center gap-2 shadow-xl shadow-slate-900/20"
+                                    className="w-full bg-slate-900 dark:bg-indigo-500 border border-slate-800 dark:border-indigo-500 text-white hover:bg-slate-800 dark:hover:bg-indigo-600 focus:ring-4 focus:ring-indigo-500/20 active:scale-[0.98] transition-all px-8 py-4 rounded-2xl font-black uppercase text-sm tracking-widest flex justify-center items-center gap-3 shadow-xl shadow-slate-900/20 dark:shadow-none"
                                 >
                                     <Printer className="w-5 h-5" />
                                     Visualiser &amp; Imprimer l&apos;affiche
                                 </button>
                             </div>
 
-                            <div className="w-full md:w-auto flex-shrink-0 flex justify-center bg-slate-50/50 p-6 rounded-3xl border-2 border-dashed border-slate-200">
+                             <div className="w-full md:w-auto flex-shrink-0 flex justify-center bg-slate-50/50 dark:bg-white/5 p-6 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10">
                                 {qrValue ? (
-                                    <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                                    <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-white/5">
                                         <QRCodeSVG value={qrValue} size={200} level="H" includeMargin={true} />
                                     </div>
                                 ) : (
-                                    <div className="w-[200px] h-[200px] bg-slate-100 rounded-2xl animate-pulse" />
+                                    <div className="w-[200px] h-[200px] bg-slate-100 dark:bg-white/5 rounded-2xl animate-pulse" />
                                 )}
                             </div>
                         </div>
@@ -225,38 +202,38 @@ export default function AdminQRGenerator() {
                 <section className="print:hidden">
                     <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
                                 Parc Kiosk &amp; Statistiques
                             </h2>
-                            <p className="text-slate-500 text-sm font-medium mt-1">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">
                                 Performances par point de capture ({stats.length} emplacement{stats.length !== 1 ? 's' : ''})
                             </p>
                         </div>
                     </div>
 
-                    <div className="w-full bg-white rounded-[24px] border border-slate-100 shadow-xl overflow-hidden">
+                    <div className="w-full bg-white dark:bg-white/5 rounded-[24px] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-none overflow-hidden transition-colors duration-300">
                         {loadingStats ? (
                             <div className="p-16 flex justify-center text-slate-400">
                                 <Search className="w-8 h-8 animate-pulse opacity-50" />
                             </div>
                         ) : stats.length === 0 ? (
-                            <div className="text-center p-16 text-slate-400 bg-slate-50/50">
+                            <div className="text-center p-16 text-slate-400 dark:text-slate-600 bg-slate-50/50 dark:bg-white/5 transition-colors">
                                 <QrCode className="w-10 h-10 mx-auto mb-3 opacity-30" />
                                 <p className="font-bold text-sm">Aucun scan enregistré pour le moment.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 border-b border-slate-100">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-white/10">
                                         <tr>
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Emplacement</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:table-cell">Lien Kiosk</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Total Scans</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dernier Scan</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Emplacement</th>
+                                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] hidden md:table-cell">Lien Kiosk</th>
+                                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] text-center">Total Scans</th>
+                                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Dernier Scan</th>
+                                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-50">
+                                    <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                                         {stats.map((stat, idx) => {
                                             const fullUrl = stat.location === 'Generic_QR'
                                                 ? `${baseUrl}/kiosk`
@@ -264,13 +241,13 @@ export default function AdminQRGenerator() {
 
                                             // Hidden canvas required for the "Download PNG" functionality
                                             return (
-                                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors group">
+                                                <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors group">
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                                                                <MapPin className="w-4 h-4 text-primary" />
+                                                            <div className="w-8 h-8 rounded bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20">
+                                                                <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                                             </div>
-                                                            <span className="font-bold text-slate-800 text-sm">
+                                                            <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
                                                                 {stat.location === 'Generic_QR' ? 'Emplacement Générique' : stat.location}
                                                             </span>
                                                         </div>
@@ -286,16 +263,16 @@ export default function AdminQRGenerator() {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell max-w-xs truncate">
-                                                        <code className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                                                        <code className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded border dark:border-white/5">
                                                             {fullUrl}
                                                         </code>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <span className="inline-block px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-black">
+                                                        <span className="inline-block px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-black border border-emerald-100 dark:border-emerald-500/20">
                                                             {stat.total_scans}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-medium text-xs">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-medium text-xs">
                                                         {stat.last_scan ? new Date(stat.last_scan).toLocaleString('fr-FR', {
                                                             day: '2-digit', month: '2-digit',
                                                             hour: '2-digit', minute: '2-digit'
@@ -304,14 +281,14 @@ export default function AdminQRGenerator() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                                                         <button
                                                             onClick={() => handlePrintList(stat)}
-                                                            className="p-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-600 rounded-xl transition-all"
+                                                            className="p-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-600 dark:text-slate-400 rounded-xl transition-all"
                                                             title="Visualiser l'affiche"
                                                         >
                                                             <Eye className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDownload(stat)}
-                                                            className="p-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-primary rounded-xl transition-all"
+                                                            className="p-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 text-indigo-600 dark:text-indigo-400 rounded-xl transition-all"
                                                             title="Télécharger l'image (PNG)"
                                                         >
                                                             <Download className="w-4 h-4" />
