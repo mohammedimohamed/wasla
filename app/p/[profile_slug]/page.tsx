@@ -7,6 +7,7 @@ import * as Icons from 'lucide-react';
 import Link from 'next/link';
 import { Slideshow } from '@/src/components/Slideshow';
 import { AnalyticsTracker } from '@/src/components/AnalyticsTracker';
+import { FileDownloadBlock } from '@/src/components/FileDownloadBlock';
 
 interface PublicProfilePageProps {
     params: Promise<{ profile_slug: string }>;
@@ -52,7 +53,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
     return (
         <div className={`min-h-screen flex flex-col items-center p-6 transition-colors duration-500 ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
-            <AnalyticsTracker profileId={user.id} />
+            <AnalyticsTracker resourceId={user.id} />
             
             {/* 🏢 Company Header */}
             <header className="w-full flex justify-center mb-10">
@@ -158,19 +159,16 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                     }
 
                     if (block.type === 'file') {
-                        const shapeClass = block.buttonShape === 'pill' ? 'rounded-full' : block.buttonShape === 'square' ? 'rounded-none' : 'rounded-2xl';
-                        const Icon = block.iconType === 'catalogue' ? Icons.BookOpen : block.iconType === 'image' ? Icons.Image : block.iconType === 'video' ? Icons.PlayCircle : Icons.Download;
                         return (
-                            <a 
+                            <FileDownloadBlock
                                 key={idx}
-                                href={block.fileUrl}
-                                download
-                                className={`w-full py-4 px-6 ${shapeClass} font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 text-white`}
-                                style={{ backgroundColor: block.buttonColor || '#059669' }}
-                            >
-                                <Icon className="w-5 h-5" />
-                                {block.label || (block as any).title}
-                            </a>
+                                fileUrl={block.fileUrl}
+                                label={block.label || (block as any).title}
+                                buttonColor={block.buttonColor}
+                                buttonShape={block.buttonShape}
+                                iconType={block.iconType}
+                                resourceId={user.id}
+                            />
                         );
                     }
 

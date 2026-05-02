@@ -1,40 +1,48 @@
 "use server";
 
-import { analyticsDb } from "@/lib/db";
+import { analyticsLogsDb, AnalyticsEventType, AnalyticsLogPayload } from "@/lib/db";
 import { headers } from "next/headers";
 
 /**
- * 📊 Analytics Tracker Action
- * Captures page visits in a "fire-and-forget" manner.
+ * 🔥 logVisitAction — Fire-and-forget analytics logging.
+ *
+ * Called from the client; returns immediately so the user never waits.
+ * All DB errors are silently swallowed by analyticsLogsDb.log().
  */
-export async function trackVisitAction(profileId?: string) {
-    const headerList = headers();
-    const url = headerList.get("referer") || "unknown";
-    const userAgent = headerList.get("user-agent") || "unknown";
-    
-    // In Next.js, we can get the IP from headers
-    // x-forwarded-for is common behind proxies (like Render/Vercel)
-    const forwardedFor = headerList.get("x-forwarded-for");
-    const ip = forwardedFor ? forwardedFor.split(',')[0] : "127.0.0.1";
+export async function logVisitAction(data: {
+    event_type: AnalyticsEventType;
+    path: string;
+    resource_id?: string;
+    visitor_session: string;  // Client-generated anonymous session hash
+    device_type: string;
+    browser: string;
+}) {
+    // Start the DB write in the background without awaiting — true fire-and-forget
+    Promise.resolve().then(() => {
+        analyticsLogsDb.log({
+            event_type:      data.event_type,
+            path:            data.path,
+            resource_id:     data.resource_id,
+            visitor_session: data.visitor_session,
+            device_type:     data.device_type,
+            browser:         data.browser,
+        });
+    });
 
-    // Async tracking (don't await to avoid blocking the UI)
-    // We use a promise to handle it in background
-    (async () => {
-        try {
-            analyticsDb.track({
-                url,
-                profile_id: profileId,
-                visitor_ip: ip,
-                user_agent: userAgent
-            });
-        } catch (e) {
-            console.error("[Analytics Action] Failed:", e);
-        }
-    })();
-
-    return { success: true };
+    // Return immediately — do not await the write above
+    return { ok: true };
 }
 
-export async function getAnalyticsStatsAction(profileId?: string) {
-    return analyticsDb.getStats(profileId);
+/**
+ * 📈 getAnalyticsDashboardAction — Fetch global analytics for the admin UI.
+ */
+export async function getAnalyticsDashboardAction() {
+    return analyticsLogsDb.getGlobalStats();
+}
+
+/**
+ * 📊 getResourceAnalyticsAction — Fetch stats for a specific profile or resource.
+ */
+export async function getResourceAnalyticsAction(resourceId: string) {
+    return analyticsLogsDb.getResourceStats(resourceId);
 }

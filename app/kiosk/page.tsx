@@ -10,6 +10,7 @@ import { useFormConfig, FormPage, FormField } from "@/src/hooks/useFormConfig";
 import IdleTracker from "@/src/components/IdleTracker";
 import MediashowOverlay from "./MediashowOverlay";
 import { useTranslation } from "@/src/context/LanguageContext";
+import { AnalyticsTracker } from "@/src/components/AnalyticsTracker";
 
 type FormValues = Record<string, any>;
 
@@ -374,6 +375,8 @@ export default function KioskPage() {
     return (
         <div className={`h-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row font-sans max-w-[1600px] mx-auto shadow-2xl transition-all duration-500 ${isSignageMode ? 'opacity-0' : 'opacity-100'}`}
         >
+            {/* 🛰️ Analytics Tracker — fires once per session, fire-and-forget */}
+            <AnalyticsTracker resourceId="KIOSK_MAIN" />
             
             {/* 🔄 RESTORE FULLSCREEN FAB (If staff exits FS) */}
             {!isFullscreen && (

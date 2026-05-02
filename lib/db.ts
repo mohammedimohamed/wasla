@@ -338,20 +338,24 @@ export function initDb() {
             try { db.exec(`ALTER TABLE users ADD COLUMN is_enterprise_default INTEGER DEFAULT 0`); } catch (_) { }
         }
 
-        // Phase 17: Page Analytics Engine
+        // Phase 17: Analytics Engine — analytics_logs (v2)
         try {
-            db.exec(`CREATE TABLE IF NOT EXISTS page_analytics (
-                id TEXT PRIMARY KEY,
-                url TEXT NOT NULL,
-                profile_id TEXT, -- ID of the NFC profile (user_id)
-                visitor_ip TEXT, -- Hashed IP
-                user_agent TEXT,
-                timestamp TEXT NOT NULL
+            db.exec(`CREATE TABLE IF NOT EXISTS analytics_logs (
+                id             TEXT PRIMARY KEY,
+                event_type     TEXT NOT NULL DEFAULT 'PAGE_VIEW',
+                path           TEXT NOT NULL,
+                resource_id    TEXT,
+                visitor_session TEXT,
+                device_type    TEXT,
+                browser        TEXT,
+                timestamp      DATETIME DEFAULT CURRENT_TIMESTAMP
             )`);
-            db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_profile_id ON page_analytics(profile_id)`);
-            db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON page_analytics(timestamp)`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_alogs_resource  ON analytics_logs(resource_id)`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_alogs_event     ON analytics_logs(event_type)`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_alogs_timestamp ON analytics_logs(timestamp)`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_alogs_session   ON analytics_logs(visitor_session)`);
         } catch (e) {
-            console.error('[DB Migration] Analytics Engine failed:', e);
+            console.error('[DB Migration] Analytics Engine (analytics_logs) failed:', e);
         }
     }
 }
@@ -1622,60 +1626,83 @@ initDb();
 
 export default db;
 // ─────────────────────────────────────────────────────────────────────────────
-// 📊 ANALYTICS ENGINE (Module 17)
+// 📊 ANALYTICS ENGINE — Module 17 (analytics_logs v2)
 // ─────────────────────────────────────────────────────────────────────────────
-export const analyticsDb = {
-    track: (payload: { url: string, profile_id?: string, visitor_ip: string, user_agent: string }) => {
-        const id = uuidv4();
-        const timestamp = new Date().toISOString();
-        const crypto = require('crypto');
-        const hashedIp = crypto.createHash('sha256').update(payload.visitor_ip).digest('hex');
+export type AnalyticsEventType = 'PAGE_VIEW' | 'NFC_SCAN' | 'FILE_DOWNLOAD';
 
+export interface AnalyticsLogPayload {
+    event_type:      AnalyticsEventType;
+    path:            string;
+    resource_id?:    string;   // user.id for profiles | 'KIOSK_MAIN' | file id
+    visitor_session: string;   // Anonymous browser fingerprint (no PII)
+    device_type:     string;   // Mobile | Tablet | Desktop
+    browser:         string;   // Chrome | Safari | Firefox | Edge | Other
+}
+
+export const analyticsLogsDb = {
+    /**
+     * 🔥 Fire-and-forget — never throws, never blocks the caller.
+     */
+    log: (payload: AnalyticsLogPayload): void => {
         try {
             db.prepare(`
-                INSERT INTO page_analytics (id, url, profile_id, visitor_ip, user_agent, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).run(id, payload.url, payload.profile_id || null, hashedIp, payload.user_agent, timestamp);
+                INSERT INTO analytics_logs
+                    (id, event_type, path, resource_id, visitor_session, device_type, browser)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                uuidv4(),
+                payload.event_type,
+                payload.path,
+                payload.resource_id ?? null,
+                payload.visitor_session,
+                payload.device_type,
+                payload.browser
+            );
         } catch (error) {
-            console.error('[Analytics Error] Failed to track visit:', error);
+            console.error('[Analytics] Write failed (silently ignored):', error);
         }
     },
 
-    getStats: (profileId?: string) => {
-        let where = "";
-        let params: any[] = [];
-        if (profileId) {
-            where = "WHERE profile_id = ?";
-            params = [profileId];
-        }
+    /** 📈 Global stats for the admin dashboard. */
+    getGlobalStats: () => {
+        const totalEvents    = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs`).get() as any).c as number;
+        const totalPageViews = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'PAGE_VIEW'`).get() as any).c as number;
+        const totalNfcScans  = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'NFC_SCAN'`).get() as any).c as number;
+        const totalDownloads = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE event_type = 'FILE_DOWNLOAD'`).get() as any).c as number;
 
-        const totalVisits = db.prepare(`SELECT COUNT(*) as count FROM page_analytics ${where}`).get(params) as { count: number };
-        
         const topProfiles = db.prepare(`
-            SELECT u.name, COUNT(a.id) as visits
-            FROM page_analytics a
-            JOIN users u ON a.profile_id = u.id
-            GROUP BY a.profile_id
+            SELECT l.resource_id, u.name, u.profile_slug AS slug, COUNT(l.id) AS visits
+            FROM analytics_logs l
+            LEFT JOIN users u ON l.resource_id = u.id
+            WHERE l.event_type IN ('PAGE_VIEW', 'NFC_SCAN') AND l.path LIKE '/p/%'
+            GROUP BY l.resource_id
             ORDER BY visits DESC
-            LIMIT 5
+            LIMIT 10
         `).all() as any[];
 
         const deviceBreakdown = db.prepare(`
-            SELECT 
-                CASE 
-                    WHEN user_agent LIKE '%Mobi%' THEN 'Mobile'
-                    ELSE 'Desktop'
-                END as device,
-                COUNT(*) as count
-            FROM page_analytics
-            ${where}
-            GROUP BY device
-        `).all(params) as any[];
+            SELECT device_type AS device, COUNT(*) AS count
+            FROM analytics_logs GROUP BY device_type ORDER BY count DESC
+        `).all() as any[];
 
-        return {
-            totalVisits: totalVisits.count,
-            topProfiles,
-            deviceBreakdown
-        };
+        const browserBreakdown = db.prepare(`
+            SELECT browser, COUNT(*) AS count
+            FROM analytics_logs GROUP BY browser ORDER BY count DESC LIMIT 6
+        `).all() as any[];
+
+        const recentEvents = db.prepare(`
+            SELECT id, event_type, path, resource_id, device_type, browser, timestamp
+            FROM analytics_logs ORDER BY timestamp DESC LIMIT 20
+        `).all() as any[];
+
+        return { totalEvents, totalPageViews, totalNfcScans, totalDownloads, topProfiles, deviceBreakdown, browserBreakdown, recentEvents };
+    },
+
+    /** 📊 Per-resource stats (single profile or kiosk). */
+    getResourceStats: (resourceId: string) => {
+        const total = (db.prepare(`SELECT COUNT(*) as c FROM analytics_logs WHERE resource_id = ?`).get(resourceId) as any).c as number;
+        const deviceBreakdown  = db.prepare(`SELECT device_type AS device, COUNT(*) AS count FROM analytics_logs WHERE resource_id = ? GROUP BY device_type`).all(resourceId) as any[];
+        const browserBreakdown = db.prepare(`SELECT browser, COUNT(*) AS count FROM analytics_logs WHERE resource_id = ? GROUP BY browser`).all(resourceId) as any[];
+        return { total, deviceBreakdown, browserBreakdown };
     }
 };
