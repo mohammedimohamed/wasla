@@ -13,6 +13,7 @@ import { DigitalProfileConfig } from "@/lib/schemas";
 import { updateDigitalProfileAction, saveNfcTemplateAction, listNfcTemplatesAction } from "@/app/admin/users/actions";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 interface DigitalProfileBuilderProps {
     userId: string;
@@ -133,6 +134,16 @@ export function DigitalProfileBuilder({
             toast.error("Erreur d'upload : " + error.message);
         }
     };
+    
+    const onDragEnd = (result: any) => {
+        if (!result.destination) return;
+        
+        const items = Array.from(config.blocks);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+        
+        setConfig({ ...config, blocks: items });
+    };
 
     const handleSave = async () => {
         if (!slug.trim()) {
@@ -170,7 +181,7 @@ export function DigitalProfileBuilder({
         }
     };
 
-    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'file' | 'media' | 'separator') => {
+    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'rich_text' | 'file' | 'media' | 'separator') => {
         const newBlock: any = { id: window.crypto.randomUUID(), type };
         if (type === 'social_grid') newBlock.items = [];
         if (type === 'action_button') {
@@ -179,9 +190,13 @@ export function DigitalProfileBuilder({
             newBlock.value = '';
         }
         if (type === 'free_text') newBlock.content = 'Votre texte ici...';
+        if (type === 'rich_text') newBlock.content = '### Titre\n**Gras**, *Italique*, et listes :\n- Élément 1\n- Élément 2';
         if (type === 'file') {
             newBlock.label = 'Télécharger le catalogue';
             newBlock.fileUrl = '';
+            newBlock.buttonColor = '#059669'; // Default emerald
+            newBlock.buttonShape = 'rounded';
+            newBlock.iconType = 'document';
         }
         if (type === 'media') {
             newBlock.items = [];
@@ -377,28 +392,60 @@ export function DigitalProfileBuilder({
                             <Layout className="w-4 h-4 text-indigo-500" /> Structure de la page
                         </h4>
                         <div className="flex gap-2">
-                            <button onClick={() => addBlock('social_grid')} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all" title="Ajouter une grille de réseaux">
-                                <Plus className="w-4 h-4" />
-                            </button>
+                            {/* Deleted small button to move to big button below */}
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {config.blocks.map((block, idx) => (
-                            <div key={idx} className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm relative group">
-                                <button 
-                                    onClick={() => removeBlock(idx)}
-                                    className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white"
+                    {/* 🚀 PROMINENT SOCIAL GRID TRIGGER */}
+                    <button 
+                        onClick={() => addBlock('social_grid')}
+                        className="w-full group relative overflow-hidden bg-white border-2 border-indigo-100 hover:border-indigo-500 p-6 rounded-[32px] transition-all duration-300 shadow-sm hover:shadow-xl flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-100">
+                                <MessageCircle className="w-7 h-7" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Configurer ma grille de liens sociaux</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">LinkedIn, Twitter, Facebook...</p>
+                            </div>
+                        </div>
+                        <Plus className="w-6 h-6 text-slate-300 group-hover:text-indigo-600 group-hover:rotate-90 transition-all" />
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="profile-blocks">
+                            {(provided) => (
+                                <div 
+                                    {...provided.droppableProps} 
+                                    ref={provided.innerRef} 
+                                    className="space-y-4"
                                 >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                                
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300">
-                                        <GripVertical className="w-5 h-5" />
-                                    </div>
-                                    
-                                    <div className="flex-1 space-y-4">
+                                    {config.blocks.map((block, idx) => (
+                                        <Draggable key={block.id} draggableId={block.id} index={idx}>
+                                            {(provided) => (
+                                                <div 
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    className="bg-white border border-slate-200 rounded-[28px] p-6 shadow-sm relative group"
+                                                >
+                                                    <button 
+                                                        onClick={() => removeBlock(idx)}
+                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white z-10"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                    
+                                                    <div className="flex items-start gap-4">
+                                                        <div 
+                                                            {...provided.dragHandleProps}
+                                                            className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 hover:text-indigo-600 transition-colors"
+                                                        >
+                                                            <GripVertical className="w-5 h-5" />
+                                                        </div>
+                                                        
+                                                        <div className="flex-1 space-y-4">
                                         {block.type === 'social_grid' && (
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
@@ -490,7 +537,7 @@ export function DigitalProfileBuilder({
 
                                         {block.type === 'free_text' && (
                                             <div>
-                                                <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Contenu texte</label>
+                                                <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Contenu texte (Simple)</label>
                                                 <textarea 
                                                     value={block.content} 
                                                     onChange={e => updateBlock(idx, { content: e.target.value })}
@@ -499,15 +546,84 @@ export function DigitalProfileBuilder({
                                             </div>
                                         )}
 
+                                        {block.type === 'rich_text' && (
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-[9px] font-black uppercase text-slate-400 block">Texte Enrichi (Markdown)</label>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => updateBlock(idx, { content: block.content + ' **Gras**' })} className="text-[10px] font-black p-1 hover:text-indigo-600">B</button>
+                                                        <button onClick={() => updateBlock(idx, { content: block.content + ' *Italique*' })} className="text-[10px] italic p-1 hover:text-indigo-600">I</button>
+                                                        <button onClick={() => updateBlock(idx, { content: block.content + '\n- ' })} className="text-[10px] p-1 hover:text-indigo-600">List</button>
+                                                    </div>
+                                                </div>
+                                                <textarea 
+                                                    value={block.content} 
+                                                    onChange={e => updateBlock(idx, { content: e.target.value })}
+                                                    className="w-full bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl text-sm font-medium outline-none focus:border-indigo-300 h-32 no-scrollbar font-mono"
+                                                    placeholder="Utilisez le Markdown pour formater..."
+                                                />
+                                            </div>
+                                        )}
+
                                         {block.type === 'file' && (
                                             <div className="space-y-4">
-                                                <div>
-                                                    <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Label du bouton de téléchargement</label>
-                                                    <input 
-                                                        value={block.label} 
-                                                        onChange={e => updateBlock(idx, { label: e.target.value })}
-                                                        className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300"
-                                                    />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Label du bouton</label>
+                                                        <input 
+                                                            value={block.label} 
+                                                            onChange={e => updateBlock(idx, { label: e.target.value })}
+                                                            className="w-full bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Couleur du bouton</label>
+                                                        <div className="flex gap-2">
+                                                            <input 
+                                                                type="color" 
+                                                                value={block.buttonColor || '#059669'} 
+                                                                onChange={e => updateBlock(idx, { buttonColor: e.target.value })}
+                                                                className="w-10 h-10 rounded-lg cursor-pointer overflow-hidden border-none p-0"
+                                                            />
+                                                            <input 
+                                                                value={block.buttonColor || '#059669'} 
+                                                                onChange={e => updateBlock(idx, { buttonColor: e.target.value })}
+                                                                className="flex-1 bg-slate-50 border border-slate-100 px-3 py-2 rounded-xl text-xs font-mono font-bold"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Forme du bouton</label>
+                                                        <div className="flex gap-1">
+                                                            {['square', 'rounded', 'pill'].map(shape => (
+                                                                <button 
+                                                                    key={shape}
+                                                                    onClick={() => updateBlock(idx, { buttonShape: shape })}
+                                                                    className={`flex-1 py-2 text-[8px] font-black uppercase border rounded-lg transition-all ${block.buttonShape === shape ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-200 text-slate-400'}`}
+                                                                >
+                                                                    {shape === 'square' ? 'Carré' : shape === 'rounded' ? 'Arrondi' : 'Pill'}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Icône</label>
+                                                        <div className="grid grid-cols-4 gap-2">
+                                                            {['document', 'catalogue', 'image', 'video'].map(type => {
+                                                                const Icon = type === 'document' ? Icons.FileText : type === 'catalogue' ? Icons.BookOpen : type === 'image' ? Icons.Image : Icons.PlayCircle;
+                                                                return (
+                                                                    <button 
+                                                                        key={type}
+                                                                        onClick={() => updateBlock(idx, { iconType: type })}
+                                                                        className={`py-3 flex flex-col items-center gap-1 border rounded-xl transition-all ${block.iconType === type ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-slate-100 text-slate-400'}`}
+                                                                    >
+                                                                        <Icon className="w-4 h-4" />
+                                                                        <span className="text-[7px] font-black uppercase">{type}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div className="relative group/upload">
                                                     <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center group-hover/upload:border-indigo-300 transition-all">
@@ -592,15 +708,27 @@ export function DigitalProfileBuilder({
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </Draggable>
+                ))}
+                {provided.placeholder}
+            </div>
+        )}
+    </Droppable>
+</DragDropContext>
 
                     <div className="grid grid-cols-2 gap-3 mt-6">
                         <button onClick={() => addBlock('action_button')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Bouton Action
                         </button>
+                        <button onClick={() => addBlock('social_grid')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Grille Sociale
+                        </button>
                         <button onClick={() => addBlock('free_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
-                            <Plus className="w-4 h-4" /> Bloc Texte
+                            <Plus className="w-4 h-4" /> Texte Simple
+                        </button>
+                        <button onClick={() => addBlock('rich_text')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Texte Enrichi
                         </button>
                         <button onClick={() => addBlock('media')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Média / Slideshow
@@ -697,10 +825,29 @@ export function DigitalProfileBuilder({
                                         </div>
                                     );
                                 }
-                                if (block.type === 'file') {
+                                if (block.type === 'rich_text') {
                                     return (
-                                        <div key={idx} className="w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center shadow-md bg-emerald-600 text-white flex items-center justify-center gap-2">
-                                            <Icons.Download className="w-3 h-3" />
+                                        <div key={idx} className={`p-4 rounded-2xl text-[9px] leading-relaxed ${config.theme === 'dark' ? 'bg-slate-900/50' : 'bg-white/50 border border-slate-100'}`}>
+                                            {/* Minimal preview: replace newlines with br and simulate bold */}
+                                            <div dangerouslySetInnerHTML={{ 
+                                                __html: block.content
+                                                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                                                    .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                                                    .replace(/\n- (.*)/g, '<br/>• $1')
+                                                    .replace(/\n/g, '<br/>') 
+                                            }} />
+                                        </div>
+                                    );
+                                }
+                                if (block.type === 'file') {
+                                    const shapeClass = block.buttonShape === 'pill' ? 'rounded-full' : block.buttonShape === 'square' ? 'rounded-none' : 'rounded-xl';
+                                    const Icon = block.iconType === 'catalogue' ? Icons.BookOpen : block.iconType === 'image' ? Icons.Image : block.iconType === 'video' ? Icons.PlayCircle : Icons.Download;
+                                    return (
+                                        <div key={idx} 
+                                            className={`w-full py-3 ${shapeClass} font-black text-[10px] uppercase tracking-widest text-center shadow-md flex items-center justify-center gap-2 text-white`}
+                                            style={{ backgroundColor: block.buttonColor || '#059669' }}
+                                        >
+                                            <Icon className="w-3 h-3" />
                                             {block.label}
                                         </div>
                                     );

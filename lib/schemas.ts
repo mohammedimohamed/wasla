@@ -28,9 +28,17 @@ export const digitalProfileConfigSchema = z.object({
         }),
         z.object({
             id: z.string(),
+            type: z.literal('rich_text'),
+            content: z.string()
+        }),
+        z.object({
+            id: z.string(),
             type: z.literal('file'),
             fileUrl: z.string(),
-            label: z.string()
+            label: z.string(),
+            buttonColor: z.string().optional(),
+            buttonShape: z.enum(['rounded', 'square', 'pill']).optional(),
+            iconType: z.enum(['document', 'catalogue', 'image', 'video']).optional(),
         }),
         z.object({
             id: z.string(),

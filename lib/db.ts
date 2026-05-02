@@ -337,6 +337,22 @@ export function initDb() {
         if (!userCols.includes('is_enterprise_default')) {
             try { db.exec(`ALTER TABLE users ADD COLUMN is_enterprise_default INTEGER DEFAULT 0`); } catch (_) { }
         }
+
+        // Phase 17: Page Analytics Engine
+        try {
+            db.exec(`CREATE TABLE IF NOT EXISTS page_analytics (
+                id TEXT PRIMARY KEY,
+                url TEXT NOT NULL,
+                profile_id TEXT, -- ID of the NFC profile (user_id)
+                visitor_ip TEXT, -- Hashed IP
+                user_agent TEXT,
+                timestamp TEXT NOT NULL
+            )`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_profile_id ON page_analytics(profile_id)`);
+            db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON page_analytics(timestamp)`);
+        } catch (e) {
+            console.error('[DB Migration] Analytics Engine failed:', e);
+        }
     }
 }
 
@@ -1605,3 +1621,61 @@ export const nfcTemplatesDb = {
 initDb();
 
 export default db;
+// ─────────────────────────────────────────────────────────────────────────────
+// 📊 ANALYTICS ENGINE (Module 17)
+// ─────────────────────────────────────────────────────────────────────────────
+export const analyticsDb = {
+    track: (payload: { url: string, profile_id?: string, visitor_ip: string, user_agent: string }) => {
+        const id = uuidv4();
+        const timestamp = new Date().toISOString();
+        const crypto = require('crypto');
+        const hashedIp = crypto.createHash('sha256').update(payload.visitor_ip).digest('hex');
+
+        try {
+            db.prepare(`
+                INSERT INTO page_analytics (id, url, profile_id, visitor_ip, user_agent, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(id, payload.url, payload.profile_id || null, hashedIp, payload.user_agent, timestamp);
+        } catch (error) {
+            console.error('[Analytics Error] Failed to track visit:', error);
+        }
+    },
+
+    getStats: (profileId?: string) => {
+        let where = "";
+        let params: any[] = [];
+        if (profileId) {
+            where = "WHERE profile_id = ?";
+            params = [profileId];
+        }
+
+        const totalVisits = db.prepare(`SELECT COUNT(*) as count FROM page_analytics ${where}`).get(params) as { count: number };
+        
+        const topProfiles = db.prepare(`
+            SELECT u.name, COUNT(a.id) as visits
+            FROM page_analytics a
+            JOIN users u ON a.profile_id = u.id
+            GROUP BY a.profile_id
+            ORDER BY visits DESC
+            LIMIT 5
+        `).all() as any[];
+
+        const deviceBreakdown = db.prepare(`
+            SELECT 
+                CASE 
+                    WHEN user_agent LIKE '%Mobi%' THEN 'Mobile'
+                    ELSE 'Desktop'
+                END as device,
+                COUNT(*) as count
+            FROM page_analytics
+            ${where}
+            GROUP BY device
+        `).all(params) as any[];
+
+        return {
+            totalVisits: totalVisits.count,
+            topProfiles,
+            deviceBreakdown
+        };
+    }
+};

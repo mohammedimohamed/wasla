@@ -399,7 +399,7 @@ export default function KioskPage() {
 
             {/* ── LEFT: WELCOME PANEL ─────────────────────────────────────────── */}
             <div
-                className="md:w-5/12 lg:w-4/12 flex flex-col items-center justify-center text-center p-10 md:p-16 lg:p-20 relative overflow-hidden shrink-0"
+                className="md:w-5/12 lg:w-4/12 flex flex-col items-center justify-center text-center p-10 md:p-16 lg:p-20 relative overflow-hidden shrink-0 md:sticky md:top-0 md:h-screen"
                 style={{ backgroundColor: primaryColor }}
             >
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />

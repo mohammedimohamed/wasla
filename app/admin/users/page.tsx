@@ -626,7 +626,7 @@ export default function AdminUsersPage() {
             {/* ── MODAL: EDIT USER ─────────────────────────────────────────────────── */}
             {editModal.isOpen && editModal.user && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-[40px] w-full max-w-4xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-10 relative">
+                    <div className="bg-white rounded-[40px] w-full max-w-5xl max-h-[95vh] overflow-y-auto no-scrollbar shadow-2xl p-10 relative">
                         <button onClick={() => setEditModal({ isOpen: false, user: null })} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex items-center justify-center">
                             <XCircle className="w-7 h-7" />
                         </button>

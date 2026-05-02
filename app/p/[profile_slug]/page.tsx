@@ -6,6 +6,7 @@ import { DigitalProfileConfig } from '@/lib/schemas';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
 import { Slideshow } from '@/src/components/Slideshow';
+import { AnalyticsTracker } from '@/src/components/AnalyticsTracker';
 
 interface PublicProfilePageProps {
     params: Promise<{ profile_slug: string }>;
@@ -51,6 +52,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
     return (
         <div className={`min-h-screen flex flex-col items-center p-6 transition-colors duration-500 ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+            <AnalyticsTracker profileId={user.id} />
             
             {/* 🏢 Company Header */}
             <header className="w-full flex justify-center mb-10">
@@ -129,29 +131,45 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                             >
                                 {block.action === 'call' && <Icons.Phone className="w-5 h-5" />}
                                 {block.action === 'save_vcard' && <Icons.UserPlus className="w-5 h-5" />}
-                                {block.label}
+                                {block.action === 'link' && <Icons.ExternalLink className="w-5 h-5" />}
+                                {block.action === 'email' && <Icons.Mail className="w-5 h-5" />}
+                                {block.label || (block as any).title}
                             </a>
                         );
                     }
 
-                    if (block.type === 'free_text') {
+                    if (block.type === 'free_text' || block.type === 'rich_text') {
+                        const isRich = block.type === 'rich_text';
                         return (
                             <div key={idx} className={`p-5 rounded-3xl text-sm leading-relaxed ${isDark ? 'bg-slate-900/50' : 'bg-white/50 border border-slate-100'}`}>
-                                {block.content}
+                                {isRich ? (
+                                    <div dangerouslySetInnerHTML={{ 
+                                        __html: block.content
+                                            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                                            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                                            .replace(/\n- (.*)/g, '<br/>• $1')
+                                            .replace(/\n/g, '<br/>') 
+                                    }} />
+                                ) : (
+                                    block.content
+                                )}
                             </div>
                         );
                     }
 
                     if (block.type === 'file') {
+                        const shapeClass = block.buttonShape === 'pill' ? 'rounded-full' : block.buttonShape === 'square' ? 'rounded-none' : 'rounded-2xl';
+                        const Icon = block.iconType === 'catalogue' ? Icons.BookOpen : block.iconType === 'image' ? Icons.Image : block.iconType === 'video' ? Icons.PlayCircle : Icons.Download;
                         return (
                             <a 
                                 key={idx}
                                 href={block.fileUrl}
                                 download
-                                className="w-full py-4 px-6 rounded-2xl font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 bg-emerald-600 text-white hover:bg-emerald-700"
+                                className={`w-full py-4 px-6 ${shapeClass} font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 text-white`}
+                                style={{ backgroundColor: block.buttonColor || '#059669' }}
                             >
-                                <Icons.Download className="w-5 h-5" />
-                                {block.label}
+                                <Icon className="w-5 h-5" />
+                                {block.label || (block as any).title}
                             </a>
                         );
                     }
