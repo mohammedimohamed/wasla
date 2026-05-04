@@ -120,7 +120,7 @@ export default function AgentDashboardPage() {
 
                 if (!res.ok) { window.location.href = '/login'; return; }
 
-                if (data.user.role === 'ADMINISTRATOR' || data.user.role === 'TEAM_LEADER') {
+                if (data.user.role === 'ADMINISTRATOR') {
                     window.location.href = '/admin/dashboard';
                     return;
                 }

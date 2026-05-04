@@ -201,7 +201,7 @@ export default function LeadsListPage() {
         return matchesSearch && matchesSource;
     });
 
-    const isManager = userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER';
+    const isManager = userRole === 'ADMINISTRATOR';
 
     return (
         <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-screen">

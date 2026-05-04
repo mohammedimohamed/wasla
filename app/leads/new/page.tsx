@@ -38,7 +38,7 @@ export default function NewLeadPage() {
     }, []);
 
     const handleSuccess = () => {
-        if (userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER') {
+        if (userRole === 'ADMINISTRATOR') {
             router.push("/admin/dashboard");
         } else {
             router.push("/dashboard");
@@ -46,7 +46,7 @@ export default function NewLeadPage() {
     };
 
     const handleBack = () => {
-        if (userRole === 'ADMINISTRATOR' || userRole === 'TEAM_LEADER') {
+        if (userRole === 'ADMINISTRATOR') {
             router.push("/admin/dashboard");
         } else {
             router.push("/dashboard");
