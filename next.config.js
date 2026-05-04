@@ -49,6 +49,16 @@ const nextConfig = {
                     },
                 ],
             },
+            // 🛡️ Global Security Policy (including Maps whitelist)
+            {
+                source: '/:path*',
+                headers: [
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "frame-src 'self' https://www.google.com https://maps.google.com https://www.openstreetmap.org https://www.bing.com *.bing.com;",
+                    },
+                ],
+            },
         ];
     },
 };

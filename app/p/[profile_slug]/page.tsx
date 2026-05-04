@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Slideshow } from '@/src/components/Slideshow';
 import { AnalyticsTracker } from '@/src/components/AnalyticsTracker';
 import { FileDownloadBlock } from '@/src/components/FileDownloadBlock';
+import { MultiSiteLocationBlock } from '@/src/components/MultiSiteLocationBlock';
 
 interface PublicProfilePageProps {
     params: Promise<{ profile_slug: string }>;
@@ -90,12 +91,16 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
             {/* 🧱 Dynamic Blocks */}
             <div className="w-full max-w-md space-y-4 mb-24">
-                {config.blocks.map((block, idx) => {
+                {config.blocks.filter(b => {
+                    if (b.isVisible === false) return false;
+                    if (b.visibleUntil && new Date(b.visibleUntil) < new Date()) return false;
+                    return true;
+                }).map((block, idx) => {
                     if (block.type === 'social_grid') {
                         return (
                             <div key={idx} className="grid grid-cols-3 gap-4 py-2">
                                 {block.items.map((item, i) => {
-                                    const IconComponent = (Icons as any)[item.icon] || Icons.Link;
+                                    const IconComponent = (Icons as any)[item.icon] || (Icons as any)[item.platform] || Icons.Link;
                                     return (
                                         <a 
                                             key={i} 
@@ -191,14 +196,101 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                         );
                     }
 
-                    if (block.type === 'separator') {
+                    if (block.type === 'localization') {
+                        const { provider, display_type, location_data, button_label } = block;
+                        
+                        // 🛠️ Smart Parsing: Extract Coords from Google Maps URL or raw text
+                        let lat: number | null = null;
+                        let lng: number | null = null;
+                        let isCoords = false;
+
+                        const gMatch = location_data.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                        const qMatch = location_data.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                        const rMatch = location_data.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+
+                        if (gMatch) { [lat, lng] = [parseFloat(gMatch[1]), parseFloat(gMatch[2])]; isCoords = true; }
+                        else if (qMatch) { [lat, lng] = [parseFloat(qMatch[1]), parseFloat(qMatch[2])]; isCoords = true; }
+                        else if (rMatch) { [lat, lng] = [parseFloat(rMatch[1]), parseFloat(rMatch[2])]; isCoords = true; }
+
+                        const encodedLocation = encodeURIComponent(location_data);
+                        let finalDisplayType = display_type;
+
+                        // 🛡️ Fallback: OSM requires coords for a reliable marker embed. 
+                        // If no coords and provider is OSM, fallback to button to avoid empty map.
+                        if (provider === 'openstreetmap' && !isCoords && display_type === 'map') {
+                            finalDisplayType = 'button';
+                        }
+
+                        if (finalDisplayType === 'map') {
+                            let iframeSrc = "";
+                            if (provider === 'google_maps') {
+                                iframeSrc = `https://maps.google.com/maps?q=${encodedLocation}&output=embed`;
+                            } else if (provider === 'openstreetmap' && isCoords) {
+                                // OSM Marker format with calculated bounding box
+                                const offset = 0.005;
+                                const bbox = `${lng! - offset}%2C${lat! - offset}%2C${lng! + offset}%2C${lat! + offset}`;
+                                iframeSrc = `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${lat}%2C${lng}&bbox=${bbox}`;
+                            } else if (provider === 'bing_maps') {
+                                // Bing officially uses 'cp' (center point) and 'pp' (pushpin) for precise location
+                                if (isCoords) {
+                                    iframeSrc = `https://www.bing.com/maps/embed?cp=${lat}~${lng}&lvl=15&typ=d&sty=r&src=SHELL&pp=${lat}~${lng}+++++`;
+                                } else {
+                                    iframeSrc = `https://www.bing.com/maps/embed?where1=${encodedLocation}&lvl=15&typ=d&sty=r&src=SHELL`;
+                                }
+                            }
+ 
+                            if (iframeSrc) {
+                                return (
+                                    <div key={idx} className="space-y-3">
+                                        <div className="w-full aspect-video rounded-3xl overflow-hidden shadow-xl border border-slate-100 dark:border-slate-800">
+                                            <iframe 
+                                                width="100%" 
+                                                height="100%" 
+                                                frameBorder="0" 
+                                                scrolling="no" 
+                                                src={iframeSrc}
+                                                title="Location Map"
+                                                allowFullScreen
+                                            />
+                                        </div>
+                                        {block.show_navigation_button && (
+                                            <a 
+                                                href={`https://www.google.com/maps/search/?api=1&query=${encodedLocation}`}
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className={`w-full py-5 px-6 rounded-[28px] font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 uppercase tracking-widest text-[10px] ${
+                                                    isDark ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'
+                                                }`}
+                                            >
+                                                <Icons.Navigation className="w-4 h-4" />
+                                                Lancer l'itinéraire
+                                            </a>
+                                        )}
+                                    </div>
+                                );
+                            }
+                        }
+
+                        // 🔘 Rendu Bouton (Direct redirection to native maps)
+                        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
                         return (
-                            <div key={idx} className="w-full py-4">
-                                {block.style === 'solid' && <div className={`h-[2px] w-full rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />}
-                                {block.style === 'dotted' && <div className={`h-0 w-full border-t-2 border-dotted ${isDark ? 'border-slate-800' : 'border-slate-300'}`} />}
-                                {block.style === 'spacer' && <div className="h-8" />}
-                            </div>
+                            <a 
+                                key={idx} 
+                                href={mapUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className={`w-full py-4 px-6 rounded-2xl font-black text-center transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-3 ${
+                                    isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900 border border-slate-100'
+                                }`}
+                            >
+                                <Icons.MapPin className="w-5 h-5 text-indigo-500" />
+                                {button_label || 'Itinéraire'}
+                            </a>
                         );
+                    }
+
+                    if (block.type === 'multiple_locations') {
+                        return <MultiSiteLocationBlock key={idx} block={block} isDark={isDark} />;
                     }
 
                     return null;

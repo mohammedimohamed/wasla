@@ -6,7 +6,7 @@ import {
     GripVertical, Palette, CheckCircle2, Loader2, 
     Search, MessageCircle, Linkedin, Facebook, 
     Instagram, Twitter, Mail, Phone, Link as LinkIcon,
-    UserPlus, ExternalLink, QrCode, Copy
+    UserPlus, ExternalLink, QrCode, Copy, MapPin, Map as MapIcon
 } from "lucide-react";
 import * as Icons from "lucide-react";
 import { DigitalProfileConfig } from "@/lib/schemas";
@@ -181,8 +181,21 @@ export function DigitalProfileBuilder({
         }
     };
 
-    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'rich_text' | 'file' | 'media' | 'separator') => {
-        const newBlock: any = { id: window.crypto.randomUUID(), type };
+    const getIconForService = (service: string) => {
+        const s = service.toLowerCase();
+        if (s.includes('whatsapp')) return Icons.MessageCircle;
+        if (s.includes('facebook')) return Icons.Facebook;
+        if (s.includes('linkedin')) return Icons.Linkedin;
+        if (s.includes('twitter') || s.includes(' x ')) return Icons.Twitter;
+        if (s.includes('instagram')) return Icons.Instagram;
+        if (s.includes('website') || s.includes('site')) return Icons.Globe;
+        if (s.includes('youtube')) return Icons.Youtube;
+        if (s.includes('github')) return Icons.Github;
+        return Icons.Link;
+    };
+
+    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'rich_text' | 'file' | 'media' | 'separator' | 'localization' | 'multiple_locations') => {
+        const newBlock: any = { id: window.crypto.randomUUID(), type, isVisible: true, visibleUntil: null };
         if (type === 'social_grid') newBlock.items = [];
         if (type === 'action_button') {
             newBlock.action = 'link';
@@ -203,6 +216,18 @@ export function DigitalProfileBuilder({
         }
         if (type === 'separator') {
             newBlock.style = 'solid';
+        }
+        if (type === 'localization') {
+            newBlock.provider = 'google_maps';
+            newBlock.display_type = 'map';
+            newBlock.location_data = '';
+            newBlock.button_label = 'Itinéraire';
+            newBlock.show_navigation_button = false;
+        }
+        if (type === 'multiple_locations') {
+            newBlock.provider = 'google_maps';
+            newBlock.layout = 'tabs';
+            newBlock.items = [{ id: window.crypto.randomUUID(), label: 'Showroom Principal', location_data: '', city: 'Alger' }];
         }
         
         setConfig({ ...config, blocks: [...config.blocks, newBlock] });
@@ -428,14 +453,24 @@ export function DigitalProfileBuilder({
                                                 <div 
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm relative group transition-colors"
+                                                    className={`bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm relative group transition-all duration-300 ${block.isVisible === false ? 'opacity-40 grayscale blur-[0.5px] scale-[0.99]' : ''}`}
                                                 >
-                                                    <button 
-                                                        onClick={() => removeBlock(idx)}
-                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-500 hover:text-white dark:hover:bg-red-500 z-10"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="absolute -top-2 -right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                        <button 
+                                                            onClick={() => updateBlock(idx, { isVisible: block.isVisible === false })}
+                                                            title={block.isVisible === false ? "Afficher le bloc" : "Masquer le bloc"}
+                                                            className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all ${block.isVisible === false ? 'bg-amber-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-400 hover:text-indigo-600'}`}
+                                                        >
+                                                            {block.isVisible === false ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => removeBlock(idx)}
+                                                            title="Supprimer le bloc"
+                                                            className="w-8 h-8 bg-white dark:bg-slate-800 text-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-500 hover:text-white transition-all"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                     
                                                     <div className="flex items-start gap-4">
                                                         <div 
@@ -446,13 +481,46 @@ export function DigitalProfileBuilder({
                                                         </div>
                                                         
                                                         <div className="flex-1 space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${block.isVisible === false ? 'bg-slate-200 text-slate-500' : 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'}`}>
+                                                                        {block.type.replace('_', ' ')}
+                                                                    </div>
+                                                                    {block.visibleUntil && (
+                                                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full border border-amber-500/20">
+                                                                            <Icons.Clock className="w-3 h-3" />
+                                                                            <span className="text-[8px] font-black uppercase tracking-tighter">Planifié</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex flex-col items-end gap-1.5">
+                                                                    <div className="flex items-center gap-1.5 group/info">
+                                                                        <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Afficher jusqu'au :</span>
+                                                                        <div className="relative">
+                                                                            <Icons.Info className="w-3 h-3 text-slate-300 dark:text-slate-600 cursor-help" />
+                                                                            <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-slate-950 text-white text-[9px] font-black rounded-xl opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none shadow-2xl z-30 text-center uppercase tracking-tighter border border-white/10">
+                                                                                Le bloc sera automatiquement masqué du profil public après cette date.
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all">
+                                                                        <Icons.Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                                                        <input 
+                                                                            type="datetime-local" 
+                                                                            value={block.visibleUntil ? new Date(block.visibleUntil).toISOString().slice(0, 16) : ''}
+                                                                            onChange={e => updateBlock(idx, { visibleUntil: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                                                            className="bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none focus:text-indigo-600 transition-colors"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                         {block.type === 'social_grid' && (
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Grille Réseaux Sociaux</span>
                                                     <button 
                                                         onClick={() => {
-                                                            const items = [...block.items, { platform: 'LinkedIn', url: 'https://', icon: 'Linkedin' }];
+                                                            const items = [...block.items, { platform: 'Site Web', url: 'https://', icon: 'Globe' }];
                                                             updateBlock(idx, { items });
                                                         }}
                                                         className="text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 flex items-center gap-1"
@@ -470,9 +538,9 @@ export function DigitalProfileBuilder({
                                                                      items[i].icon = e.target.value;
                                                                      updateBlock(idx, { items });
                                                                  }}
-                                                                 className="w-12 h-10 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 rounded-xl text-center flex items-center justify-center text-slate-600 dark:text-slate-400"
+                                                                 className="w-12 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-center flex items-center justify-center text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                                                              >
-                                                                 {COMMON_ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
+                                                                 {COMMON_ICONS.map(ic => <option key={ic} value={ic} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{ic}</option>)}
                                                              </select>
                                                              <input 
                                                                  value={item.url} 
@@ -705,6 +773,190 @@ export function DigitalProfileBuilder({
                                                 </div>
                                             </div>
                                         )}
+
+                                        {block.type === 'localization' && (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Localisation / Itinéraire</span>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Adresse ou Coordonnées (Lat,Lon)</label>
+                                                        <input 
+                                                            value={block.location_data} 
+                                                            onChange={e => updateBlock(idx, { location_data: e.target.value })}
+                                                            placeholder="Ex: Paris, France ou 48.8566,2.3522"
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Type d'affichage</label>
+                                                        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl">
+                                                            <button 
+                                                                onClick={() => updateBlock(idx, { display_type: 'map' })}
+                                                                className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all ${block.display_type === 'map' ? 'bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-400'}`}
+                                                            >
+                                                                Carte
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => updateBlock(idx, { display_type: 'button' })}
+                                                                className={`flex-1 py-2 text-[8px] font-black uppercase rounded-lg transition-all ${block.display_type === 'button' ? 'bg-white dark:bg-indigo-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-400'}`}
+                                                            >
+                                                                Bouton
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Fournisseur</label>
+                                                        <select 
+                                                            value={block.provider} 
+                                                            onChange={e => updateBlock(idx, { provider: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            <option value="google_maps">Google Maps</option>
+                                                            <option value="openstreetmap">OpenStreetMap</option>
+                                                            <option value="bing_maps">Bing Maps</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {block.display_type === 'button' && (
+                                                        <div className="col-span-2">
+                                                            <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Texte du bouton</label>
+                                                            <input 
+                                                                value={block.button_label} 
+                                                                onChange={e => updateBlock(idx, { button_label: e.target.value })}
+                                                                placeholder="Itinéraire"
+                                                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    {block.display_type === 'map' && (
+                                                        <div className="col-span-2 mt-2">
+                                                            <label className="flex items-center gap-3 cursor-pointer group p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all">
+                                                                <div className="relative">
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        checked={block.show_navigation_button} 
+                                                                        onChange={e => updateBlock(idx, { show_navigation_button: e.target.checked })}
+                                                                        className="sr-only peer" 
+                                                                    />
+                                                                    <div className="w-10 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:bg-indigo-600 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 shadow-inner"></div>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-wider">Bouton d'itinéraire</span>
+                                                                    <span className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase">Ajouter un raccourci de navigation</span>
+                                                                </div>
+                                                            </label>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {block.type === 'multiple_locations' && (
+                                            <div className="space-y-6">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Fournisseur Global</label>
+                                                        <select 
+                                                            value={block.provider} 
+                                                            onChange={e => updateBlock(idx, { provider: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-[10px] font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            <option value="google_maps">Google Maps</option>
+                                                            <option value="openstreetmap">OpenStreetMap</option>
+                                                            <option value="bing_maps">Bing Maps</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Style d'affichage</label>
+                                                        <select 
+                                                            value={block.layout} 
+                                                            onChange={e => updateBlock(idx, { layout: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-[10px] font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            <option value="tabs">Onglets + Carte</option>
+                                                            <option value="list">Liste de boutons</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Liste des sites</label>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const items = [...(block.items || []), { id: window.crypto.randomUUID(), label: 'Nouveau Site', location_data: '', city: '' }];
+                                                                updateBlock(idx, { items });
+                                                            }}
+                                                            className="text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5" /> Ajouter un lieu
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        {(block.items || []).map((item: any, i: number) => (
+                                                            <div key={item.id} className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-4 rounded-2xl relative group/item">
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    <div className="col-span-2">
+                                                                        <label className="text-[8px] font-black uppercase text-slate-400 mb-1 block">Nom du lieu (ex: Agence Oran)</label>
+                                                                        <input 
+                                                                            value={item.label} 
+                                                                            onChange={e => {
+                                                                                const items = [...block.items];
+                                                                                items[i].label = e.target.value;
+                                                                                updateBlock(idx, { items });
+                                                                            }}
+                                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 dark:text-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[8px] font-black uppercase text-slate-400 mb-1 block">Ville</label>
+                                                                        <input 
+                                                                            value={item.city || ''} 
+                                                                            onChange={e => {
+                                                                                const items = [...block.items];
+                                                                                items[i].city = e.target.value;
+                                                                                updateBlock(idx, { items });
+                                                                            }}
+                                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 dark:text-white"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[8px] font-black uppercase text-slate-400 mb-1 block">Adresse ou Coords</label>
+                                                                        <input 
+                                                                            value={item.location_data} 
+                                                                            onChange={e => {
+                                                                                const items = [...block.items];
+                                                                                items[i].location_data = e.target.value;
+                                                                                updateBlock(idx, { items });
+                                                                            }}
+                                                                            placeholder="Lat, Lng ou Adresse..."
+                                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-400 dark:text-white"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const items = [...block.items];
+                                                                        items.splice(i, 1);
+                                                                        updateBlock(idx, { items });
+                                                                    }}
+                                                                    className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover/item:opacity-100"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -736,8 +988,14 @@ export function DigitalProfileBuilder({
                         <button onClick={() => addBlock('separator')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Séparateur
                         </button>
-                        <button onClick={() => addBlock('file')} className="col-span-2 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
-                            <Plus className="w-4 h-4" /> Bloc Fichier (Catalogue)
+                        <button onClick={() => addBlock('file')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Bloc Fichier
+                        </button>
+                        <button onClick={() => addBlock('localization')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Localisation
+                        </button>
+                        <button onClick={() => addBlock('multiple_locations')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
+                            <Plus className="w-4 h-4" /> Multi-Sites
                         </button>
                     </div>
                 </div>
@@ -883,6 +1141,89 @@ export function DigitalProfileBuilder({
                                             {block.style === 'solid' && <div className={`h-px w-full ${config.theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`} />}
                                             {block.style === 'dotted' && <div className={`h-px w-full border-t border-dashed ${config.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`} />}
                                             {block.style === 'spacer' && <div className="h-4" />}
+                                        </div>
+                                    );
+                                }
+                                if (block.type === 'localization') {
+                                    const { provider, display_type, location_data, button_label } = block;
+                                    
+                                    // 🛠️ Smart Parsing for Preview
+                                    let lat: number | null = null;
+                                    let lng: number | null = null;
+                                    let isCoords = false;
+                                    const gMatch = location_data.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                    const qMatch = location_data.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                                    const rMatch = location_data.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+                                    if (gMatch) { [lat, lng] = [parseFloat(gMatch[1]), parseFloat(gMatch[2])]; isCoords = true; }
+                                    else if (qMatch) { [lat, lng] = [parseFloat(qMatch[1]), parseFloat(qMatch[2])]; isCoords = true; }
+                                    else if (rMatch) { [lat, lng] = [parseFloat(rMatch[1]), parseFloat(rMatch[2])]; isCoords = true; }
+
+                                    const isOSMWithoutCoords = provider === 'openstreetmap' && !isCoords;
+                                    const effectiveDisplayType = (isOSMWithoutCoords && display_type === 'map') ? 'button' : display_type;
+
+                                    let iframeSrc = "";
+                                    if (effectiveDisplayType === 'map' && location_data) {
+                                        const encodedLocation = encodeURIComponent(location_data);
+                                        if (provider === 'google_maps') {
+                                            iframeSrc = `https://maps.google.com/maps?q=${encodedLocation}&output=embed`;
+                                        } else if (provider === 'openstreetmap' && isCoords) {
+                                            const offset = 0.005;
+                                            const bbox = `${lng! - offset}%2C${lat! - offset}%2C${lng! + offset}%2C${lat! + offset}`;
+                                            iframeSrc = `https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=${lat}%2C${lng}&bbox=${bbox}`;
+                                        } else if (provider === 'bing_maps') {
+                                            if (isCoords) {
+                                                iframeSrc = `https://www.bing.com/maps/embed?cp=${lat}~${lng}&lvl=15&typ=d&sty=r&src=SHELL&pp=${lat}~${lng}+++++`;
+                                            } else {
+                                                iframeSrc = `https://www.bing.com/maps/embed?where1=${encodedLocation}&lvl=15&typ=d&sty=r&src=SHELL`;
+                                            }
+                                        }
+                                    }
+
+                                    return (
+                                        <div key={idx} className="py-1 space-y-2">
+                                            {effectiveDisplayType === 'map' && iframeSrc ? (
+                                                <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-white/5">
+                                                    <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={iframeSrc} allowFullScreen />
+                                                </div>
+                                            ) : (
+                                                <div className={`w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center shadow-md flex items-center justify-center gap-2 ${config.theme === 'dark' ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'}`}>
+                                                    <MapPin className="w-3 h-3 text-indigo-500" />
+                                                    {button_label || 'Itinéraire'}
+                                                </div>
+                                            )}
+                                            {effectiveDisplayType === 'map' && block.show_navigation_button && (
+                                                <div className={`w-full py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest text-center shadow-sm flex items-center justify-center gap-2 ${config.theme === 'dark' ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'}`}>
+                                                    <Icons.Navigation className="w-3 h-3" />
+                                                    Lancer l'itinéraire
+                                                </div>
+                                            )}
+                                            {isOSMWithoutCoords && display_type === 'map' && (
+                                                <p className="text-[7px] text-amber-500 font-bold uppercase mt-1 text-center">⚠️ OSM nécessite des coordonnées pour la carte.</p>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
+                                if (block.type === 'multiple_locations') {
+                                    return (
+                                        <div key={idx} className="space-y-3 py-2">
+                                            {block.title && <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">{block.title}</h3>}
+                                            
+                                            {block.layout === 'tabs' && (
+                                                <div className="w-full aspect-video rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 flex flex-col items-center justify-center gap-2 mb-2">
+                                                    <Icons.Map className="w-6 h-6 text-indigo-500 opacity-50" />
+                                                    <span className="text-[7px] font-black uppercase text-slate-400 tracking-tighter italic">Aperçu Multi-Sites ({block.items.length} points)</span>
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {(block.items || []).map((item: any, i: number) => (
+                                                    <div key={item.id} className={`p-3 rounded-2xl border flex flex-col gap-1 transition-all ${i === 0 ? 'bg-indigo-600 border-indigo-500 shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
+                                                        <span className={`text-[9px] font-black uppercase tracking-tight leading-none ${i === 0 ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{item.label}</span>
+                                                        {item.city && <span className={`text-[7px] font-bold uppercase ${i === 0 ? 'text-indigo-100' : 'text-slate-400'}`}>{item.city}</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     );
                                 }

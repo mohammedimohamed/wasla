@@ -24,7 +24,8 @@ import {
     HardDrive,
     LayoutTemplate,
     Sun,
-    Moon
+    Moon,
+    RefreshCw
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'react-hot-toast';
@@ -191,12 +192,25 @@ export default function Sidebar({ user, settings }: SidebarProps) {
                     </button>
                 </div>
                 
-                <div className="flex items-center gap-2 px-2">
-                    <div className="flex h-1.5 w-1.5 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                        <div className="flex h-1.5 w-1.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </div>
+                        <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">System Operational</span>
                     </div>
-                    <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">System Operational</span>
+
+                    <button 
+                        onClick={() => {
+                            import('@/lib/recovery').then(m => m.forceAppUpdate());
+                        }}
+                        className="flex items-center gap-1.5 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors group"
+                        title="Force update & clear cache"
+                    >
+                        <RefreshCw className="w-2.5 h-2.5 group-hover:rotate-180 transition-transform duration-500" />
+                        Actualiser
+                    </button>
                 </div>
             </div>
         </div>

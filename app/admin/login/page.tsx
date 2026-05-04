@@ -262,6 +262,15 @@ export default function AdminLoginPage() {
                         )
                     )}
                 </div>
+
+                <button
+                    onClick={() => {
+                        import('@/lib/recovery').then(m => m.forceAppUpdate());
+                    }}
+                    className="text-slate-400 dark:text-slate-600 text-[9px] hover:text-indigo-500 transition-colors uppercase tracking-widest font-black"
+                >
+                    Problème d'affichage ? Mettre à jour l'app
+                </button>
             </div>
         </div>
     );

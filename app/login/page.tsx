@@ -359,13 +359,24 @@ export default function LoginPage() {
                     )}
                 </div>
 
-                {/* Footer link to admin */}
-                <button
-                    onClick={() => router.push('/admin/login')}
-                    className="text-slate-600 text-xs hover:text-slate-400 transition-colors mt-4 uppercase tracking-widest font-bold"
-                >
-                    Accès Administrateur →
-                </button>
+                {/* Footer links */}
+                <div className="flex flex-col gap-4 mt-4">
+                    <button
+                        onClick={() => router.push('/admin/login')}
+                        className="text-slate-600 dark:text-slate-500 text-xs hover:text-slate-400 transition-colors uppercase tracking-widest font-bold"
+                    >
+                        Accès Administrateur →
+                    </button>
+                    
+                    <button
+                        onClick={() => {
+                            import('@/lib/recovery').then(m => m.forceAppUpdate());
+                        }}
+                        className="text-slate-400 dark:text-slate-600 text-[9px] hover:text-indigo-500 transition-colors uppercase tracking-widest font-black"
+                    >
+                        Problème d'affichage ? Mettre à jour l'app
+                    </button>
+                </div>
             </div>
         </div>
     );

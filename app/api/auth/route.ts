@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { userDb, auditTrail } from '@/lib/db';
 import { createSession, getSession } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 /**
  * 🔍 SESSION CHECK (GET)
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
             // 📑 Audit Trail
             auditTrail.logAction(user.id, 'LOGIN', 'USER', user.id, newPin ? `User defined initial PIN and logged in.` : `User logged in via password.`);
 
+            // 🛡️ Force clear server cache for this layout (mitigates stale JS bundles on client)
+            revalidatePath('/', 'layout');
+
             return NextResponse.json({
                 success: true,
                 user: {
@@ -134,6 +138,10 @@ export async function PUT(request: Request) {
                     teamId: user.team_id,
                     hasPin: true
                 });
+                
+                // 🛡️ Force clear server cache for this layout
+                revalidatePath('/', 'layout');
+
                 return NextResponse.json({ success: true, message: 'PIN Verified', user });
             }
             return NextResponse.json({ success: false, error: 'Invalid PIN' }, { status: 401 });
