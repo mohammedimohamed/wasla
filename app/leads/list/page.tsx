@@ -22,6 +22,7 @@ import {
 import toast from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
 import { useFormConfig, getTableFields, FormField } from "@/src/hooks/useFormConfig";
+import { Settings, Check, ListFilter } from "lucide-react";
 
 // TABLE_COLUMNS are now derived from the DB schema inside the component.
 
@@ -102,6 +103,8 @@ export default function LeadsListPage() {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [showDisabled, setShowDisabled] = useState(false);
+    const [showColumnSelector, setShowColumnSelector] = useState(false);
+    const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
 
     // 📊 DB-driven table columns
     const { config: formConfig } = useFormConfig();
@@ -116,10 +119,26 @@ export default function LeadsListPage() {
                     setUserRole(authData.user?.role || null);
                 }
             } catch (_) { }
+            
+            // Load column preferences
+            const saved = localStorage.getItem('wasla_leads_columns');
+            if (saved) {
+                setVisibleColumns(JSON.parse(saved));
+            } else {
+                // Default: all visible
+                setVisibleColumns(['source', 'form_version', 'score', 'created_at', 'created_by_name', 'sync_status', 'gold_promotion', 'actions']);
+            }
+            
             fetchLeads();
         };
         init();
     }, [showDisabled]);
+
+    useEffect(() => {
+        if (visibleColumns.length > 0) {
+            localStorage.setItem('wasla_leads_columns', JSON.stringify(visibleColumns));
+        }
+    }, [visibleColumns]);
 
     const fetchLeads = async () => {
         setLoading(true);
@@ -234,6 +253,45 @@ export default function LeadsListPage() {
 
     const isManager = userRole === 'ADMINISTRATOR';
 
+    // 🛡️ Fixed & Toggleable Column Definitions
+    const allSystemCols = [
+        { id: 'source', label: 'Source' },
+        { id: 'form_version', label: 'Version' },
+        { id: 'score', label: 'Score' },
+        { id: 'created_at', label: 'Date' },
+        { id: 'created_by_name', label: 'Auteur' },
+        { id: 'sync_status', label: 'Sync' },
+        { id: 'gold_promotion', label: 'Gold', managerOnly: true },
+        { id: 'actions', label: 'Actions', fixed: true, managerOnly: true },
+    ];
+
+    const getIsColumnVisible = (id: string) => {
+        // Dynamic columns are handled differently
+        const isDynamic = TABLE_COLUMNS.some(c => c.name === id);
+        if (isDynamic) {
+            // Check if it's the fixed "Nom" column
+            const isFixedName = id === 'name' || id === 'fullName' || id === 'nom' || id === 'contact';
+            if (isFixedName) return true;
+            
+            // For other dynamic columns, check state. 
+            // If state is empty (initial load), default to true.
+            if (visibleColumns.length === 0) return true;
+            return visibleColumns.includes(id);
+        }
+
+        // System columns
+        const sys = allSystemCols.find(c => c.id === id);
+        if (sys?.fixed) return true;
+        if (visibleColumns.length === 0) return true;
+        return visibleColumns.includes(id);
+    };
+
+    const toggleColumn = (id: string) => {
+        setVisibleColumns(prev => 
+            prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        );
+    };
+
     return (
         <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 min-h-screen">
 
@@ -309,7 +367,7 @@ export default function LeadsListPage() {
                         />
                     </div>
                     {/* Source Filter */}
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1">
                         {["all", "commercial", "kiosk", "qrcode"].map(f => (
                             <button
                                 key={f}
@@ -322,6 +380,82 @@ export default function LeadsListPage() {
                                 {f === "all" ? "Tous" : f}
                             </button>
                         ))}
+                    </div>
+
+                    {/* Column Selector */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowColumnSelector(!showColumnSelector)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                showColumnSelector 
+                                    ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-inner" 
+                                    : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-white/30 shadow-sm"
+                            }`}
+                        >
+                            <ListFilter className="w-4 h-4" />
+                            Colonnes
+                        </button>
+
+                        {showColumnSelector && (
+                            <>
+                                <div 
+                                    className="fixed inset-0 z-30" 
+                                    onClick={() => setShowColumnSelector(false)} 
+                                />
+                                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 z-40 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                                    <div className="p-4 border-b dark:border-white/10 bg-slate-50 dark:bg-white/5">
+                                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Affichage des colonnes</h3>
+                                    </div>
+                                    <div className="max-h-[400px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                                        {/* Dynamic Columns */}
+                                        <div className="px-2 py-2 text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Champs Formulaire</div>
+                                        {TABLE_COLUMNS.map(col => {
+                                            const isFixed = col.name === 'name' || col.name === 'fullName' || col.name === 'nom' || col.name === 'contact';
+                                            const isVisible = getIsColumnVisible(col.name);
+                                            return (
+                                                <button
+                                                    key={col.name}
+                                                    disabled={isFixed}
+                                                    onClick={() => toggleColumn(col.name)}
+                                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                                        isFixed ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                                    }`}
+                                                >
+                                                    <span className={isVisible ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-600'}>
+                                                        {col.label}
+                                                    </span>
+                                                    {isVisible && <Check className="w-4 h-4 text-indigo-500" />}
+                                                </button>
+                                            );
+                                        })}
+                                        
+                                        <div className="h-px bg-slate-100 dark:bg-white/10 my-2 mx-2" />
+                                        
+                                        {/* System Columns */}
+                                        <div className="px-2 py-2 text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Champs Système</div>
+                                        {allSystemCols.map(col => {
+                                            if (col.managerOnly && !isManager) return null;
+                                            const isVisible = getIsColumnVisible(col.id);
+                                            return (
+                                                <button
+                                                    key={col.id}
+                                                    disabled={col.fixed}
+                                                    onClick={() => toggleColumn(col.id)}
+                                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                                        col.fixed ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                                    }`}
+                                                >
+                                                    <span className={isVisible ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-600'}>
+                                                        {col.label}
+                                                    </span>
+                                                    {isVisible && <Check className="w-4 h-4 text-indigo-500" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -344,10 +478,10 @@ export default function LeadsListPage() {
                                 <thead>
                                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-white/5">
                                         {/* System columns */}
-                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
-                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Version</th>
+                                        {getIsColumnVisible('source') && <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>}
+                                        {getIsColumnVisible('form_version') && <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Version</th>}
                                         {/* Schema-driven columns from formSchema */}
-                                        {TABLE_COLUMNS.map(col => (
+                                        {TABLE_COLUMNS.map(col => getIsColumnVisible(col.name) && (
                                             <th
                                                 key={col.name}
                                                 className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap"
@@ -357,14 +491,14 @@ export default function LeadsListPage() {
                                             </th>
                                         ))}
                                         {/* Trailing columns */}
-                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Score</th>
-                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Date</th>
-                                        <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Auteur</th>
-                                        <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sync</th>
-                                        {isManager && (
+                                        {getIsColumnVisible('score') && <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Score</th>}
+                                        {getIsColumnVisible('created_at') && <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Date</th>}
+                                        {getIsColumnVisible('created_by_name') && <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">Auteur</th>}
+                                        {getIsColumnVisible('sync_status') && <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sync</th>}
+                                        {isManager && getIsColumnVisible('gold_promotion') && (
                                             <th className="px-6 py-5 text-right text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-widest">{t('intelligence.promoteToGold') || "Gold"}</th>
                                         )}
-                                        {isManager && (
+                                        {isManager && getIsColumnVisible('actions') && (
                                             <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
                                         )}
                                     </tr>
@@ -387,91 +521,95 @@ export default function LeadsListPage() {
                                                 className="hover:bg-indigo-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors group"
                                             >
                                                 {/* Source badge */}
-                                                <td className="px-6 py-5 whitespace-nowrap">
-                                                    {getSourceBadge(lead.source)}
-                                                </td>
+                                                {getIsColumnVisible('source') && (
+                                                    <td className="px-6 py-5 whitespace-nowrap">
+                                                        {getSourceBadge(lead.source)}
+                                                    </td>
+                                                )}
 
                                                 {/* Form version badge */}
-                                                <td className="px-6 py-5 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase border border-slate-200 dark:border-white/10">
-                                                        v{lead.form_version || 1}
-                                                    </span>
-                                                </td>
+                                                {getIsColumnVisible('form_version') && (
+                                                    <td className="px-6 py-5 whitespace-nowrap">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase border border-slate-200 dark:border-white/10">
+                                                            v{lead.form_version || 1}
+                                                        </span>
+                                                    </td>
+                                                )}
 
                                                 {/* Dynamic schema-driven columns */}
-                                                {TABLE_COLUMNS.map(col => {
-                                                    const value = getCellValue(col, meta);
-                                                    const isArray = col.type === 'multiselect' || col.type === 'chip-group';
-
-                                                    // Check if this is the 'name' column to attach multi-identity badge
-                                                    const isNameCol = col.name === 'name' || col.name === 'fullName';
-
-                                                    return (
-                                                        <td
-                                                            key={col.name}
-                                                            className="px-6 py-5 max-w-[220px]"
-                                                        >
-                                                            {isArray ? (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {(Array.isArray(meta[col.name]) ? meta[col.name] : [])
-                                                                        .slice(0, 3)
-                                                                        .map((v: string) => (
-                                                                            <span key={v} className="inline-block px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-md">
-                                                                                {v}
-                                                                            </span>
-                                                                        ))
-                                                                    }
-                                                                    {Array.isArray(meta[col.name]) && meta[col.name].length > 3 && (
-                                                                        <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-md">
-                                                                            +{meta[col.name].length - 3}
+                                                {TABLE_COLUMNS.map(col => getIsColumnVisible(col.name) && (
+                                                    <td
+                                                        key={col.name}
+                                                        className="px-6 py-5 max-w-[220px]"
+                                                    >
+                                                        {col.type === 'multiselect' || col.type === 'chip-group' ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {(Array.isArray(meta[col.name]) ? meta[col.name] : [])
+                                                                    .slice(0, 3)
+                                                                    .map((v: string) => (
+                                                                        <span key={v} className="inline-block px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-md">
+                                                                            {v}
                                                                         </span>
-                                                                    )}
-                                                                    {(!Array.isArray(meta[col.name]) || meta[col.name].length === 0) && (
-                                                                        <span className="text-slate-300 dark:text-slate-700 text-xs">—</span>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="font-bold text-slate-700 dark:text-slate-300 truncate flex items-center gap-2" title={value}>
-                                                                    {value}
-                                                                    {isNameCol && isGoldenRecord && (
-                                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-md text-[9px] font-black animate-pulse">
-                                                                            <Link2 className="w-2.5 h-2.5" />
-                                                                            +{multiCount - 2}
-                                                                        </span>
-                                                                    )}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                    );
-                                                })}
+                                                                    ))
+                                                                }
+                                                                {Array.isArray(meta[col.name]) && meta[col.name].length > 3 && (
+                                                                    <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-md">
+                                                                        +{meta[col.name].length - 3}
+                                                                    </span>
+                                                                )}
+                                                                {(!Array.isArray(meta[col.name]) || meta[col.name].length === 0) && (
+                                                                    <span className="text-slate-300 dark:text-slate-700 text-xs">—</span>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="font-bold text-slate-700 dark:text-slate-300 truncate flex items-center gap-2" title={getCellValue(col, meta)}>
+                                                                {getCellValue(col, meta)}
+                                                                {(col.name === 'name' || col.name === 'fullName' || col.name === 'nom' || col.name === 'contact') && isGoldenRecord && (
+                                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-md text-[9px] font-black animate-pulse">
+                                                                        <Link2 className="w-2.5 h-2.5" />
+                                                                        +{multiCount - 2}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                ))}
 
                                                 {/* Score badge */}
-                                                <td className="px-6 py-5 whitespace-nowrap">
-                                                    <span className="inline-flex flex-col gap-0.5">
-                                                        <span className="font-black text-slate-800 dark:text-slate-200">{lead.score || 0} pts</span>
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${lead.quality_score && lead.quality_score < 50 ? 'text-rose-500' : 'text-emerald-500'}`}>Anti-Fraude: {lead.quality_score || 100}%</span>
-                                                    </span>
-                                                </td>
+                                                {getIsColumnVisible('score') && (
+                                                    <td className="px-6 py-5 whitespace-nowrap">
+                                                        <span className="inline-flex flex-col gap-0.5">
+                                                            <span className="font-black text-slate-800 dark:text-slate-200">{lead.score || 0} pts</span>
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${lead.quality_score && lead.quality_score < 50 ? 'text-rose-500' : 'text-emerald-500'}`}>Anti-Fraude: {lead.quality_score || 100}%</span>
+                                                        </span>
+                                                    </td>
+                                                )}
 
                                                 {/* Date */}
-                                                <td className="px-6 py-5 text-slate-400 text-xs whitespace-nowrap">
-                                                    {new Date(lead.created_at).toLocaleDateString('fr-FR', {
-                                                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                                                    })}
-                                                </td>
+                                                {getIsColumnVisible('created_at') && (
+                                                    <td className="px-6 py-5 text-slate-400 text-xs whitespace-nowrap">
+                                                        {new Date(lead.created_at).toLocaleDateString('fr-FR', {
+                                                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                                                        })}
+                                                    </td>
+                                                )}
 
                                                 {/* Author */}
-                                                <td className="px-6 py-5 text-slate-500 dark:text-slate-400 text-xs font-bold whitespace-nowrap">
-                                                    {lead.created_by_name || "Système"}
-                                                </td>
+                                                {getIsColumnVisible('created_by_name') && (
+                                                    <td className="px-6 py-5 text-slate-500 dark:text-slate-400 text-xs font-bold whitespace-nowrap">
+                                                        {lead.created_by_name || "Système"}
+                                                    </td>
+                                                )}
 
                                                 {/* Sync status */}
-                                                <td className="px-6 py-5 text-center">
-                                                    {getStatusIcon(lead.sync_status)}
-                                                </td>
+                                                {getIsColumnVisible('sync_status') && (
+                                                    <td className="px-6 py-5 text-center">
+                                                        {getStatusIcon(lead.sync_status)}
+                                                    </td>
+                                                )}
 
                                                 {/* Promote to Gold */}
-                                                {isManager && (
+                                                {isManager && getIsColumnVisible('gold_promotion') && (
                                                     <td className="px-6 py-5 text-right">
                                                         {(!isGoldenRecord && meta._is_golden !== true) ? (
                                                             <button 
@@ -490,7 +628,7 @@ export default function LeadsListPage() {
                                                 )}
 
                                                 {/* Status Toggle */}
-                                                {isManager && (
+                                                {isManager && getIsColumnVisible('actions') && (
                                                     <td className="px-6 py-5 text-center">
                                                         <button
                                                             onClick={(e) => handleToggleStatus(lead.id, lead.status, e)}

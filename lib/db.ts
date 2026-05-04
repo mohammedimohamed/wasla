@@ -544,7 +544,6 @@ export const leadsDb = {
         let filter = ` WHERE tenant_id = ? AND ${periodFilter} AND (status = 'active' OR status IS NULL)`;
         
         const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
-        const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
 
         if (user.role === 'SALES_AGENT') {
             filter += " AND created_by = ?";
