@@ -12,7 +12,7 @@ export const getPublicUploadDir = (subDir: string = ''): string => {
     const root = process.cwd();
 
     // 1. Resolve the base 'public' directory
-    let publicBase = path.join(root, 'public');
+    let publicBase = path.join(root, 'public');//...
 
     if (isProd) {
         // When running `node .next/standalone/server.js` from the project root,
@@ -47,7 +47,7 @@ export const getPublicUploadDir = (subDir: string = ''): string => {
  */
 export const deleteFile = (urlPath: string) => {
     const root = process.cwd();
-    
+
     // Check root public
     const rootPath = path.join(root, 'public', urlPath);
     if (fs.existsSync(rootPath)) {
