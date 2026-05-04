@@ -64,6 +64,7 @@ export default function Sidebar({ user, settings }: SidebarProps) {
 
     const navigation: SidebarItem[] = [
         { label: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
+        { label: 'Leads', icon: Database, href: '/leads/list' },
         { label: 'Intelligence', icon: Brain, href: '/admin/intelligence', roles: ['ADMINISTRATOR'] },
         { label: 'Golden Records', icon: Trophy, href: '/admin/golden-records' },
         { label: 'Teams', icon: Users, href: '/admin/teams', roles: ['ADMINISTRATOR', 'TEAM_LEADER'] },
