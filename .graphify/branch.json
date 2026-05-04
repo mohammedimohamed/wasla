@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "branchName": "SMOFE",
+  "worktreePath": "C:\\source\\repos\\perso\\WASLA\\smofe",
+  "upstream": "origin/SMOFE",
+  "mergeBase": "854215571c736b1a6580de13f13262c13fda3fdd",
+  "firstSeenHead": "854215571c736b1a6580de13f13262c13fda3fdd",
+  "lastSeenHead": "854215571c736b1a6580de13f13262c13fda3fdd",
+  "lastAnalyzedHead": "854215571c736b1a6580de13f13262c13fda3fdd",
+  "stale": false,
+  "staleReason": null,
+  "staleSince": null,
+  "lifecycleEvent": null,
+  "createdAt": "2026-05-04T12:08:05.787Z",
+  "updatedAt": "2026-05-04T12:25:05.706Z"
+}

@@ -10,8 +10,9 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('social_grid'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             items: z.array(z.object({
-                platform: z.string(),
+                label: z.string().min(1),
                 url: z.string().url(),
                 icon: z.string()
             }))
@@ -21,6 +22,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('action_button'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             action: z.enum(['call', 'save_vcard', 'email', 'link']),
             label: z.string(),
             value: z.string().optional()
@@ -30,6 +32,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('free_text'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             content: z.string()
         }),
         z.object({
@@ -37,6 +40,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('rich_text'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             content: z.string()
         }),
         z.object({
@@ -44,6 +48,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('file'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             fileUrl: z.string(),
             label: z.string(),
             buttonColor: z.string().optional(),
@@ -55,6 +60,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('media'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             items: z.array(z.object({
                 url: z.string(),
                 type: z.enum(['image', 'video']),
@@ -65,6 +71,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('separator'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             style: z.enum(['solid', 'dotted', 'spacer']),
         }),
         z.object({
@@ -72,6 +79,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('localization'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             provider: z.enum(['google_maps', 'openstreetmap', 'bing_maps']),
             display_type: z.enum(['map', 'button']),
             location_data: z.string(),
@@ -83,6 +91,7 @@ export const digitalProfileConfigSchema = z.object({
             type: z.literal('multiple_locations'),
             isVisible: z.boolean().optional().default(true),
             visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
             title: z.string().optional(),
             layout: z.enum(['tabs', 'list']),
             provider: z.enum(['google_maps', 'openstreetmap', 'bing_maps']),
@@ -93,6 +102,18 @@ export const digitalProfileConfigSchema = z.object({
                 city: z.string().optional(),
                 provider_override: z.enum(['google_maps', 'openstreetmap', 'bing_maps']).optional(),
             })).default([]),
+        }),
+        z.object({
+            id: z.string(),
+            type: z.literal('announcement_toaster'),
+            isVisible: z.boolean().optional().default(true),
+            visibleUntil: z.string().datetime().optional().nullable(),
+            isGlobal: z.boolean().optional().default(false),
+            message: z.string(),
+            icon: z.string().optional(),
+            image_url: z.string().optional().nullable(),
+            position: z.enum(['top', 'bottom']).default('bottom'),
+            style: z.enum(['info', 'warning', 'urgent', 'event']).default('info'),
         }),
     ])).default([])
 });

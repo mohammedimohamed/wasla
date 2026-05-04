@@ -194,7 +194,7 @@ export function DigitalProfileBuilder({
         return Icons.Link;
     };
 
-    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'rich_text' | 'file' | 'media' | 'separator' | 'localization' | 'multiple_locations') => {
+    const addBlock = (type: 'social_grid' | 'action_button' | 'free_text' | 'rich_text' | 'file' | 'media' | 'separator' | 'localization' | 'multiple_locations' | 'announcement_toaster') => {
         const newBlock: any = { id: window.crypto.randomUUID(), type, isVisible: true, visibleUntil: null };
         if (type === 'social_grid') newBlock.items = [];
         if (type === 'action_button') {
@@ -228,6 +228,12 @@ export function DigitalProfileBuilder({
             newBlock.provider = 'google_maps';
             newBlock.layout = 'tabs';
             newBlock.items = [{ id: window.crypto.randomUUID(), label: 'Showroom Principal', location_data: '', city: 'Alger' }];
+        }
+        if (type === 'announcement_toaster') {
+            newBlock.message = 'Nouvelle annonce importante !';
+            newBlock.position = 'bottom';
+            newBlock.style = 'info';
+            newBlock.icon = 'Zap';
         }
         
         setConfig({ ...config, blocks: [...config.blocks, newBlock] });
@@ -453,8 +459,17 @@ export function DigitalProfileBuilder({
                                                 <div 
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    className={`bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm relative group transition-all duration-300 ${block.isVisible === false ? 'opacity-40 grayscale blur-[0.5px] scale-[0.99]' : ''}`}
+                                                    className={`bg-white dark:bg-slate-900/40 border-2 rounded-[28px] p-6 shadow-sm relative group transition-all duration-300 ${
+                                                        block.isGlobal 
+                                                            ? 'border-amber-400/50 dark:border-amber-500/30 bg-amber-50/10 dark:bg-amber-900/5' 
+                                                            : 'border-slate-200 dark:border-white/5'
+                                                    } ${block.isVisible === false ? 'opacity-40 grayscale blur-[0.5px] scale-[0.99]' : ''}`}
                                                 >
+                                                    {block.isGlobal && (
+                                                        <div className="absolute -top-3 left-8 bg-amber-500 text-white text-[8px] font-black px-3 py-1 rounded-full shadow-lg border border-amber-400 uppercase tracking-widest z-10">
+                                                            🌍 Bloc Global Corporate
+                                                        </div>
+                                                    )}
                                                     <div className="absolute -top-2 -right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                         <button 
                                                             onClick={() => updateBlock(idx, { isVisible: block.isVisible === false })}
@@ -493,34 +508,53 @@ export function DigitalProfileBuilder({
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex flex-col items-end gap-1.5">
-                                                                    <div className="flex items-center gap-1.5 group/info">
-                                                                        <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Afficher jusqu'au :</span>
-                                                                        <div className="relative">
-                                                                            <Icons.Info className="w-3 h-3 text-slate-300 dark:text-slate-600 cursor-help" />
-                                                                            <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-slate-950 text-white text-[9px] font-black rounded-xl opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none shadow-2xl z-30 text-center uppercase tracking-tighter border border-white/10">
-                                                                                Le bloc sera automatiquement masqué du profil public après cette date.
+                                                                <div className="flex flex-col items-end gap-2">
+                                                                    <div className="flex flex-col items-end gap-1">
+                                                                        <div className="flex items-center gap-1.5 group/info">
+                                                                            <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Afficher jusqu'au :</span>
+                                                                            <div className="relative">
+                                                                                <Icons.Info className="w-3 h-3 text-slate-300 dark:text-slate-600 cursor-help" />
+                                                                                <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-slate-950 text-white text-[9px] font-black rounded-xl opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none shadow-2xl z-30 text-center uppercase tracking-tighter border border-white/10">
+                                                                                    Le bloc sera automatiquement masqué du profil public après cette date.
+                                                                                </div>
                                                                             </div>
                                                                         </div>
+                                                                        <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all">
+                                                                            <Icons.Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                                                            <input 
+                                                                                type="datetime-local" 
+                                                                                value={block.visibleUntil ? new Date(block.visibleUntil).toISOString().slice(0, 16) : ''}
+                                                                                onChange={e => updateBlock(idx, { visibleUntil: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                                                                className="bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none focus:text-indigo-600 transition-colors"
+                                                                            />
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all">
-                                                                        <Icons.Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                                                                        <input 
-                                                                            type="datetime-local" 
-                                                                            value={block.visibleUntil ? new Date(block.visibleUntil).toISOString().slice(0, 16) : ''}
-                                                                            onChange={e => updateBlock(idx, { visibleUntil: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                                                                            className="bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none focus:text-indigo-600 transition-colors"
-                                                                        />
-                                                                    </div>
+                                                                    
+                                                                    {isEnterpriseDefault && (
+                                                                        <label className="flex items-center gap-3 cursor-pointer group/global p-2 bg-amber-500/10 dark:bg-amber-500/5 rounded-xl border border-amber-500/20 hover:border-amber-500/40 transition-all">
+                                                                            <div className="relative">
+                                                                                <input 
+                                                                                    type="checkbox" 
+                                                                                    checked={block.isGlobal} 
+                                                                                    onChange={e => updateBlock(idx, { isGlobal: e.target.checked })}
+                                                                                    className="sr-only peer" 
+                                                                                />
+                                                                                <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:bg-amber-500 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4 shadow-inner"></div>
+                                                                            </div>
+                                                                            <span className="text-[8px] font-black uppercase text-amber-600 dark:text-amber-500 tracking-widest">Rendre Global</span>
+                                                                        </label>
+                                                                    )}
                                                                 </div>
                                                             </div>
+                                                        </div>
+                                                    </div>
                                         {block.type === 'social_grid' && (
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Grille Réseaux Sociaux</span>
                                                     <button 
                                                         onClick={() => {
-                                                            const items = [...block.items, { platform: 'Site Web', url: 'https://', icon: 'Globe' }];
+                                                            const items = [...block.items, { label: 'Facebook', url: 'https://', icon: 'Facebook' }];
                                                             updateBlock(idx, { items });
                                                         }}
                                                         className="text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 flex items-center gap-1"
@@ -528,39 +562,54 @@ export function DigitalProfileBuilder({
                                                         <Plus className="w-3 h-3" /> Ajouter
                                                     </button>
                                                 </div>
-                                                <div className="space-y-3">
+                                                <div className="space-y-2">
                                                     {block.items.map((item, i) => (
-                                                        <div key={i} className="flex gap-2 items-center">
-                                                             <select 
-                                                                 value={item.icon} 
-                                                                 onChange={e => {
-                                                                     const items = [...block.items];
-                                                                     items[i].icon = e.target.value;
-                                                                     updateBlock(idx, { items });
-                                                                 }}
-                                                                 className="w-12 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-center flex items-center justify-center text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                                                             >
-                                                                 {COMMON_ICONS.map(ic => <option key={ic} value={ic} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{ic}</option>)}
-                                                             </select>
-                                                             <input 
-                                                                 value={item.url} 
-                                                                 onChange={e => {
-                                                                     const items = [...block.items];
-                                                                     items[i].url = e.target.value;
-                                                                     updateBlock(idx, { items });
-                                                                 }}
-                                                                 placeholder="https://..."
-                                                                 className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
-                                                             />
+                                                        <div key={i} className="grid grid-cols-[40px_1fr_1fr_28px] gap-2 items-center">
+                                                            {/* Col 1 — Icône */}
+                                                            <select 
+                                                                value={item.icon} 
+                                                                onChange={e => {
+                                                                    const items = [...block.items];
+                                                                    items[i].icon = e.target.value;
+                                                                    updateBlock(idx, { items });
+                                                                }}
+                                                                className="h-9 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-center text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[10px]"
+                                                                style={{ colorScheme: 'dark' }}
+                                                            >
+                                                                {COMMON_ICONS.map(ic => <option key={ic} value={ic} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{ic}</option>)}
+                                                            </select>
+                                                            {/* Col 2 — Label affiché */}
+                                                            <input 
+                                                                value={(item as any).label ?? (item as any).platform ?? ''} 
+                                                                onChange={e => {
+                                                                    const items = [...block.items];
+                                                                    items[i].label = e.target.value;
+                                                                    updateBlock(idx, { items });
+                                                                }}
+                                                                placeholder="Nom à afficher"
+                                                                className="h-9 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-2 py-1 rounded-xl text-xs font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                            />
+                                                            {/* Col 3 — URL */}
+                                                            <input 
+                                                                value={item.url} 
+                                                                onChange={e => {
+                                                                    const items = [...block.items];
+                                                                    items[i].url = e.target.value;
+                                                                    updateBlock(idx, { items });
+                                                                }}
+                                                                placeholder="https://..."
+                                                                className="h-9 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-2 py-1 rounded-xl text-xs font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                            />
+                                                            {/* Col 4 — Supprimer */}
                                                             <button 
                                                                 onClick={() => {
                                                                     const items = [...block.items];
                                                                     items.splice(i, 1);
                                                                     updateBlock(idx, { items });
                                                                 }}
-                                                                className="text-red-300 hover:text-red-500"
+                                                                className="text-red-300 hover:text-red-500 flex items-center justify-center"
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     ))}
@@ -857,6 +906,64 @@ export function DigitalProfileBuilder({
                                             </div>
                                         )}
 
+                                        {block.type === 'announcement_toaster' && (
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Message de l'annonce</label>
+                                                        <input 
+                                                            value={block.message} 
+                                                            onChange={e => updateBlock(idx, { message: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Position</label>
+                                                        <select 
+                                                            value={block.position} 
+                                                            onChange={e => updateBlock(idx, { position: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            <option value="top">Haut de l'écran</option>
+                                                            <option value="bottom">Bas de l'écran</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Style</label>
+                                                        <select 
+                                                            value={block.style} 
+                                                            onChange={e => updateBlock(idx, { style: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            <option value="info">Information (Indigo)</option>
+                                                            <option value="warning">Attention (Ambre)</option>
+                                                            <option value="urgent">Urgent (Rouge)</option>
+                                                            <option value="event">Batimatec Event (Glass)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">URL de l'image (Vignette)</label>
+                                                        <input 
+                                                            value={block.image_url || ''} 
+                                                            onChange={e => updateBlock(idx, { image_url: e.target.value })}
+                                                            placeholder="https://..."
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:border-indigo-300 dark:focus:border-indigo-500 dark:text-white"
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="text-[9px] font-black uppercase text-slate-400 mb-1 block">Icône (Fallback)</label>
+                                                        <select 
+                                                            value={block.icon} 
+                                                            onChange={e => updateBlock(idx, { icon: e.target.value })}
+                                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/10 px-4 py-2.5 rounded-xl text-xs font-black outline-none appearance-none dark:text-white"
+                                                        >
+                                                            {COMMON_ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {block.type === 'multiple_locations' && (
                                             <div className="space-y-6">
                                                 <div className="grid grid-cols-2 gap-3">
@@ -958,9 +1065,7 @@ export function DigitalProfileBuilder({
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            </div>
-                        )}
+                                )}
                     </Draggable>
                 ))}
                 {provided.placeholder}
@@ -997,6 +1102,11 @@ export function DigitalProfileBuilder({
                         <button onClick={() => addBlock('multiple_locations')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-500 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-2xl transition-all font-black text-[10px] uppercase">
                             <Plus className="w-4 h-4" /> Multi-Sites
                         </button>
+                        {isEnterpriseDefault && (
+                            <button onClick={() => addBlock('announcement_toaster')} className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-amber-200 dark:border-amber-500/20 text-amber-500/70 hover:border-amber-500 hover:text-amber-500 rounded-2xl transition-all font-black text-[10px] uppercase bg-amber-50/10">
+                                <Icons.Zap className="w-4 h-4" /> Global Toaster
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1056,7 +1166,7 @@ export function DigitalProfileBuilder({
                                                 return (
                                                     <div key={i} className={`flex flex-col items-center justify-center p-3 rounded-2xl shadow-sm ${config.theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
                                                         <IconComponent className="w-4 h-4 mb-1 text-indigo-500" />
-                                                        <span className="text-[7px] font-black uppercase tracking-wider opacity-40 truncate w-full text-center">{item.platform}</span>
+                                                        <span className="text-[7px] font-black uppercase tracking-wider opacity-40 truncate w-full text-center">{(item as any).label || (item as any).platform || item.icon}</span>
                                                     </div>
                                                 );
                                             })}

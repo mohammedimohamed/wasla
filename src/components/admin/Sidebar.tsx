@@ -173,8 +173,8 @@ export default function Sidebar({ user, settings }: SidebarProps) {
                     </div>
                 </button>
 
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 mb-3">
-                    <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5">
+                    <div className="flex items-center gap-3 p-2">
                         <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-white/5 shadow-inner">
                             {user.name.charAt(0).toUpperCase()}
                         </div>
@@ -183,16 +183,30 @@ export default function Sidebar({ user, settings }: SidebarProps) {
                             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter truncate">{user.role}</p>
                         </div>
                     </div>
+                    
+                    <button
+                        onClick={() => {
+                            if (confirm('Voulez-vous actualiser le système ? Cela videra le cache local pour résoudre les éventuels problèmes d\'affichage.')) {
+                                require('@/lib/recovery').forceAppUpdate();
+                            }
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-2xl transition-all group"
+                    >
+                        <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                        <span className="text-sm font-medium">Actualiser le système</span>
+                    </button>
+
                     <button 
                         onClick={handleLogout}
-                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
                         title="Sign Out"
                     >
                         <LogOut className="w-4 h-4" />
+                        <span className="text-sm font-medium">Déconnexion</span>
                     </button>
                 </div>
-                
-                <div className="flex items-center justify-between px-2">
+
+                <div className="flex flex-col gap-2 px-2 mt-4">
                     <div className="flex items-center gap-2">
                         <div className="flex h-1.5 w-1.5 relative">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -200,17 +214,6 @@ export default function Sidebar({ user, settings }: SidebarProps) {
                         </div>
                         <span className="text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">System Operational</span>
                     </div>
-
-                    <button 
-                        onClick={() => {
-                            import('@/lib/recovery').then(m => m.forceAppUpdate());
-                        }}
-                        className="flex items-center gap-1.5 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors group"
-                        title="Force update & clear cache"
-                    >
-                        <RefreshCw className="w-2.5 h-2.5 group-hover:rotate-180 transition-transform duration-500" />
-                        Actualiser
-                    </button>
                 </div>
             </div>
         </div>

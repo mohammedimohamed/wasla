@@ -9,6 +9,7 @@ import { Slideshow } from '@/src/components/Slideshow';
 import { AnalyticsTracker } from '@/src/components/AnalyticsTracker';
 import { FileDownloadBlock } from '@/src/components/FileDownloadBlock';
 import { MultiSiteLocationBlock } from '@/src/components/MultiSiteLocationBlock';
+import { GlobalToaster } from '@/src/components/GlobalToaster';
 
 interface PublicProfilePageProps {
     params: Promise<{ profile_slug: string }>;
@@ -50,12 +51,32 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         ? JSON.parse(user.profile_config) 
         : { theme: 'light', blocks: [] };
 
+    // 🧬 Corporate Heritage: Inject Global Blocks
+    const corporateProfile = userDb.findEnterpriseDefault();
+    let globalBlocks: any[] = [];
+    if (corporateProfile && corporateProfile.id !== user.id) {
+        const corpConfig = corporateProfile.profile_config ? JSON.parse(corporateProfile.profile_config) : { blocks: [] };
+        globalBlocks = (corpConfig.blocks || []).filter((b: any) => b.isGlobal && b.isVisible !== false);
+    }
+
+    // 🧱 Combine Blocks (Global first, then Agent)
+    const agentBlocks = config.blocks || [];
+    const allBlocks = [...globalBlocks, ...agentBlocks];
+
+    // 🍞 Separate Toasters (Announcement Toaster)
+    const toasterBlocks = allBlocks.filter(b => b.type === 'announcement_toaster');
+    const contentBlocks = allBlocks.filter(b => b.type !== 'announcement_toaster');
     const isDark = config.theme === 'dark';
 
     return (
         <div className={`min-h-screen flex flex-col items-center p-6 transition-colors duration-500 ${isDark ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
             <AnalyticsTracker resourceId={user.id} />
             
+            {/* 🍞 Global Toasters */}
+            {toasterBlocks.map((block: any, idx: number) => (
+                <GlobalToaster key={block.id || idx} block={block} isDark={isDark} />
+            ))}
+
             {/* 🏢 Company Header */}
             <header className="w-full flex justify-center mb-10">
                 {settings.logo_url && settings.logo_url !== 'null' ? (
@@ -91,16 +112,20 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
             {/* 🧱 Dynamic Blocks */}
             <div className="w-full max-w-md space-y-4 mb-24">
-                {config.blocks.filter(b => {
+                {contentBlocks.filter(b => {
                     if (b.isVisible === false) return false;
                     if (b.visibleUntil && new Date(b.visibleUntil) < new Date()) return false;
                     return true;
-                }).map((block, idx) => {
+                }).map((block: any, idx: number) => {
+                    const isGlobal = block.isGlobal;
                     if (block.type === 'social_grid') {
                         return (
                             <div key={idx} className="grid grid-cols-3 gap-4 py-2">
-                                {block.items.map((item, i) => {
-                                    const IconComponent = (Icons as any)[item.icon] || (Icons as any)[item.platform] || Icons.Link;
+                                {block.items.map((item: any, i: number) => {
+                                    // Direct icon resolution — no guessing
+                                    const IconComponent = (Icons as any)[item.icon] || Icons.Link;
+                                    // Migration fallback: use icon name if label is missing (old data)
+                                    const displayLabel = item.label || item.platform || item.icon || '—';
                                     return (
                                         <a 
                                             key={i} 
@@ -110,7 +135,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
                                             className={`flex flex-col items-center justify-center p-4 rounded-3xl transition-all active:scale-95 shadow-sm ${isDark ? 'bg-slate-900 hover:bg-slate-800' : 'bg-white hover:bg-slate-100'}`}
                                         >
                                             <IconComponent className="w-6 h-6 mb-2 text-indigo-500" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider opacity-60">{item.platform}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider opacity-60">{displayLabel}</span>
                                         </a>
                                     );
                                 })}
