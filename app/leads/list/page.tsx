@@ -15,7 +15,9 @@ import {
     Monitor,
     QrCode,
     Link2,
-    ShieldCheck
+    ShieldCheck,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "@/src/context/LanguageContext";
@@ -99,6 +101,7 @@ export default function LeadsListPage() {
     const [filterSource, setFilterSource] = useState("all");
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
+    const [showDisabled, setShowDisabled] = useState(false);
 
     // 📊 DB-driven table columns
     const { config: formConfig } = useFormConfig();
@@ -116,12 +119,12 @@ export default function LeadsListPage() {
             fetchLeads();
         };
         init();
-    }, []);
+    }, [showDisabled]);
 
     const fetchLeads = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/leads");
+            const res = await fetch(`/api/leads?includeHidden=${showDisabled}`);
             if (res.ok) {
                 const data = await res.json();
                 setLeads(data.leads || []);
@@ -130,6 +133,34 @@ export default function LeadsListPage() {
             toast.error("Erreur de chargement des leads");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (id: string, currentStatus: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const nextStatus = currentStatus === 'disabled' ? 'active' : 'disabled';
+        
+        const confirmMsg = nextStatus === 'disabled' 
+            ? "Voulez-vous vraiment désactiver ce lead ? Il sera masqué de la liste principale."
+            : "Voulez-vous réactiver ce lead ?";
+            
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const res = await fetch(`/api/leads/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: nextStatus })
+            });
+
+            if (res.ok) {
+                toast.success(nextStatus === 'disabled' ? "Lead désactivé" : "Lead réactivé");
+                fetchLeads();
+            } else {
+                toast.error("Erreur lors de la mise à jour");
+            }
+        } catch (error) {
+            toast.error("Erreur réseau");
         }
     };
 
@@ -246,6 +277,20 @@ export default function LeadsListPage() {
                         <Plus className="w-4 h-4" />
                         Nouveau
                     </button>
+
+                    {isManager && (
+                        <button
+                            onClick={() => setShowDisabled(!showDisabled)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                                showDisabled 
+                                    ? "bg-amber-50 border-amber-200 text-amber-600 shadow-inner" 
+                                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 shadow-sm"
+                            }`}
+                        >
+                            {showDisabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            {showDisabled ? "Masquer Désactivés" : "Voir Désactivés"}
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -318,6 +363,9 @@ export default function LeadsListPage() {
                                         <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sync</th>
                                         {isManager && (
                                             <th className="px-6 py-5 text-right text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-widest">{t('intelligence.promoteToGold') || "Gold"}</th>
+                                        )}
+                                        {isManager && (
+                                            <th className="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
                                         )}
                                     </tr>
                                 </thead>
@@ -438,6 +486,23 @@ export default function LeadsListPage() {
                                                                 <ShieldCheck className="w-3 h-3" /> Or
                                                             </span>
                                                         )}
+                                                    </td>
+                                                )}
+
+                                                {/* Status Toggle */}
+                                                {isManager && (
+                                                    <td className="px-6 py-5 text-center">
+                                                        <button
+                                                            onClick={(e) => handleToggleStatus(lead.id, lead.status, e)}
+                                                            className={`p-2 rounded-lg transition-all ${
+                                                                lead.status === 'disabled'
+                                                                    ? "bg-slate-900 text-white hover:bg-black"
+                                                                    : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                                                            }`}
+                                                            title={lead.status === 'disabled' ? "Réactiver" : "Désactiver"}
+                                                        >
+                                                            {lead.status === 'disabled' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                                        </button>
                                                     </td>
                                                 )}
                                             </tr>

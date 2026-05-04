@@ -19,7 +19,9 @@ import {
     GitBranch,
     Link2,
     History,
-    RotateCcw
+    RotateCcw,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useFormConfig } from "@/src/hooks/useFormConfig";
@@ -121,6 +123,32 @@ export default function LeadDetailPage() {
         }
     };
 
+    const handleToggleStatus = async () => {
+        const nextStatus = lead?.status === 'disabled' ? 'active' : 'disabled';
+        const confirmMsg = nextStatus === 'disabled' 
+            ? "Voulez-vous désactiver ce lead ? Il sera masqué des listes."
+            : "Voulez-vous réactiver ce lead ?";
+            
+        if (!confirm(confirmMsg)) return;
+
+        toast.loading(t('common.loading') || "Loading...", { id: 'status' });
+        try {
+            const res = await fetch(`/api/leads/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: nextStatus })
+            });
+            if (res.ok) {
+                toast.success(nextStatus === 'disabled' ? "Lead désactivé" : "Lead réactivé", { id: 'status' });
+                fetchLead(); // Refresh data
+            } else {
+                throw new Error();
+            }
+        } catch (error) {
+            toast.error("Erreur de mise à jour", { id: 'status' });
+        }
+    };
+
     if (loading) return <div className="flex-1 flex items-center justify-center">Chargement...</div>;
     if (!lead) return <div className="flex-1 flex items-center justify-center">Lead non trouvé</div>;
 
@@ -142,6 +170,19 @@ export default function LeadDetailPage() {
                     <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Détail du lead</h1>
                 </div>
                 <div className="flex gap-2">
+                    {userRole === 'ADMINISTRATOR' && (
+                        <button
+                            onClick={handleToggleStatus}
+                            className={`p-2 rounded-lg transition-all ${
+                                lead.status === 'disabled'
+                                    ? "bg-slate-900 text-white hover:bg-black shadow-lg"
+                                    : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                            }`}
+                            title={lead.status === 'disabled' ? "Réactiver" : "Désactiver"}
+                        >
+                            {lead.status === 'disabled' ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                        </button>
+                    )}
                     <button
                         onClick={() => router.push(`/leads/${id}/edit`)}
                         className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400 transition-colors"

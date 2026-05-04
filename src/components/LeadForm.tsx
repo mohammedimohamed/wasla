@@ -195,10 +195,25 @@ export const LeadForm: React.FC<LeadFormProps> = ({
                 }
 
                 // Online fallback (for server-synced leads handled by admin/legacy)
+                // 🛡️ SECURITY: Strip core system fields that shouldn't be part of metadata updates
+                const { 
+                    id: _id, 
+                    created_at: _ca, 
+                    created_by: _cb, 
+                    created_by_name: _cbn, 
+                    updated_at: _ua,
+                    tenant_id: _tid,
+                    team_id: _tmid,
+                    sync_status: _ss,
+                    status: _s,
+                    source: _src,
+                    ...cleanData 
+                } = data;
+
                 const res = await fetch(`/api/leads/${leadId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(cleanData),
                 });
                 if (res.status === 409) {
                     const err = await res.json();

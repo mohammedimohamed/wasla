@@ -28,18 +28,22 @@ export async function GET(request: Request) {
         const format = searchParams.get('format') || 'csv';
 
         // ── 3. DATA: Fetch Leads (RBAC-Scoped) ───────────────────────────────
+        const includeHidden = searchParams.get('includeHidden') === 'true';
+        const statusFilter = includeHidden ? "" : " AND (l.status = 'active' OR l.status IS NULL)";
+
         let rows: any[];
         if (session.role === 'ADMINISTRATOR') {
             rows = db.prepare(`
                 SELECT l.*, u.name as created_by_name
                 FROM leads l LEFT JOIN users u ON l.created_by = u.id
+                WHERE 1=1 ${statusFilter}
                 ORDER BY l.created_at DESC
             `).all() as any[];
         } else {
             rows = db.prepare(`
                 SELECT l.*, u.name as created_by_name
                 FROM leads l LEFT JOIN users u ON l.created_by = u.id
-                WHERE l.team_id = ?
+                WHERE l.team_id = ? ${statusFilter}
                 ORDER BY l.created_at DESC
             `).all(session.teamId) as any[];
         }

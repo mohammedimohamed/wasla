@@ -72,9 +72,20 @@ export async function GET(
             ORDER BY created_at DESC
         `).all(params.id) as any[];
 
+        // 🛡️ SECURITY: Prevent metadata from overwriting core DB columns during flattening
+        const { metadata: _internalMeta, ...dbFields } = lead;
+        
         const flattenedLead = {
-            ...lead,
+            ...dbFields,
             ...meta,
+            // Re-enforce immutable DB columns
+            id: dbFields.id,
+            created_by: dbFields.created_by,
+            created_at: dbFields.created_at,
+            created_by_name: dbFields.created_by_name,
+            tenant_id: dbFields.tenant_id,
+            team_id: dbFields.team_id,
+            source: dbFields.source,
             // Map common identifier fields to a stable 'contact' key for the profile header
             contact: meta.contact || meta.nom || meta.name || meta.prenom || "—",
             societe: meta.societe || meta.entreprise || meta.company || null,
@@ -98,7 +109,21 @@ export async function PUT(
 ) {
     try {
         const body = await request.json();
-        const { source, device_id, ...customFields } = body;
+        
+        // 🛡️ SECURITY: Explicitly exclude immutable system fields from the request body
+        // This prevents them from being accidentally merged into the metadata JSON
+        const { 
+            id: _id,
+            created_by: _cb, 
+            created_by_name: _cbn,
+            created_at: _ca, 
+            tenant_id: _tid, 
+            team_id: _tmid,
+            source, 
+            device_id, 
+            ...customFields 
+        } = body;
+        
         const now = new Date().toISOString();
 
         // 🛡️ SECURITY: Verify existence
@@ -111,7 +136,16 @@ export async function PUT(
         // Bundle updates into metadata
         // We merge with existing metadata to preserve fields not sent in this specific PUT
         const existingMeta = decryptMetadata(JSON.parse(existing.metadata || '{}'));
-        const updatedMeta = encryptMetadata({ ...existingMeta, ...customFields }, settingsDb.isEncryptionEnabled());
+        
+        // Filter out existing system fields if they somehow got into metadata previously
+        const { 
+            created_by: _ecb, 
+            created_at: _eca, 
+            tenant_id: _etid, 
+            ...safeExistingMeta 
+        } = existingMeta;
+
+        const updatedMeta = encryptMetadata({ ...safeExistingMeta, ...customFields }, settingsDb.isEncryptionEnabled());
 
         const query = `
             UPDATE leads SET

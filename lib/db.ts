@@ -462,7 +462,7 @@ export const leadsDb = {
         }
     },
 
-    getVisibleLeads: (userId: string) => {
+    getVisibleLeads: (userId: string, includeHidden: boolean = false) => {
         const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
         if (!user) return [];
 
@@ -475,6 +475,10 @@ export const leadsDb = {
             WHERE l.tenant_id = ?
         `;
         const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
+
+        if (!includeHidden) {
+            query += " AND (l.status = 'active' OR l.status IS NULL)";
+        }
 
         if (user.role === 'SALES_AGENT') {
             query += " AND l.created_by = ?";
@@ -496,6 +500,15 @@ export const leadsDb = {
     markSynced: (id: string) => {
         const now = new Date().toISOString();
         return db.prepare("UPDATE leads SET sync_status = 'synced', synced_at = ?, updated_at = ? WHERE id = ?").run(now, now, id);
+    },
+
+    updateStatus: (id: string, status: 'active' | 'disabled') => {
+        const now = new Date().toISOString();
+        if (process.env.NODE_ENV === 'development') {
+            const before = db.prepare("SELECT created_by, status FROM leads WHERE id = ?").get(id);
+            console.log(`[DB Debug] Toggling status for lead ${id}: ${before?.status} -> ${status} (Author: ${before?.created_by})`);
+        }
+        return db.prepare("UPDATE leads SET status = ?, updated_at = ? WHERE id = ?").run(status, now, id);
     },
 
     /**
@@ -526,8 +539,11 @@ export const leadsDb = {
         const user = db.prepare("SELECT role, team_id, tenant_id FROM users WHERE id = ?").get(userId) as { role: string, team_id: string, tenant_id: string } | undefined;
         if (!user) return { totalLeads: 0, leadsToday: 0, syncedLeads: 0, recentLeads: [] };
 
+// Fusion des deux logiques : Filtre de Période + Filtre de Statut (Active)
         const periodFilter = getPeriodFilter(period, 'created_at');
-        let filter = ` WHERE tenant_id = ? AND ${periodFilter}`;
+        let filter = ` WHERE tenant_id = ? AND ${periodFilter} AND (status = 'active' OR status IS NULL)`;
+        
+        const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
         const params: any[] = [user.tenant_id || '00000000-0000-0000-0000-000000000000'];
 
         if (user.role === 'SALES_AGENT') {

@@ -8,14 +8,17 @@ import { getSession } from '@/lib/auth';
  * 📊 LEADS API (LIST)
  * Fetches visible leads based on RBAC rules.
  */
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const includeHidden = searchParams.get('includeHidden') === 'true';
+
         const session = await getSession();
         if (!session || !session.hasPin) {
             return NextResponse.json({ error: 'Auth Required' }, { status: 401 });
         }
 
-        const leads = leadsDb.getVisibleLeads(session.userId);
+        const leads = leadsDb.getVisibleLeads(session.userId, includeHidden);
         return NextResponse.json({ success: true, leads });
     } catch (error) {
         return NextResponse.json({ success: false, error: 'Internal Error' }, { status: 500 });
