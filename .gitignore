@@ -61,4 +61,4 @@ next-env.d.ts
 
 # --- User Uploads & Dynamic Assets ---
 # Mediashow images, videos and tenant branding assets
-public/uploads/
+public/uploads/deploy.sh
